@@ -1,0 +1,2271 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+% 'BasicFonts': class PDFDictionary 
+1 0 obj
+% The standard fonts dictionary
+<< /F1 2 0 R
+ /F2 3 0 R
+ /F3 4 0 R
+ /F4 5 0 R
+ /F5 7 0 R
+ /F6 12 0 R >>
+endobj
+% 'F1': class PDFType1Font 
+2 0 obj
+% Font Helvetica
+<< /BaseFont /Helvetica
+ /Encoding /WinAnsiEncoding
+ /Name /F1
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'F2': class PDFType1Font 
+3 0 obj
+% Font Courier-Bold
+<< /BaseFont /Courier-Bold
+ /Encoding /WinAnsiEncoding
+ /Name /F2
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'F3': class PDFType1Font 
+4 0 obj
+% Font Helvetica-Bold
+<< /BaseFont /Helvetica-Bold
+ /Encoding /WinAnsiEncoding
+ /Name /F3
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'F4': class PDFType1Font 
+5 0 obj
+% Font Courier
+<< /BaseFont /Courier
+ /Encoding /WinAnsiEncoding
+ /Name /F4
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'Annot.NUMBER1': class LinkAnnotation 
+6 0 obj
+<< /Border [ 0
+ 0
+ 0 ]
+ /Contents ()
+ /Dest [ 19 0 R
+ /XYZ
+ 62.69291
+ 352.6236
+ 0 ]
+ /Rect [ 255.9742
+ 578.4272
+ 321.5378
+ 590.4272 ]
+ /Subtype /Link
+ /Type /Annot >>
+endobj
+% 'F5': class PDFType1Font 
+7 0 obj
+% Font Helvetica-Oblique
+<< /BaseFont /Helvetica-Oblique
+ /Encoding /WinAnsiEncoding
+ /Name /F5
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'Page1': class PDFPage 
+8 0 obj
+% Page dictionary
+<< /Annots [ 6 0 R ]
+ /Contents 47 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Page2': class PDFPage 
+9 0 obj
+% Page dictionary
+<< /Contents 48 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Page3': class PDFPage 
+10 0 obj
+% Page dictionary
+<< /Contents 49 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Annot.NUMBER2': class LinkAnnotation 
+11 0 obj
+<< /Border [ 0
+ 0
+ 0 ]
+ /Contents ()
+ /Dest [ 20 0 R
+ /XYZ
+ 62.69291
+ 560.6236
+ 0 ]
+ /Rect [ 101.6029
+ 455.4953
+ 141.6229
+ 467.4953 ]
+ /Subtype /Link
+ /Type /Annot >>
+endobj
+% 'F6': class PDFType1Font 
+12 0 obj
+% Font Helvetica-BoldOblique
+<< /BaseFont /Helvetica-BoldOblique
+ /Encoding /WinAnsiEncoding
+ /Name /F6
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'Annot.NUMBER3': class LinkAnnotation 
+13 0 obj
+<< /Border [ 0
+ 0
+ 0 ]
+ /Contents ()
+ /Dest [ 22 0 R
+ /XYZ
+ 62.69291
+ 245.6236
+ 0 ]
+ /Rect [ 327.1529
+ 299.2953
+ 392.7329
+ 311.2953 ]
+ /Subtype /Link
+ /Type /Annot >>
+endobj
+% 'Page4': class PDFPage 
+14 0 obj
+% Page dictionary
+<< /Annots [ 11 0 R
+ 13 0 R ]
+ /Contents 50 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Annot.NUMBER4': class LinkAnnotation 
+15 0 obj
+<< /Border [ 0
+ 0
+ 0 ]
+ /Contents ()
+ /Dest [ 19 0 R
+ /XYZ
+ 62.69291
+ 352.6236
+ 0 ]
+ /Rect [ 181.1917
+ 717.7736
+ 246.4634
+ 729.7736 ]
+ /Subtype /Link
+ /Type /Annot >>
+endobj
+% 'Annot.NUMBER5': class LinkAnnotation 
+16 0 obj
+<< /Border [ 0
+ 0
+ 0 ]
+ /Contents ()
+ /Dest [ 23 0 R
+ /XYZ
+ 62.69291
+ 502.8236
+ 0 ]
+ /Rect [ 306.1329
+ 263.3736
+ 337.2629
+ 275.3736 ]
+ /Subtype /Link
+ /Type /Annot >>
+endobj
+% 'Page5': class PDFPage 
+17 0 obj
+% Page dictionary
+<< /Annots [ 15 0 R
+ 16 0 R ]
+ /Contents 51 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Annot.NUMBER6': class LinkAnnotation 
+18 0 obj
+<< /Border [ 0
+ 0
+ 0 ]
+ /Contents ()
+ /Dest [ 22 0 R
+ /XYZ
+ 62.69291
+ 245.6236
+ 0 ]
+ /Rect [ 241.1229
+ 612.5736
+ 306.7029
+ 624.5736 ]
+ /Subtype /Link
+ /Type /Annot >>
+endobj
+% 'Page6': class PDFPage 
+19 0 obj
+% Page dictionary
+<< /Annots [ 18 0 R ]
+ /Contents 52 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Page7': class PDFPage 
+20 0 obj
+% Page dictionary
+<< /Contents 53 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Page8': class PDFPage 
+21 0 obj
+% Page dictionary
+<< /Contents 54 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Page9': class PDFPage 
+22 0 obj
+% Page dictionary
+<< /Contents 55 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Page10': class PDFPage 
+23 0 obj
+% Page dictionary
+<< /Contents 56 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 46 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'R24': class PDFCatalog 
+24 0 obj
+% Document Root
+<< /Outlines 26 0 R
+ /PageLabels 57 0 R
+ /PageMode /UseNone
+ /Pages 46 0 R
+ /Type /Catalog >>
+endobj
+% 'R25': class PDFInfo 
+25 0 obj
+<< /Author ()
+ /CreationDate (D:20130701104931+08'00')
+ /Creator (\(unspecified\))
+ /Keywords ()
+ /Producer (ReportLab PDF Library - www.reportlab.com)
+ /Subject (\(unspecified\))
+ /Title () >>
+endobj
+% 'R26': class PDFOutlines 
+26 0 obj
+<< /Count 23
+ /First 27 0 R
+ /Last 41 0 R
+ /Type /Outlines >>
+endobj
+% 'Outline.0': class OutlineEntryObject 
+27 0 obj
+<< /Count 8
+ /Dest [ 8 0 R
+ /XYZ
+ 62.69291
+ 765.0236
+ 0 ]
+ /First 28 0 R
+ /Last 35 0 R
+ /Next 36 0 R
+ /Parent 26 0 R
+ /Title (enum --- support for enumerations) >>
+endobj
+% 'Outline.20.0': class OutlineEntryObject 
+28 0 obj
+<< /Dest [ 8 0 R
+ /XYZ
+ 62.69291
+ 625.6772
+ 0 ]
+ /Next 29 0 R
+ /Parent 27 0 R
+ /Title (Creating an Enum) >>
+endobj
+% 'Outline.20.1': class OutlineEntryObject 
+29 0 obj
+<< /Dest [ 9 0 R
+ /XYZ
+ 62.69291
+ 440.6236
+ 0 ]
+ /Next 30 0 R
+ /Parent 27 0 R
+ /Prev 28 0 R
+ /Title (Programmatic access to enumeration members and their attributes) >>
+endobj
+% 'Outline.20.2': class OutlineEntryObject 
+30 0 obj
+<< /Dest [ 10 0 R
+ /XYZ
+ 62.69291
+ 765.0236
+ 0 ]
+ /Next 31 0 R
+ /Parent 27 0 R
+ /Prev 29 0 R
+ /Title (Duplicating enum members and values) >>
+endobj
+% 'Outline.20.3': class OutlineEntryObject 
+31 0 obj
+<< /Dest [ 14 0 R
+ /XYZ
+ 62.69291
+ 615.9453
+ 0 ]
+ /Next 32 0 R
+ /Parent 27 0 R
+ /Prev 30 0 R
+ /Title (Comparisons) >>
+endobj
+% 'Outline.20.4': class OutlineEntryObject 
+32 0 obj
+<< /Dest [ 17 0 R
+ /XYZ
+ 62.69291
+ 765.0236
+ 0 ]
+ /Next 33 0 R
+ /Parent 27 0 R
+ /Prev 31 0 R
+ /Title (Allowed members and attributes of enumerations) >>
+endobj
+% 'Outline.20.5': class OutlineEntryObject 
+33 0 obj
+<< /Dest [ 17 0 R
+ /XYZ
+ 62.69291
+ 250.6236
+ 0 ]
+ /Next 34 0 R
+ /Parent 27 0 R
+ /Prev 32 0 R
+ /Title (Restricted subclassing of enumerations) >>
+endobj
+% 'Outline.20.6': class OutlineEntryObject 
+34 0 obj
+<< /Dest [ 19 0 R
+ /XYZ
+ 62.69291
+ 599.8236
+ 0 ]
+ /Next 35 0 R
+ /Parent 27 0 R
+ /Prev 33 0 R
+ /Title (Pickling) >>
+endobj
+% 'Outline.20.7': class OutlineEntryObject 
+35 0 obj
+<< /Dest [ 19 0 R
+ /XYZ
+ 62.69291
+ 349.6236
+ 0 ]
+ /Parent 27 0 R
+ /Prev 34 0 R
+ /Title (Functional API) >>
+endobj
+% 'Outline.1': class OutlineEntryObject 
+36 0 obj
+<< /Count 2
+ /Dest [ 20 0 R
+ /XYZ
+ 62.69291
+ 590.6236
+ 0 ]
+ /First 37 0 R
+ /Last 38 0 R
+ /Next 39 0 R
+ /Parent 26 0 R
+ /Prev 27 0 R
+ /Title (Derived Enumerations) >>
+endobj
+% 'Outline.21.0': class OutlineEntryObject 
+37 0 obj
+<< /Dest [ 20 0 R
+ /XYZ
+ 62.69291
+ 557.6236
+ 0 ]
+ /Next 38 0 R
+ /Parent 36 0 R
+ /Title (IntEnum) >>
+endobj
+% 'Outline.21.1': class OutlineEntryObject 
+38 0 obj
+<< /Dest [ 21 0 R
+ /XYZ
+ 62.69291
+ 599.8236
+ 0 ]
+ /Parent 36 0 R
+ /Prev 37 0 R
+ /Title (Others) >>
+endobj
+% 'Outline.2': class OutlineEntryObject 
+39 0 obj
+<< /Count 1
+ /Dest [ 21 0 R
+ /XYZ
+ 62.69291
+ 354.6236
+ 0 ]
+ /First 40 0 R
+ /Last 40 0 R
+ /Next 41 0 R
+ /Parent 26 0 R
+ /Prev 36 0 R
+ /Title (Decorators) >>
+endobj
+% 'Outline.22.0': class OutlineEntryObject 
+40 0 obj
+<< /Dest [ 21 0 R
+ /XYZ
+ 62.69291
+ 321.6236
+ 0 ]
+ /Parent 39 0 R
+ /Title (unique) >>
+endobj
+% 'Outline.3': class OutlineEntryObject 
+41 0 obj
+<< /Count 4
+ /Dest [ 21 0 R
+ /XYZ
+ 62.69291
+ 144.4236
+ 0 ]
+ /First 42 0 R
+ /Last 45 0 R
+ /Parent 26 0 R
+ /Prev 39 0 R
+ /Title (Interesting examples) >>
+endobj
+% 'Outline.23.0': class OutlineEntryObject 
+42 0 obj
+<< /Dest [ 22 0 R
+ /XYZ
+ 62.69291
+ 765.0236
+ 0 ]
+ /Next 43 0 R
+ /Parent 41 0 R
+ /Title (AutoNumber) >>
+endobj
+% 'Outline.23.1': class OutlineEntryObject 
+43 0 obj
+<< /Dest [ 22 0 R
+ /XYZ
+ 62.69291
+ 527.8236
+ 0 ]
+ /Next 44 0 R
+ /Parent 41 0 R
+ /Prev 42 0 R
+ /Title (UniqueEnum) >>
+endobj
+% 'Outline.23.2': class OutlineEntryObject 
+44 0 obj
+<< /Dest [ 22 0 R
+ /XYZ
+ 62.69291
+ 242.6236
+ 0 ]
+ /Next 45 0 R
+ /Parent 41 0 R
+ /Prev 43 0 R
+ /Title (OrderedEnum) >>
+endobj
+% 'Outline.23.3': class OutlineEntryObject 
+45 0 obj
+<< /Dest [ 23 0 R
+ /XYZ
+ 62.69291
+ 499.8236
+ 0 ]
+ /Parent 41 0 R
+ /Prev 44 0 R
+ /Title (Planet) >>
+endobj
+% 'R46': class PDFPages 
+46 0 obj
+% page tree
+<< /Count 10
+ /Kids [ 8 0 R
+ 9 0 R
+ 10 0 R
+ 14 0 R
+ 17 0 R
+ 19 0 R
+ 20 0 R
+ 21 0 R
+ 22 0 R
+ 23 0 R ]
+ /Type /Pages >>
+endobj
+% 'R47': class PDFStream 
+47 0 obj
+% page stream
+<< /Length 5155 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 744.0236 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F2 17.5 Tf 0 0 0 rg (enum ) Tj /F3 17.5 Tf (--- support for enumerations) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 709.6772 cm
+n 0 14.17323 m 469.8898 14.17323 l S
+Q
+q
+1 0 0 1 62.69291 679.6772 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 2.091318 Tw (An enumeration is a set of symbolic names \(members\) bound to unique, constant values. Within an) Tj T* 0 Tw (enumeration, the members can be compared by identity, and the enumeration itself can be iterated over.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 637.6772 cm
+q
+BT 1 0 0 1 0 26 Tm 2.027485 Tw 12 TL /F1 10 Tf 0 0 0 rg (This module defines two enumeration classes that can be used to define unique sets of names and) Tj T* 0 Tw 1.193555 Tw (values: ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (and ) Tj /F4 10 Tf (IntEnum) Tj /F1 10 Tf (. It also defines one decorator, ) Tj /F4 10 Tf (unique) Tj /F1 10 Tf (, that ensures only unique member) Tj T* 0 Tw (names are present in an enumeration.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 607.6772 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Creating an Enum) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 565.6772 cm
+q
+BT 1 0 0 1 0 26 Tm 2.432651 Tw 12 TL /F1 10 Tf 0 0 0 rg (Enumerations are created using the ) Tj /F4 10 Tf (class ) Tj /F1 10 Tf (syntax, which makes them easy to read and write. An) Tj T* 0 Tw .533555 Tw (alternative creation method is described in ) Tj 0 0 .501961 rg (Functional API) Tj 0 0 0 rg (. To define an enumeration, subclass ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (as) Tj T* 0 Tw (follows:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 484.4772 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 72 re B*
+Q
+q
+BT 1 0 0 1 0 50 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( from enum import Enum) Tj T* (>) Tj (>) Tj (>) Tj ( class Color\(Enum\):) Tj T* (...     red = 1) Tj T* (...     green = 2) Tj T* (...     blue = 3) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 440.4772 cm
+q
+BT 1 0 0 1 0 26 Tm 1.069982 Tw 12 TL /F3 10 Tf 0 0 0 rg (A note on nomenclature) Tj /F1 10 Tf (: we call ) Tj /F4 10 Tf (Color ) Tj /F1 10 Tf (an ) Tj /F5 10 Tf (enumeration ) Tj /F1 10 Tf (\(or ) Tj /F5 10 Tf (enum) Tj /F1 10 Tf (\) and ) Tj /F4 10 Tf (Color.red) Tj /F1 10 Tf (, ) Tj /F4 10 Tf (Color.green) Tj T* 0 Tw 1.560751 Tw /F1 10 Tf (are ) Tj /F5 10 Tf (enumeration members ) Tj /F1 10 Tf (\(or ) Tj /F5 10 Tf (enum members) Tj /F1 10 Tf (\). Enumeration members also have ) Tj /F5 10 Tf (values ) Tj /F1 10 Tf (\(the value of) Tj T* 0 Tw /F4 10 Tf (Color.red ) Tj /F1 10 Tf (is ) Tj /F4 10 Tf (1) Tj /F1 10 Tf (, etc.\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 422.4772 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enumeration members have human readable string representations:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 377.2772 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 36 re B*
+Q
+q
+BT 1 0 0 1 0 14 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( print\(Color.red\)) Tj T* (Color.red) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 357.2772 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (...while their ) Tj /F4 10 Tf (repr ) Tj /F1 10 Tf (has more information:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 312.0772 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 36 re B*
+Q
+q
+BT 1 0 0 1 0 14 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( print\(repr\(Color.red\)\)) Tj T* (<) Tj (Color.red: 1) Tj (>) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 292.0772 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (The ) Tj /F5 10 Tf (type ) Tj /F1 10 Tf (of an enumeration member is the enumeration it belongs to:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 210.8772 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 72 re B*
+Q
+q
+BT 1 0 0 1 0 50 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( type\(Color.red\)) Tj T* (<) Tj (enum 'Color') Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( isinstance\(Color.green, Color\)) Tj T* (True) Tj T* (>) Tj (>) Tj (>) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 190.8772 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enum members also have a property that contains just their item name:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 145.6772 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 36 re B*
+Q
+q
+BT 1 0 0 1 0 14 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( print\(Color.red.name\)) Tj T* (red) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 113.6772 cm
+q
+BT 1 0 0 1 0 14 Tm .464985 Tw 12 TL /F1 10 Tf 0 0 0 rg (Enumerations support iteration. In Python 3.x definition order is used; in Python 2.x the definition order is) Tj T* 0 Tw (not available, but class attribute ) Tj /F4 10 Tf (__order__ ) Tj /F1 10 Tf (is supported; otherwise, value order is used:) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+% 'R48': class PDFStream 
+48 0 obj
+% page stream
+<< /Length 3848 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 583.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 180 re B*
+Q
+q
+BT 1 0 0 1 0 158 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Shake\(Enum\):) Tj T* (...   __order__ = 'vanilla chocolate cookies mint') Tj T* (...   vanilla = 7) Tj T* (...   chocolate = 4) Tj T* (...   cookies = 9) Tj T* (...   mint = 3) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( for shake in Shake:) Tj T* (...   print\(shake\)) Tj T* (...) Tj T* (Shake.vanilla) Tj T* (Shake.chocolate) Tj T* (Shake.cookies) Tj T* (Shake.mint) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 551.8236 cm
+q
+BT 1 0 0 1 0 14 Tm 1.585868 Tw 12 TL /F1 10 Tf 0 0 0 rg (The ) Tj /F4 10 Tf (__order__ ) Tj /F1 10 Tf (attribute is ignored, but still removed, in 3.x; however, in the stdlib version it will be) Tj T* 0 Tw (ignored but not removed.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 533.8236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enumeration members are hashable, so they can be used in dictionaries and sets:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 452.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 72 re B*
+Q
+q
+BT 1 0 0 1 0 50 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( apples = {}) Tj T* (>) Tj (>) Tj (>) Tj ( apples[Color.red] = 'red delicious') Tj T* (>) Tj (>) Tj (>) Tj ( apples[Color.green] = 'granny smith') Tj T* (>) Tj (>) Tj (>) Tj ( apples == {Color.red: 'red delicious', Color.green: 'granny smith'}) Tj T* (True) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 404.6236 cm
+q
+BT 1 0 0 1 0 21 Tm 18 TL /F3 15 Tf 0 0 0 rg (Programmatic access to enumeration members and their) Tj T* (attributes) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 362.6236 cm
+q
+BT 1 0 0 1 0 26 Tm 3.541797 Tw 12 TL /F1 10 Tf 0 0 0 rg (Sometimes it's useful to access members in enumerations programmatically \(i.e. situations where) Tj T* 0 Tw .922651 Tw /F4 10 Tf (Color.red ) Tj /F1 10 Tf (won't do because the exact color is not known at program-writing time\). ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (allows such) Tj T* 0 Tw (access:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 293.4236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 60 re B*
+Q
+q
+BT 1 0 0 1 0 38 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Color\(1\)) Tj T* (<) Tj (Color.red: 1) Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( Color\(3\)) Tj T* (<) Tj (Color.blue: 3) Tj (>) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 273.4236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (If you want to access enum members by ) Tj /F5 10 Tf (name) Tj /F1 10 Tf (, use item access:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 204.2236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 60 re B*
+Q
+q
+BT 1 0 0 1 0 38 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Color['red']) Tj T* (<) Tj (Color.red: 1) Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( Color['green']) Tj T* (<) Tj (Color.green: 2) Tj (>) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 184.2236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (If have an enum member and need its ) Tj /F4 10 Tf (name ) Tj /F1 10 Tf (or ) Tj /F4 10 Tf (value) Tj /F1 10 Tf (:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 103.0236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 72 re B*
+Q
+q
+BT 1 0 0 1 0 50 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( member = Color.red) Tj T* (>) Tj (>) Tj (>) Tj ( member.name) Tj T* ('red') Tj T* (>) Tj (>) Tj (>) Tj ( member.value) Tj T* (1) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+ 
+endstream
+endobj
+% 'R49': class PDFStream 
+49 0 obj
+% page stream
+<< /Length 4128 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 747.0236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Duplicating enum members and values) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 717.0236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL .628409 Tw (Having two enum members with the same name is invalid; in Python 3.x this would raise an error, but in) Tj T* 0 Tw (Python 2.x the second member simply overwrites the first:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 623.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 84 re B*
+Q
+q
+BT 1 0 0 1 0 62 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Shape\(Enum\):) Tj T* (...   square = 2) Tj T* (...   square = 3) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( Shape.square) Tj T* (<) Tj (Shape.square: 3) Tj (>) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 579.8236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 26 Tm /F1 10 Tf 12 TL .384987 Tw (However, two enum members are allowed to have the same value. Given two members A and B with the) Tj T* 0 Tw .444772 Tw (same value \(and A defined first\), B is an alias to A. By-value lookup of the value of A and B will return A.) Tj T* 0 Tw (By-name lookup of B will also return A:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 402.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 168 re B*
+Q
+q
+BT 1 0 0 1 0 146 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Shape\(Enum\):) Tj T* (...   __order__ = 'square diamond circle alias_for_square') Tj T* (...   square = 2) Tj T* (...   diamond = 1) Tj T* (...   circle = 3) Tj T* (...   alias_for_square = 2) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( Shape.square) Tj T* (<) Tj (Shape.square: 2) Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( Shape.alias_for_square) Tj T* (<) Tj (Shape.square: 2) Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( Shape\(2\)) Tj T* (<) Tj (Shape.square: 2) Tj (>) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 370.6236 cm
+q
+BT 1 0 0 1 0 14 Tm 1.074104 Tw 12 TL /F1 10 Tf 0 0 0 rg (Allowing aliases is not always desirable. ) Tj /F4 10 Tf (unique ) Tj /F1 10 Tf (can be used to ensure that none exist in a particular) Tj T* 0 Tw (enumeration:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 241.4236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 120 re B*
+Q
+q
+BT 1 0 0 1 0 98 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( @unique) Tj T* (... class Mistake\(Enum\):) Tj T* (...   one = 1) Tj T* (...   two = 2) Tj T* (...   three = 3) Tj T* (...   four = 3) Tj T* (Traceback \(most recent call last\):) Tj T* (...) Tj T* (ValueError: duplicate names found in ) Tj (<) Tj (enum 'Mistake') Tj (>) Tj (: four -) Tj (>) Tj ( three) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 221.4236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Iterating over the members of an enum does not provide the aliases:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 176.2236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 36 re B*
+Q
+q
+BT 1 0 0 1 0 14 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( list\(Shape\)) Tj T* ([) Tj (<) Tj (Shape.square: 2) Tj (>) Tj (, ) Tj (<) Tj (Shape.diamond: 1) Tj (>) Tj (, ) Tj (<) Tj (Shape.circle: 3) Tj (>) Tj (]) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 144.2236 cm
+q
+BT 1 0 0 1 0 14 Tm 1.307126 Tw 12 TL /F1 10 Tf 0 0 0 rg (The special attribute ) Tj /F4 10 Tf (__members__ ) Tj /F1 10 Tf (is a dictionary mapping names to members. It includes all names) Tj T* 0 Tw (defined in the enumeration, including the aliases:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 87.02362 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 48 re B*
+Q
+q
+BT 1 0 0 1 0 26 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( for name, member in sorted\(Shape.__members__.items\(\)\):) Tj T* (...   name, member) Tj T* (...) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+ 
+endstream
+endobj
+% 'R50': class PDFStream 
+50 0 obj
+% page stream
+<< /Length 4761 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 703.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 60 re B*
+Q
+q
+BT 1 0 0 1 0 38 Tm 12 TL /F4 10 Tf 0 0 0 rg (\('alias_for_square', ) Tj (<) Tj (Shape.square: 2) Tj (>) Tj (\)) Tj T* (\('circle', ) Tj (<) Tj (Shape.circle: 3) Tj (>) Tj (\)) Tj T* (\('diamond', ) Tj (<) Tj (Shape.diamond: 1) Tj (>) Tj (\)) Tj T* (\('square', ) Tj (<) Tj (Shape.square: 2) Tj (>) Tj (\)) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 671.8236 cm
+q
+BT 1 0 0 1 0 14 Tm .080751 Tw 12 TL /F1 10 Tf 0 0 0 rg (The ) Tj /F4 10 Tf (__members__ ) Tj /F1 10 Tf (attribute can be used for detailed programmatic access to the enumeration members.) Tj T* 0 Tw (For example, finding all the aliases:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 627.9453 cm
+q
+q
+.96447 0 0 .96447 0 0 cm
+q
+1 0 0 1 6.6 6.843137 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 486 36 re B*
+Q
+q
+BT 1 0 0 1 0 14 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( [name for name, member in Shape.__members__.items\(\) if member.name != name]) Tj T* (['alias_for_square']) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 597.9453 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Comparisons) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 579.9453 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enumeration members are compared by identity:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 486.7453 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 84 re B*
+Q
+q
+BT 1 0 0 1 0 62 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Color.red is Color.red) Tj T* (True) Tj T* (>) Tj (>) Tj (>) Tj ( Color.red is Color.blue) Tj T* (False) Tj T* (>) Tj (>) Tj (>) Tj ( Color.red is not Color.blue) Tj T* (True) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 454.7453 cm
+q
+BT 1 0 0 1 0 14 Tm 1.131647 Tw 12 TL /F1 10 Tf 0 0 0 rg (Ordered comparisons between enumeration values are ) Tj /F5 10 Tf (not ) Tj /F1 10 Tf (supported. Enum members are not integers) Tj T* 0 Tw (\(but see ) Tj 0 0 .501961 rg (IntEnum ) Tj 0 0 0 rg (below\):) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 385.5453 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 60 re B*
+Q
+q
+BT 1 0 0 1 0 38 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Color.red ) Tj (<) Tj ( Color.blue) Tj T* (Traceback \(most recent call last\):) Tj T* (  File ") Tj (<) Tj (stdin) Tj (>) Tj (", line 1, in ) Tj (<) Tj (module) Tj (>) Tj  T* (TypeError: unorderable types: Color\(\) ) Tj (<) Tj ( Color\(\)) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 365.5453 cm
+Q
+q
+1 0 0 1 62.69291 282.5453 cm
+.960784 .960784 .862745 rg
+n 0 83 469.8898 -83 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 6 57 Tm  T* ET
+q
+1 0 0 1 16 52 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2.5 Tm /F6 12.5 Tf 15 TL (Warning) Tj T* ET
+Q
+Q
+q
+1 0 0 1 16 16 cm
+q
+BT 1 0 0 1 0 14 Tm .189398 Tw 12 TL /F1 10 Tf 0 0 0 rg (In Python 2 ) Tj /F5 10 Tf (everything ) Tj /F1 10 Tf (is ordered, even though the ordering may not make sense. If you want your) Tj T* 0 Tw (enumerations to have a sensible ordering check out the ) Tj 0 0 .501961 rg (OrderedEnum ) Tj 0 0 0 rg (recipe below.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.662745 .662745 .662745 RG
+.5 w
+n 0 83 m 469.8898 83 l S
+n 0 0 m 469.8898 0 l S
+n 0 0 m 0 83 l S
+n 469.8898 0 m 469.8898 83 l S
+Q
+Q
+q
+1 0 0 1 62.69291 276.5453 cm
+Q
+q
+1 0 0 1 62.69291 258.5453 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Equality comparisons are defined though:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 165.3453 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 84 re B*
+Q
+q
+BT 1 0 0 1 0 62 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Color.blue == Color.red) Tj T* (False) Tj T* (>) Tj (>) Tj (>) Tj ( Color.blue != Color.red) Tj T* (True) Tj T* (>) Tj (>) Tj (>) Tj ( Color.blue == Color.blue) Tj T* (True) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 133.3453 cm
+q
+BT 1 0 0 1 0 14 Tm 2.582706 Tw 12 TL /F1 10 Tf 0 0 0 rg (Comparisons against non-enumeration values will always compare not equal \(again, ) Tj /F4 10 Tf (IntEnum ) Tj /F1 10 Tf (was) Tj T* 0 Tw (explicitly designed to behave differently, see below\):) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 88.14534 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 36 re B*
+Q
+q
+BT 1 0 0 1 0 14 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Color.blue == 2) Tj T* (False) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+ 
+endstream
+endobj
+% 'R51': class PDFStream 
+51 0 obj
+% page stream
+<< /Length 4172 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 747.0236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Allowed members and attributes of enumerations) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 693.0236 cm
+q
+BT 1 0 0 1 0 38 Tm 2.755697 Tw 12 TL /F1 10 Tf 0 0 0 rg (The examples above use integers for enumeration values. Using integers is short and handy \(and) Tj T* 0 Tw .241751 Tw (provided by default by the ) Tj 0 0 .501961 rg (Functional API) Tj 0 0 0 rg (\), but not strictly enforced. In the vast majority of use-cases, one) Tj T* 0 Tw .848221 Tw (doesn't care what the actual value of an enumeration is. But if the value ) Tj /F5 10 Tf (is ) Tj /F1 10 Tf (important, enumerations can) Tj T* 0 Tw (have arbitrary values.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 663.0236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL .638735 Tw (Enumerations are Python classes, and can have methods and special methods as usual. If we have this) Tj T* 0 Tw (enumeration:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 461.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 192 re B*
+Q
+q
+BT 1 0 0 1 0 170 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Mood\(Enum\):) Tj T* (...   funky = 1) Tj T* (...   happy = 3) Tj T* (...) Tj T* (...   def describe\(self\):) Tj T* (...     # self is the member here) Tj T* (...     return self.name, self.value) Tj T* (...) Tj T* (...   def __str__\(self\):) Tj T* (...     return 'my custom str! {0}'.format\(self.value\)) Tj T* (...) Tj T* (...   @classmethod) Tj T* (...   def favorite_mood\(cls\):) Tj T* (...     # cls here is the enumeration) Tj T* (...     return cls.happy) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 441.8236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Then:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 348.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 84 re B*
+Q
+q
+BT 1 0 0 1 0 62 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Mood.favorite_mood\(\)) Tj T* (<) Tj (Mood.happy: 3) Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( Mood.happy.describe\(\)) Tj T* (\('happy', 3\)) Tj T* (>) Tj (>) Tj (>) Tj ( str\(Mood.funky\)) Tj T* ('my custom str! 1') Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 292.6236 cm
+q
+BT 1 0 0 1 0 38 Tm 3.14186 Tw 12 TL /F1 10 Tf 0 0 0 rg (The rules for what is allowed are as follows: _sunder_ names \(starting and ending with a single) Tj T* 0 Tw .310651 Tw (underscore\) are reserved by enum and cannot be used; all other attributes defined within an enumeration) Tj T* 0 Tw 2.199213 Tw (will become members of this enumeration, with the exception of ) Tj /F5 10 Tf (__dunder__ ) Tj /F1 10 Tf (names and descriptors) Tj T* 0 Tw (\(methods are also descriptors\).) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 262.6236 cm
+q
+BT 1 0 0 1 0 14 Tm .472126 Tw 12 TL /F1 10 Tf 0 0 0 rg (Note: if your enumeration defines ) Tj /F4 10 Tf (__new__ ) Tj /F1 10 Tf (and/or ) Tj /F4 10 Tf (__init__ ) Tj /F1 10 Tf (then whatever value\(s\) were given to the) Tj T* 0 Tw (enum member will be passed into those methods. See ) Tj 0 0 .501961 rg (Planet ) Tj 0 0 0 rg (for an example.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 232.6236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Restricted subclassing of enumerations) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 202.6236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL .778735 Tw (Subclassing an enumeration is allowed only if the enumeration does not define any members. So this is) Tj T* 0 Tw (forbidden:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 121.4236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 72 re B*
+Q
+q
+BT 1 0 0 1 0 50 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class MoreColor\(Color\):) Tj T* (...   pink = 17) Tj T* (Traceback \(most recent call last\):) Tj T* (...) Tj T* (TypeError: Cannot extend enumerations) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 101.4236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (But this is allowed:) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+% 'R52': class PDFStream 
+52 0 obj
+% page stream
+<< /Length 4809 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 655.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 108 re B*
+Q
+q
+BT 1 0 0 1 0 86 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Foo\(Enum\):) Tj T* (...   def some_behavior\(self\):) Tj T* (...     pass) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( class Bar\(Foo\):) Tj T* (...   happy = 1) Tj T* (...   sad = 2) Tj T* (...) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 611.8236 cm
+q
+BT 1 0 0 1 0 26 Tm .127984 Tw 12 TL /F1 10 Tf 0 0 0 rg (Allowing subclassing of enums that define members would lead to a violation of some important invariants) Tj T* 0 Tw 1.889985 Tw (of types and instances. On the other hand, it makes sense to allow sharing some common behavior) Tj T* 0 Tw (between a group of enumerations. \(See ) Tj 0 0 .501961 rg (OrderedEnum ) Tj 0 0 0 rg (for an example.\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 581.8236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Pickling) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 563.8236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enumerations can be pickled and unpickled:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 494.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 60 re B*
+Q
+q
+BT 1 0 0 1 0 38 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( from test_enum import Fruit) Tj T* (>) Tj (>) Tj (>) Tj ( from pickle import dumps, loads) Tj T* (>) Tj (>) Tj (>) Tj ( Fruit.tomato is loads\(dumps\(Fruit.tomato, 2\)\)) Tj T* (True) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 462.6236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 1.256457 Tw (The usual restrictions for pickling apply: picklable enums must be defined in the top level of a module,) Tj T* 0 Tw (since unpickling requires them to be importable from that module.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 450.6236 cm
+Q
+q
+1 0 0 1 62.69291 367.6236 cm
+.960784 .960784 .862745 rg
+n 0 83 469.8898 -83 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 6 57 Tm  T* ET
+q
+1 0 0 1 16 52 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2.5 Tm /F6 12.5 Tf 15 TL (Warning) Tj T* ET
+Q
+Q
+q
+1 0 0 1 16 16 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 1.939269 Tw (In order to support the singleton nature of enumeration members, pickle protocol version 2 or) Tj T* 0 Tw (higher must be used. The default in Python 2.x is 0.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.662745 .662745 .662745 RG
+.5 w
+n 0 83 m 469.8898 83 l S
+n 0 0 m 469.8898 0 l S
+n 0 0 m 0 83 l S
+n 469.8898 0 m 469.8898 83 l S
+Q
+Q
+q
+1 0 0 1 62.69291 361.6236 cm
+Q
+q
+1 0 0 1 62.69291 331.6236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Functional API) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 313.6236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (The ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (class is callable, providing the following functional API:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 184.4236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 120 re B*
+Q
+q
+BT 1 0 0 1 0 98 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Animal = Enum\('Animal', 'ant bee cat dog'\)) Tj T* (>) Tj (>) Tj (>) Tj ( Animal) Tj T* (<) Tj (enum 'Animal') Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( Animal.ant) Tj T* (<) Tj (Animal.ant: 1) Tj (>) Tj  T* (>) Tj (>) Tj (>) Tj ( Animal.ant.value) Tj T* (1) Tj T* (>) Tj (>) Tj (>) Tj ( list\(Animal\)) Tj T* ([) Tj (<) Tj (Animal.ant: 1) Tj (>) Tj (, ) Tj (<) Tj (Animal.bee: 2) Tj (>) Tj (, ) Tj (<) Tj (Animal.cat: 3) Tj (>) Tj (, ) Tj (<) Tj (Animal.dog: 4) Tj (>) Tj (]) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 152.4236 cm
+q
+BT 1 0 0 1 0 14 Tm .602209 Tw 12 TL /F1 10 Tf 0 0 0 rg (The semantics of this API resemble ) Tj /F4 10 Tf (namedtuple) Tj /F1 10 Tf (. The first argument of the call to ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (is the name of) Tj T* 0 Tw (the enumeration.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 86.42362 cm
+q
+BT 1 0 0 1 0 50 Tm 1.326412 Tw 12 TL /F1 10 Tf 0 0 0 rg (The second argument is the ) Tj /F5 10 Tf (source ) Tj /F1 10 Tf (of enumeration member names. It can be a whitespace-separated) Tj T* 0 Tw .993516 Tw (string of names, a sequence of names, a sequence of 2-tuples with key/value pairs, or a mapping \(e.g.) Tj T* 0 Tw 1.168555 Tw (dictionary\) of names to values. The last two options enable assigning arbitrary values to enumerations;) Tj T* 0 Tw .537485 Tw (the others auto-assign increasing integers starting with 1. A new class derived from ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (is returned. In) Tj T* 0 Tw (other words, the above assignment to ) Tj /F4 10 Tf (Animal ) Tj /F1 10 Tf (is equivalent to:) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+% 'R53': class PDFStream 
+53 0 obj
+% page stream
+<< /Length 3592 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 691.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 72 re B*
+Q
+q
+BT 1 0 0 1 0 50 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Animals\(Enum\):) Tj T* (...   ant = 1) Tj T* (...   bee = 2) Tj T* (...   cat = 3) Tj T* (...   dog = 4) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 635.8236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 38 Tm /F1 10 Tf 12 TL 1.239984 Tw (Pickling enums created with the functional API can be tricky as frame stack implementation details are) Tj T* 0 Tw .937132 Tw (used to try and figure out which module the enumeration is being created in \(e.g. it will fail if you use a) Tj T* 0 Tw 1.321163 Tw (utility function in separate module, and also may not work on IronPython or Jython\). The solution is to) Tj T* 0 Tw (specify the module name explicitly as follows:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 602.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 24 re B*
+Q
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( Animals = Enum\('Animals', 'ant bee cat dog', module=__name__\)) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 569.6236 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F3 17.5 Tf 0 0 0 rg (Derived Enumerations) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 539.6236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (IntEnum) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 497.6236 cm
+q
+BT 1 0 0 1 0 26 Tm 1.99832 Tw 12 TL /F1 10 Tf 0 0 0 rg (A variation of ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (is provided which is also a subclass of ) Tj /F4 10 Tf (int) Tj /F1 10 Tf (. Members of an ) Tj /F4 10 Tf (IntEnum ) Tj /F1 10 Tf (can be) Tj T* 0 Tw .087984 Tw (compared to integers; by extension, integer enumerations of different types can also be compared to each) Tj T* 0 Tw (other:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 296.4236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 192 re B*
+Q
+q
+BT 1 0 0 1 0 170 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( from enum import IntEnum) Tj T* (>) Tj (>) Tj (>) Tj ( class Shape\(IntEnum\):) Tj T* (...   circle = 1) Tj T* (...   square = 2) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( class Request\(IntEnum\):) Tj T* (...   post = 1) Tj T* (...   get = 2) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( Shape == 1) Tj T* (False) Tj T* (>) Tj (>) Tj (>) Tj ( Shape.circle == 1) Tj T* (True) Tj T* (>) Tj (>) Tj (>) Tj ( Shape.circle == Request.post) Tj T* (True) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 276.4236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (However, they still can't be compared to standard ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (enumerations:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 135.2236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 132 re B*
+Q
+q
+BT 1 0 0 1 0 110 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Shape\(IntEnum\):) Tj T* (...   circle = 1) Tj T* (...   square = 2) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( class Color\(Enum\):) Tj T* (...   red = 1) Tj T* (...   green = 2) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( Shape.circle == Color.red) Tj T* (False) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 115.2236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F4 10 Tf 0 0 0 rg (IntEnum ) Tj /F1 10 Tf (values behave like integers in other ways you'd expect:) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+% 'R54': class PDFStream 
+54 0 obj
+% page stream
+<< /Length 5943 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 679.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 84 re B*
+Q
+q
+BT 1 0 0 1 0 62 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( int\(Shape.circle\)) Tj T* (1) Tj T* (>) Tj (>) Tj (>) Tj ( ['a', 'b', 'c'][Shape.circle]) Tj T* ('b') Tj T* (>) Tj (>) Tj (>) Tj ( [i for i in range\(Shape.square\)]) Tj T* ([0, 1]) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 611.8236 cm
+q
+BT 1 0 0 1 0 50 Tm 1.197126 Tw 12 TL /F1 10 Tf 0 0 0 rg (For the vast majority of code, ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (is strongly recommended, since ) Tj /F4 10 Tf (IntEnum ) Tj /F1 10 Tf (breaks some semantic) Tj T* 0 Tw .793318 Tw (promises of an enumeration \(by being comparable to integers, and thus by transitivity to other unrelated) Tj T* 0 Tw .554985 Tw (enumerations\). It should be used only in special cases where there's no other choice; for example, when) Tj T* 0 Tw .746136 Tw (integer constants are replaced with enumerations and backwards compatibility is required with code that) Tj T* 0 Tw (still expects integers.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 581.8236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Others) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 563.8236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (While ) Tj /F4 10 Tf (IntEnum ) Tj /F1 10 Tf (is part of the ) Tj /F4 10 Tf (enum ) Tj /F1 10 Tf (module, it would be very simple to implement independently:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 518.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 36 re B*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F4 10 Tf 12 TL (class IntEnum\(int, Enum\):) Tj T* (    pass) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 486.6236 cm
+q
+BT 1 0 0 1 0 14 Tm .361412 Tw 12 TL /F1 10 Tf 0 0 0 rg (This demonstrates how similar derived enumerations can be defined; for example a ) Tj /F4 10 Tf (StrEnum ) Tj /F1 10 Tf (that mixes) Tj T* 0 Tw (in ) Tj /F4 10 Tf (str ) Tj /F1 10 Tf (instead of ) Tj /F4 10 Tf (int) Tj /F1 10 Tf (.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 468.6236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Some rules:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 462.6236 cm
+Q
+q
+1 0 0 1 62.69291 462.6236 cm
+Q
+q
+1 0 0 1 62.69291 438.6236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 5.66 0 Td (1.) Tj T* -5.66 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+BT 1 0 0 1 0 14 Tm .477318 Tw 12 TL /F1 10 Tf 0 0 0 rg (When subclassing ) Tj /F4 10 Tf (Enum) Tj /F1 10 Tf (, mix-in types must appear before ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (itself in the sequence of bases, as) Tj T* 0 Tw (in the ) Tj /F4 10 Tf (IntEnum ) Tj /F1 10 Tf (example above.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 432.6236 cm
+Q
+q
+1 0 0 1 62.69291 396.6236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 21 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 5.66 0 Td (2.) Tj T* -5.66 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+BT 1 0 0 1 0 26 Tm 1.147045 Tw 12 TL /F1 10 Tf 0 0 0 rg (While ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (can have members of any type, once you mix in an additional type, all the members) Tj T* 0 Tw .420574 Tw (must have values of that type, e.g. ) Tj /F4 10 Tf (int ) Tj /F1 10 Tf (above. This restriction does not apply to mix-ins which only) Tj T* 0 Tw (add methods and don't specify another data type such as ) Tj /F4 10 Tf (int ) Tj /F1 10 Tf (or ) Tj /F4 10 Tf (str) Tj /F1 10 Tf (.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 390.6236 cm
+Q
+q
+1 0 0 1 62.69291 366.6236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 5.66 0 Td (3.) Tj T* -5.66 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+BT 1 0 0 1 0 14 Tm .100542 Tw 12 TL /F1 10 Tf 0 0 0 rg (When another data type is mixed in, the ) Tj /F4 10 Tf (value ) Tj /F1 10 Tf (attribute is ) Tj /F5 10 Tf (not the same ) Tj /F1 10 Tf (as the enum member itself,) Tj T* 0 Tw (although it is equivalant and will compare equal.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 366.6236 cm
+Q
+q
+1 0 0 1 62.69291 333.6236 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F3 17.5 Tf 0 0 0 rg (Decorators) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 303.6236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (unique) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 273.6236 cm
+q
+BT 1 0 0 1 0 14 Tm .287251 Tw 12 TL /F1 10 Tf 0 0 0 rg (A ) Tj /F4 10 Tf (class ) Tj /F1 10 Tf (decorator specifically for enumerations. It searches an enumeration's ) Tj /F4 10 Tf (__members__ ) Tj /F1 10 Tf (gathering) Tj T* 0 Tw (any aliases it finds; if any are found ) Tj /F4 10 Tf (ValueError ) Tj /F1 10 Tf (is raised with the details:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 156.4236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 108 re B*
+Q
+q
+BT 1 0 0 1 0 86 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( @unique) Tj T* (... class NoDupes\(Enum\):) Tj T* (...    first = 'one') Tj T* (...    second = 'two') Tj T* (...    third = 'two') Tj T* (Traceback \(most recent call last\):) Tj T* (...) Tj T* (ValueError: duplicate names found in ) Tj (<) Tj (enum 'NoDupes') Tj (>) Tj (: third -) Tj (>) Tj ( second) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 123.4236 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F3 17.5 Tf 0 0 0 rg (Interesting examples) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 81.42362 cm
+q
+BT 1 0 0 1 0 26 Tm .593735 Tw 12 TL /F1 10 Tf 0 0 0 rg (While ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (and ) Tj /F4 10 Tf (IntEnum ) Tj /F1 10 Tf (are expected to cover the majority of use-cases, they cannot cover them all.) Tj T* 0 Tw .897045 Tw (Here are recipes for some different types of enumerations that can be used directly, or as examples for) Tj T* 0 Tw (creating one's own.) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+% 'R55': class PDFStream 
+55 0 obj
+% page stream
+<< /Length 3502 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 747.0236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (AutoNumber) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 729.0236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Avoids having to specify the value for each enumeration member:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 539.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 180 re B*
+Q
+q
+BT 1 0 0 1 0 158 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class AutoNumber\(Enum\):) Tj T* (...     def __new__\(cls\):) Tj T* (...         value = len\(cls.__members__\) + 1) Tj T* (...         obj = object.__new__\(cls\)) Tj T* (...         obj._value = value) Tj T* (...         return obj) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( class Color\(AutoNumber\):) Tj T* (...     red = \(\)) Tj T* (...     green = \(\)) Tj T* (...     blue = \(\)) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( Color.green.value == 2) Tj T* (True) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 509.8236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (UniqueEnum) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 491.8236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Raises an error if a duplicate member name is found instead of creating an alias:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 254.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 228 re B*
+Q
+q
+BT 1 0 0 1 0 206 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class UniqueEnum\(Enum\):) Tj T* (...     def __init__\(self, *args\):) Tj T* (...         cls = self.__class__) Tj T* (...         if any\(self.value == e.value for e in cls\):) Tj T* (...             a = self.name) Tj T* (...             e = cls\(self.value\).name) Tj T* (...             raise ValueError\() Tj T* (...                     "aliases not allowed in UniqueEnum:  %r --) Tj (>) Tj ( %r") Tj T* (...                     % \(a, e\)\)) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( class Color\(UniqueEnum\):) Tj T* (...     red = 1) Tj T* (...     green = 2) Tj T* (...     blue = 3) Tj T* (...     grene = 2) Tj T* (Traceback \(most recent call last\):) Tj T* (...) Tj T* (ValueError: aliases not allowed in UniqueEnum:  'grene' --) Tj (>) Tj ( 'green') Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 224.6236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (OrderedEnum) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 194.6236 cm
+q
+BT 1 0 0 1 0 14 Tm 1.335984 Tw 12 TL /F1 10 Tf 0 0 0 rg (An ordered enumeration that is not based on ) Tj /F4 10 Tf (IntEnum ) Tj /F1 10 Tf (and so maintains the normal ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (invariants) Tj T* 0 Tw (\(such as not being comparable to other enumerations\):) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 77.42362 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 108 re B*
+Q
+q
+BT 1 0 0 1 0 86 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class OrderedEnum\(Enum\):) Tj T* (...     def __ge__\(self, other\):) Tj T* (...         if self.__class__ is other.__class__:) Tj T* (...             return self._value ) Tj (>) Tj (= other._value) Tj T* (...         return NotImplemented) Tj T* (...     def __gt__\(self, other\):) Tj T* (...         if self.__class__ is other.__class__:) Tj T* (...             return self._value ) Tj (>) Tj ( other._value) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+ 
+endstream
+endobj
+% 'R56': class PDFStream 
+56 0 obj
+% page stream
+<< /Length 2712 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 511.8236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 252 re B*
+Q
+q
+BT 1 0 0 1 0 230 Tm 12 TL /F4 10 Tf 0 0 0 rg (...         return NotImplemented) Tj T* (...     def __le__\(self, other\):) Tj T* (...         if self.__class__ is other.__class__:) Tj T* (...             return self._value ) Tj (<) Tj (= other._value) Tj T* (...         return NotImplemented) Tj T* (...     def __lt__\(self, other\):) Tj T* (...         if self.__class__ is other.__class__:) Tj T* (...             return self._value ) Tj (<) Tj ( other._value) Tj T* (...         return NotImplemented) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( class Grade\(OrderedEnum\):) Tj T* (...     __ordered__ = 'A B C D F') Tj T* (...     A = 5) Tj T* (...     B = 4) Tj T* (...     C = 3) Tj T* (...     D = 2) Tj T* (...     F = 1) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( Grade.C ) Tj (<) Tj ( Grade.A) Tj T* (True) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 62.69291 481.8236 cm
+q
+BT 1 0 0 1 0 3 Tm 18 TL /F3 15 Tf 0 0 0 rg (Planet) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 463.8236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (If ) Tj /F4 10 Tf (__new__ ) Tj /F1 10 Tf (or ) Tj /F4 10 Tf (__init__ ) Tj /F1 10 Tf (is defined the value of the enum member will be passed to those methods:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 178.6236 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 468.6898 276 re B*
+Q
+q
+BT 1 0 0 1 0 254 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Planet\(Enum\):) Tj T* (...     MERCURY = \(3.303e+23, 2.4397e6\)) Tj T* (...     VENUS   = \(4.869e+24, 6.0518e6\)) Tj T* (...     EARTH   = \(5.976e+24, 6.37814e6\)) Tj T* (...     MARS    = \(6.421e+23, 3.3972e6\)) Tj T* (...     JUPITER = \(1.9e+27,   7.1492e7\)) Tj T* (...     SATURN  = \(5.688e+26, 6.0268e7\)) Tj T* (...     URANUS  = \(8.686e+25, 2.5559e7\)) Tj T* (...     NEPTUNE = \(1.024e+26, 2.4746e7\)) Tj T* (...     def __init__\(self, mass, radius\):) Tj T* (...         self.mass = mass       # in kilograms) Tj T* (...         self.radius = radius   # in meters) Tj T* (...     @property) Tj T* (...     def surface_gravity\(self\):) Tj T* (...         # universal gravitational constant  \(m3 kg-1 s-2\)) Tj T* (...         G = 6.67300E-11) Tj T* (...         return G * self.mass / \(self.radius * self.radius\)) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( Planet.EARTH.value) Tj T* (\(5.976e+24, 6378140.0\)) Tj T* (>) Tj (>) Tj (>) Tj ( Planet.EARTH.surface_gravity) Tj T* (9.802652743337129) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+ 
+endstream
+endobj
+% 'R57': class PDFPageLabels 
+57 0 obj
+% Document Root
+<< /Nums [ 0
+ 58 0 R
+ 1
+ 59 0 R
+ 2
+ 60 0 R
+ 3
+ 61 0 R
+ 4
+ 62 0 R
+ 5
+ 63 0 R
+ 6
+ 64 0 R
+ 7
+ 65 0 R
+ 8
+ 66 0 R
+ 9
+ 67 0 R ] >>
+endobj
+% 'R58': class PDFPageLabel 
+58 0 obj
+% None
+<< /S /D
+ /St 1 >>
+endobj
+% 'R59': class PDFPageLabel 
+59 0 obj
+% None
+<< /S /D
+ /St 2 >>
+endobj
+% 'R60': class PDFPageLabel 
+60 0 obj
+% None
+<< /S /D
+ /St 3 >>
+endobj
+% 'R61': class PDFPageLabel 
+61 0 obj
+% None
+<< /S /D
+ /St 4 >>
+endobj
+% 'R62': class PDFPageLabel 
+62 0 obj
+% None
+<< /S /D
+ /St 5 >>
+endobj
+% 'R63': class PDFPageLabel 
+63 0 obj
+% None
+<< /S /D
+ /St 6 >>
+endobj
+% 'R64': class PDFPageLabel 
+64 0 obj
+% None
+<< /S /D
+ /St 7 >>
+endobj
+% 'R65': class PDFPageLabel 
+65 0 obj
+% None
+<< /S /D
+ /St 8 >>
+endobj
+% 'R66': class PDFPageLabel 
+66 0 obj
+% None
+<< /S /D
+ /St 9 >>
+endobj
+% 'R67': class PDFPageLabel 
+67 0 obj
+% None
+<< /S /D
+ /St 10 >>
+endobj
+xref
+0 68
+0000000000 65535 f
+0000000113 00000 n
+0000000270 00000 n
+0000000435 00000 n
+0000000606 00000 n
+0000000781 00000 n
+0000000955 00000 n
+0000001183 00000 n
+0000001362 00000 n
+0000001661 00000 n
+0000001940 00000 n
+0000002235 00000 n
+0000002464 00000 n
+0000002667 00000 n
+0000002894 00000 n
+0000003219 00000 n
+0000003461 00000 n
+0000003688 00000 n
+0000004013 00000 n
+0000004240 00000 n
+0000004541 00000 n
+0000004821 00000 n
+0000005101 00000 n
+0000005382 00000 n
+0000005663 00000 n
+0000005822 00000 n
+0000006070 00000 n
+0000006196 00000 n
+0000006434 00000 n
+0000006613 00000 n
+0000006854 00000 n
+0000007068 00000 n
+0000007258 00000 n
+0000007483 00000 n
+0000007700 00000 n
+0000007887 00000 n
+0000008062 00000 n
+0000008303 00000 n
+0000008474 00000 n
+0000008641 00000 n
+0000008872 00000 n
+0000009024 00000 n
+0000009250 00000 n
+0000009424 00000 n
+0000009613 00000 n
+0000009803 00000 n
+0000009954 00000 n
+0000010142 00000 n
+0000015396 00000 n
+0000019343 00000 n
+0000023570 00000 n
+0000028430 00000 n
+0000032701 00000 n
+0000037609 00000 n
+0000041300 00000 n
+0000047342 00000 n
+0000050943 00000 n
+0000053758 00000 n
+0000053968 00000 n
+0000054045 00000 n
+0000054122 00000 n
+0000054199 00000 n
+0000054276 00000 n
+0000054353 00000 n
+0000054430 00000 n
+0000054507 00000 n
+0000054584 00000 n
+0000054661 00000 n
+trailer
+<< /ID 
+ % ReportLab generated PDF document -- digest (http://www.reportlab.com) 
+ [(\232\303\034\342\201\)\346-\025fd\201ZQ\376z) (\232\303\034\342\201\)\346-\025fd\201ZQ\376z)] 
+
+ /Info 25 0 R
+ /Root 24 0 R
+ /Size 68 >>
+startxref
+54709
+%%EOF
