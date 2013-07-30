@@ -6,8 +6,6 @@ from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 
 pyver = float('%s.%s' % sys.version_info[:2])
 
-print("Python %s, enum from %r" % (pyver, enum.__file__))
-
 try:
     any
 except NameError:

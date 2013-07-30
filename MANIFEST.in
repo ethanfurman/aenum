@@ -1,7 +1,7 @@
 include setup.py
 include enum/__init__.py
+include enum/test_enum.py
 include enum/LICENSE
 include enum/README
 include enum/doc/enum.pdf
 include enum/doc/enum.rst
-include enum/test/test_enum.py

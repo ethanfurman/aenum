@@ -157,8 +157,10 @@ return A::
 Allowing aliases is not always desirable.  ``unique`` can be used to ensure
 that none exist in a particular enumeration::
 
+    >>> from enum import unique
     >>> @unique
     ... class Mistake(Enum):
+    ...   __order__ = 'one two three four'
     ...   one = 1
     ...   two = 2
     ...   three = 3
@@ -315,7 +317,7 @@ Pickling
 
 Enumerations can be pickled and unpickled::
 
-    >>> from test_enum import Fruit
+    >>> from enum.test_enum import Fruit
     >>> from pickle import dumps, loads
     >>> Fruit.tomato is loads(dumps(Fruit.tomato, 2))
     True
@@ -493,7 +495,7 @@ Avoids having to specify the value for each enumeration member::
     ...     def __new__(cls):
     ...         value = len(cls.__members__) + 1
     ...         obj = object.__new__(cls)
-    ...         obj._value = value
+    ...         obj._value_ = value
     ...         return obj
     ...
     >>> class Color(AutoNumber):
@@ -541,19 +543,19 @@ enumerations)::
     >>> class OrderedEnum(Enum):
     ...     def __ge__(self, other):
     ...         if self.__class__ is other.__class__:
-    ...             return self._value >= other._value
+    ...             return self._value_ >= other._value_
     ...         return NotImplemented
     ...     def __gt__(self, other):
     ...         if self.__class__ is other.__class__:
-    ...             return self._value > other._value
+    ...             return self._value_ > other._value_
     ...         return NotImplemented
     ...     def __le__(self, other):
     ...         if self.__class__ is other.__class__:
-    ...             return self._value <= other._value
+    ...             return self._value_ <= other._value_
     ...         return NotImplemented
     ...     def __lt__(self, other):
     ...         if self.__class__ is other.__class__:
-    ...             return self._value < other._value
+    ...             return self._value_ < other._value_
     ...         return NotImplemented
     ...
     >>> class Grade(OrderedEnum):
