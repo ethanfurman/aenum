@@ -831,13 +831,13 @@ class TestEnum(unittest.TestCase):
                 return obj
             def __int__(self):
                 return int(self._value_)
-        if pyver < 3.0:
-            self.assertEqual(3, len(AutoNumber))
-        else:
-            self.assertEqual(
-                list(AutoNumber),
-                [AutoNumber.enum_m, AutoNumber.enum_d, AutoNumber.enum_y],
-                )
+        self.assertEqual(int(AutoNumber.enum_d), 2)
+        self.assertEqual(AutoNumber.enum_y.value, 3)
+        self.assertTrue(AutoNumber(1) is AutoNumber.enum_m)
+        self.assertEqual(
+            list(AutoNumber),
+            [AutoNumber.enum_m, AutoNumber.enum_d, AutoNumber.enum_y],
+            )
 
     def test_inherited_new_from_enhanced_enum(self):
         class AutoNumber2(Enum):
