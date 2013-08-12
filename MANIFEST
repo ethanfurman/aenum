@@ -3,6 +3,6 @@ setup.py
 enum/LICENSE
 enum/README
 enum/__init__.py
+enum/test_enum.py
 enum/doc/enum.pdf
 enum/doc/enum.rst
-enum/test/test_enum.py

@@ -557,6 +557,24 @@ class TestEnum(unittest.TestCase):
         self.assertEqual(number.two, numero.dos)
         self.assertEqual(number.three, numero.tres)
 
+    def test_introspection(self):
+        class Number(IntEnum):
+            one = 100
+            two = 200
+        self.assertTrue(Number.one._member_type_ is int)
+        self.assertTrue(Number._member_type_ is int)
+        class String(str, Enum):
+            yarn = 'soft'
+            rope = 'rough'
+            wire = 'hard'
+        self.assertTrue(String.yarn._member_type_ is str)
+        self.assertTrue(String._member_type_ is str)
+        class Plain(Enum):
+            vanilla = 'white'
+            one = 1
+        self.assertTrue(Plain.vanilla._member_type_ is object)
+        self.assertTrue(Plain._member_type_ is object)
+
     def test_wrong_enum_in_call(self):
         class Monochrome(Enum):
             black = 0
