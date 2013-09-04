@@ -34,10 +34,10 @@ follows::
     ...     green = 2
     ...     blue = 3
 
-.. note: Nomenclature: we call ``Color`` an *enumeration* (or *enum*)
-    and ``Color.red``, ``Color.green`` are *enumeration members* (or
-    *enum members*).  Enumeration members also have *values* (the value of
-    ``Color.red`` is ``1``, etc.)
+*A note about nomenclature*: we call ``Color`` an *enumeration* (or *enum*)
+and ``Color.red``, ``Color.green`` are *enumeration members* (or
+*enum members*).  Enumeration members also have *values* (the value of
+``Color.red`` is ``1``, etc.)
 
 Enumeration members have human readable string representations::
 

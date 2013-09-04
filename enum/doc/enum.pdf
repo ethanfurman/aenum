@@ -399,7 +399,7 @@ endobj
 % 'R26': class PDFInfo 
 26 0 obj
 << /Author ()
- /CreationDate (D:20130904071334+08'00')
+ /CreationDate (D:20130904071830+08'00')
  /Creator (\(unspecified\))
  /Keywords ()
  /Producer (ReportLab PDF Library - www.reportlab.com)
@@ -429,7 +429,7 @@ endobj
 << /Dest [ 9 0 R
  /XYZ
  62.69291
- 476.6236
+ 440.6236
  0 ]
  /Next 30 0 R
  /Parent 27 0 R
@@ -650,7 +650,7 @@ endobj
 % 'R47': class PDFStream 
 47 0 obj
 % page stream
-<< /Length 4872 >>
+<< /Length 5183 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
 q
@@ -708,14 +708,20 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 454.4772 cm
+1 0 0 1 62.69291 430.4772 cm
+q
+BT 1 0 0 1 0 26 Tm .638443 Tw 12 TL /F5 10 Tf 0 0 0 rg (A note about nomenclature) Tj /F1 10 Tf (: we call ) Tj /F4 10 Tf (Color ) Tj /F1 10 Tf (an ) Tj /F5 10 Tf (enumeration ) Tj /F1 10 Tf (\(or ) Tj /F5 10 Tf (enum) Tj /F1 10 Tf (\) and ) Tj /F4 10 Tf (Color.red) Tj /F1 10 Tf (, ) Tj /F4 10 Tf (Color.green) Tj T* 0 Tw 1.560751 Tw /F1 10 Tf (are ) Tj /F5 10 Tf (enumeration members ) Tj /F1 10 Tf (\(or ) Tj /F5 10 Tf (enum members) Tj /F1 10 Tf (\). Enumeration members also have ) Tj /F5 10 Tf (values ) Tj /F1 10 Tf (\(the value of) Tj T* 0 Tw /F4 10 Tf (Color.red ) Tj /F1 10 Tf (is ) Tj /F4 10 Tf (1) Tj /F1 10 Tf (, etc.\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 412.4772 cm
 q
 0 0 0 rg
 BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enumeration members have human readable string representations:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 409.2772 cm
+1 0 0 1 62.69291 367.2772 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -735,13 +741,13 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 389.2772 cm
+1 0 0 1 62.69291 347.2772 cm
 q
 BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (...while their ) Tj /F4 10 Tf (repr ) Tj /F1 10 Tf (has more information:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 344.0772 cm
+1 0 0 1 62.69291 302.0772 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -761,13 +767,13 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 324.0772 cm
+1 0 0 1 62.69291 282.0772 cm
 q
 BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (The ) Tj /F5 10 Tf (type ) Tj /F1 10 Tf (of an enumeration member is the enumeration it belongs to:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 242.8772 cm
+1 0 0 1 62.69291 200.8772 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -787,14 +793,14 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 222.8772 cm
+1 0 0 1 62.69291 180.8772 cm
 q
 0 0 0 rg
 BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enum members also have a property that contains just their item name:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 177.6772 cm
+1 0 0 1 62.69291 135.6772 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -814,29 +820,9 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 145.6772 cm
+1 0 0 1 62.69291 103.6772 cm
 q
 BT 1 0 0 1 0 14 Tm .464985 Tw 12 TL /F1 10 Tf 0 0 0 rg (Enumerations support iteration. In Python 3.x definition order is used; in Python 2.x the definition order is) Tj T* 0 Tw (not available, but class attribute ) Tj /F4 10 Tf (__order__ ) Tj /F1 10 Tf (is supported; otherwise, value order is used:) Tj T* ET
-Q
-Q
-q
-1 0 0 1 62.69291 88.47717 cm
-q
-q
-1 0 0 1 0 0 cm
-q
-1 0 0 1 6.6 6.6 cm
-q
-.662745 .662745 .662745 RG
-.5 w
-.960784 .960784 .862745 rg
-n -6 -6 468.6898 48 re B*
-Q
-q
-BT 1 0 0 1 0 26 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Shake\(Enum\):) Tj T* (...   __order__ = 'vanilla chocolate cookies mint') Tj T* (...   vanilla = 7) Tj T* ET
-Q
-Q
-Q
 Q
 Q
  
@@ -845,11 +831,11 @@ endobj
 % 'R48': class PDFStream 
 48 0 obj
 % page stream
-<< /Length 3716 >>
+<< /Length 3852 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
 q
-1 0 0 1 62.69291 619.8236 cm
+1 0 0 1 62.69291 583.8236 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -859,30 +845,30 @@ q
 .662745 .662745 .662745 RG
 .5 w
 .960784 .960784 .862745 rg
-n -6 -6 468.6898 144 re B*
+n -6 -6 468.6898 180 re B*
 Q
 q
-BT 1 0 0 1 0 122 Tm 12 TL /F4 10 Tf 0 0 0 rg (...   chocolate = 4) Tj T* (...   cookies = 9) Tj T* (...   mint = 3) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( for shake in Shake:) Tj T* (...   print\(shake\)) Tj T* (...) Tj T* (Shake.vanilla) Tj T* (Shake.chocolate) Tj T* (Shake.cookies) Tj T* (Shake.mint) Tj T* ET
+BT 1 0 0 1 0 158 Tm 12 TL /F4 10 Tf 0 0 0 rg (>) Tj (>) Tj (>) Tj ( class Shake\(Enum\):) Tj T* (...   __order__ = 'vanilla chocolate cookies mint') Tj T* (...   vanilla = 7) Tj T* (...   chocolate = 4) Tj T* (...   cookies = 9) Tj T* (...   mint = 3) Tj T* (...) Tj T* (>) Tj (>) Tj (>) Tj ( for shake in Shake:) Tj T* (...   print\(shake\)) Tj T* (...) Tj T* (Shake.vanilla) Tj T* (Shake.chocolate) Tj T* (Shake.cookies) Tj T* (Shake.mint) Tj T* ET
 Q
 Q
 Q
 Q
 Q
 q
-1 0 0 1 62.69291 587.8236 cm
+1 0 0 1 62.69291 551.8236 cm
 q
 BT 1 0 0 1 0 14 Tm 1.585868 Tw 12 TL /F1 10 Tf 0 0 0 rg (The ) Tj /F4 10 Tf (__order__ ) Tj /F1 10 Tf (attribute is ignored, but still removed, in 3.x; however, in the stdlib version it will be) Tj T* 0 Tw (ignored but not removed.) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 569.8236 cm
+1 0 0 1 62.69291 533.8236 cm
 q
 0 0 0 rg
 BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Enumeration members are hashable, so they can be used in dictionaries and sets:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 488.6236 cm
+1 0 0 1 62.69291 452.6236 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -902,19 +888,19 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 434.6236 cm
+1 0 0 1 62.69291 398.6236 cm
 q
 BT 1 0 0 1 0 24.5 Tm 21 TL /F3 17.5 Tf 0 0 0 rg (Programmatic access to enumeration members and) Tj T* (their attributes) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 392.6236 cm
+1 0 0 1 62.69291 356.6236 cm
 q
 BT 1 0 0 1 0 26 Tm 3.541797 Tw 12 TL /F1 10 Tf 0 0 0 rg (Sometimes it's useful to access members in enumerations programmatically \(i.e. situations where) Tj T* 0 Tw .922651 Tw /F4 10 Tf (Color.red ) Tj /F1 10 Tf (won't do because the exact color is not known at program-writing time\). ) Tj /F4 10 Tf (Enum ) Tj /F1 10 Tf (allows such) Tj T* 0 Tw (access:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 323.4236 cm
+1 0 0 1 62.69291 287.4236 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -934,13 +920,13 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 303.4236 cm
+1 0 0 1 62.69291 267.4236 cm
 q
 BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (If you want to access enum members by ) Tj /F5 10 Tf (name) Tj /F1 10 Tf (, use item access:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 234.2236 cm
+1 0 0 1 62.69291 198.2236 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -960,13 +946,13 @@ Q
 Q
 Q
 q
-1 0 0 1 62.69291 214.2236 cm
+1 0 0 1 62.69291 178.2236 cm
 q
 BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (If have an enum member and need its ) Tj /F4 10 Tf (name ) Tj /F1 10 Tf (or ) Tj /F4 10 Tf (value) Tj /F1 10 Tf (:) Tj T* ET
 Q
 Q
 q
-1 0 0 1 62.69291 133.0236 cm
+1 0 0 1 62.69291 97.02362 cm
 q
 q
 1 0 0 1 0 0 cm
@@ -2361,36 +2347,36 @@ xref
 0000009874 00000 n
 0000010025 00000 n
 0000010222 00000 n
-0000015193 00000 n
-0000019008 00000 n
-0000022974 00000 n
-0000027667 00000 n
-0000032068 00000 n
-0000036641 00000 n
-0000040848 00000 n
-0000048074 00000 n
-0000051542 00000 n
-0000055072 00000 n
-0000055636 00000 n
-0000055860 00000 n
-0000055937 00000 n
-0000056014 00000 n
-0000056091 00000 n
-0000056168 00000 n
-0000056245 00000 n
-0000056322 00000 n
-0000056399 00000 n
-0000056476 00000 n
-0000056553 00000 n
-0000056631 00000 n
+0000015504 00000 n
+0000019455 00000 n
+0000023421 00000 n
+0000028114 00000 n
+0000032515 00000 n
+0000037088 00000 n
+0000041295 00000 n
+0000048521 00000 n
+0000051989 00000 n
+0000055519 00000 n
+0000056083 00000 n
+0000056307 00000 n
+0000056384 00000 n
+0000056461 00000 n
+0000056538 00000 n
+0000056615 00000 n
+0000056692 00000 n
+0000056769 00000 n
+0000056846 00000 n
+0000056923 00000 n
+0000057000 00000 n
+0000057078 00000 n
 trailer
 << /ID 
  % ReportLab generated PDF document -- digest (http://www.reportlab.com) 
- [(v\251]\311P\366\347\214\355xz\277ZDM\035) (v\251]\311P\366\347\214\355xz\277ZDM\035)] 
+ [(\375\230\241\030\313\030K\311\354>[=p\322A\233) (\375\230\241\030\313\030K\311\354>[=p\322A\233)] 
 
  /Info 26 0 R
  /Root 25 0 R
  /Size 70 >>
 startxref
-56679
+57126
 %%EOF
