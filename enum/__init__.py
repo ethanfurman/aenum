@@ -204,6 +204,7 @@ class EnumMeta(type):
                     enum_member._value_ = member_type(*args)
             value = enum_member._value_
             enum_member._name_ = member_name
+            enum_member.__objclass__ = enum_class
             enum_member.__init__(*args)
             # If another member with the same value was already defined, the
             # new member becomes an alias to the existing one.
