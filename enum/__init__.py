@@ -236,7 +236,7 @@ class EnumMeta(type):
         # things break (such as pickle)
         if Enum is not None:
             setattr(enum_class, '__getnewargs__', Enum.__getnewargs__)
-        for name in ('__repr__', '__str__'):
+        for name in ('__repr__', '__str__', '__format__'):
             class_method = getattr(enum_class, name)
             obj_method = getattr(member_type, name, None)
             enum_method = getattr(first_enum, name, None)
@@ -591,6 +591,24 @@ def __dir__(self):
     return (['__class__', '__doc__', 'name', 'value'])
 temp_enum_dict['__dir__'] = __dir__
 del __dir__
+
+def __format__(self, format_spec):
+    # mixed-in Enums should use the mixed-in type's __format__, otherwise
+    # we can get strange results with the Enum name showing up instead of
+    # the value
+
+    # pure Enum branch
+    if self._member_type_ is object:
+        cls = str
+        val = str(self)
+    # mix-in branch
+    else:
+        cls = self._member_type_
+        val = self.value
+    return cls.__format__(val, format_spec)
+temp_enum_dict['__format__'] = __format__
+del __format__
+
 
 ####################################
 # Python's less than 2.6 use __cmp__

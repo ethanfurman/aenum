@@ -34,7 +34,7 @@ follows::
     ...     green = 2
     ...     blue = 3
 
-**A note on nomenclature**: we call ``Color`` an *enumeration* (or *enum*)
+  ..note: Nomenclature: we call ``Color`` an *enumeration* (or *enum*)
 and ``Color.red``, ``Color.green`` are *enumeration members* (or
 *enum members*).  Enumeration members also have *values* (the value of
 ``Color.red`` is ``1``, etc.)
@@ -373,10 +373,10 @@ The solution is to specify the module name explicitly as follows::
     >>> Animals = Enum('Animals', 'ant bee cat dog', module=__name__)
 
 Derived Enumerations
-====================
+--------------------
 
 IntEnum
--------
+^^^^^^^
 
 A variation of ``Enum`` is provided which is also a subclass of
 ``int``.  Members of an ``IntEnum`` can be compared to integers;
@@ -431,7 +431,7 @@ that still expects integers.
 
 
 Others
-------
+^^^^^^
 
 While ``IntEnum`` is part of the ``enum`` module, it would be very
 simple to implement independently::
@@ -455,13 +455,18 @@ Some rules:
 3. When another data type is mixed in, the ``value`` attribute is *not the
    same* as the enum member itself, although it is equivalant and will compare
    equal.
-
+4. %-style formatting:  `%s` and `%r` call :class:`Enum`'s :meth:`__str__` and
+   :meth:`__repr__` respectively; other codes (such as `%i` or `%h` for
+   IntEnum) treat the enum member as its mixed-in type.
+5. :class:`str`.:meth:`__format__` (or :func:`format`) will use the mixed-in
+   type's :meth:`__format__`.  If the :class:`Enum`'s :func:`str` or
+   :func:`repr` is desired use the `!s` or `!r` :class:`str` format codes.
 
 Decorators
-==========
+----------
 
 unique
-------
+^^^^^^
 
 A ``class`` decorator specifically for enumerations.  It searches an
 enumeration's ``__members__`` gathering any aliases it finds; if any are
@@ -478,7 +483,7 @@ found ``ValueError`` is raised with the details::
 
 
 Interesting examples
-====================
+--------------------
 
 While ``Enum`` and ``IntEnum`` are expected to cover the majority of
 use-cases, they cannot cover them all.  Here are recipes for some different
@@ -487,7 +492,7 @@ one's own.
 
 
 AutoNumber
-----------
+^^^^^^^^^^
 
 Avoids having to specify the value for each enumeration member::
 
@@ -508,7 +513,7 @@ Avoids having to specify the value for each enumeration member::
 
 
 UniqueEnum
-----------
+^^^^^^^^^^
 
 Raises an error if a duplicate member name is found instead of creating an
 alias::
@@ -534,7 +539,7 @@ alias::
     
 
 OrderedEnum
------------
+^^^^^^^^^^^
 
 An ordered enumeration that is not based on ``IntEnum`` and so maintains
 the normal ``Enum`` invariants (such as not being comparable to other
@@ -571,7 +576,7 @@ enumerations)::
 
 
 Planet
-------
+^^^^^^
 
 If ``__new__`` or ``__init__`` is defined the value of the enum member
 will be passed to those methods::
