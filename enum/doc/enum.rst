@@ -34,10 +34,10 @@ follows::
     ...     green = 2
     ...     blue = 3
 
-  ..note: Nomenclature: we call ``Color`` an *enumeration* (or *enum*)
-and ``Color.red``, ``Color.green`` are *enumeration members* (or
-*enum members*).  Enumeration members also have *values* (the value of
-``Color.red`` is ``1``, etc.)
+.. note: Nomenclature: we call ``Color`` an *enumeration* (or *enum*)
+    and ``Color.red``, ``Color.green`` are *enumeration members* (or
+    *enum members*).  Enumeration members also have *values* (the value of
+    ``Color.red`` is ``1``, etc.)
 
 Enumeration members have human readable string representations::
 
@@ -455,12 +455,12 @@ Some rules:
 3. When another data type is mixed in, the ``value`` attribute is *not the
    same* as the enum member itself, although it is equivalant and will compare
    equal.
-4. %-style formatting:  `%s` and `%r` call :class:`Enum`'s :meth:`__str__` and
-   :meth:`__repr__` respectively; other codes (such as `%i` or `%h` for
+4. %-style formatting:  `%s` and `%r` call `Enum`'s `__str__` and
+   `__repr__` respectively; other codes (such as `%i` or `%h` for
    IntEnum) treat the enum member as its mixed-in type.
-5. :class:`str`.:meth:`__format__` (or :func:`format`) will use the mixed-in
-   type's :meth:`__format__`.  If the :class:`Enum`'s :func:`str` or
-   :func:`repr` is desired use the `!s` or `!r` :class:`str` format codes.
+5. `str.__format__` (or `format`) will use the mixed-in
+   type's `__format__`.  If the `Enum`'s `str` or
+   `repr` is desired use the `!s` or `!r` `str` format codes.
 
 Decorators
 ----------
