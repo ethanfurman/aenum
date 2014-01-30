@@ -34,10 +34,20 @@ follows::
     ...     green = 2
     ...     blue = 3
 
-*A note about nomenclature*: we call ``Color`` an *enumeration* (or *enum*)
-and ``Color.red``, ``Color.green`` are *enumeration members* (or
-*enum members*).  Enumeration members also have *values* (the value of
-``Color.red`` is ``1``, etc.)
+Note: Nomenclature
+
+  - The class ``Color`` is an *enumeration* (or *enum*)
+  - The attributes ``Color.red``, ``Color.green``, etc., are
+    *enumeration members* (or *enum members*).
+  - The enum members have *names* and *values* (the name of
+    ``Color.red`` is ``red``, the value of ``Color.blue`` is
+    ``3``, etc.)
+    
+Note:
+
+    Even though we use the ``class`` syntax to create Enums, Enums
+    are not normal Python classes.  See `How are Enums different?`_ for
+    more details.
 
 Enumeration members have human readable string representations::
 
@@ -67,7 +77,7 @@ Python 2.x the definition order is not available, but class attribute
 ``__order__`` is supported;  otherwise, value order is used::
 
     >>> class Shake(Enum):
-    ...   __order__ = 'vanilla chocolate cookies mint'
+    ...   __order__ = 'vanilla chocolate cookies mint'  # only needed in 2.x
     ...   vanilla = 7
     ...   chocolate = 4
     ...   cookies = 9
@@ -124,10 +134,11 @@ If have an enum member and need its ``name`` or ``value``::
 Duplicating enum members and values
 -----------------------------------
 
-Having two enum members with the same name is invalid; in Python 3.x this
-would raise an error, but in Python 2.x the second member simply overwrites
-the first::
+Having two enum members (or any other attribute) with the same name is invalid;
+in Python 3.x this would raise an error, but in Python 2.x the second member
+simply overwrites the first::
 
+    >>> # python 2.x
     >>> class Shape(Enum):
     ...   square = 2
     ...   square = 3
@@ -135,13 +146,21 @@ the first::
     >>> Shape.square
     <Shape.square: 3>
 
+    >>> # python 3.x
+    >>> class Shape(Enum):
+    ...   square = 2
+    ...   square = 3
+    Traceback (most recent call last):
+    ...
+    TypeError: Attempted to reuse key: 'square'
+
 However, two enum members are allowed to have the same value.  Given two members
 A and B with the same value (and A defined first), B is an alias to A.  By-value
 lookup of the value of A and B will return A.  By-name lookup of B will also
 return A::
 
     >>> class Shape(Enum):
-    ...   __order__ = 'square diamond circle alias_for_square'
+    ...   __order__ = 'square diamond circle alias_for_square'  # only needed in 2.x
     ...   square = 2
     ...   diamond = 1
     ...   circle = 3
@@ -154,13 +173,14 @@ return A::
     >>> Shape(2)
     <Shape.square: 2>
 
+
 Allowing aliases is not always desirable.  ``unique`` can be used to ensure
 that none exist in a particular enumeration::
 
     >>> from enum import unique
     >>> @unique
     ... class Mistake(Enum):
-    ...   __order__ = 'one two three four'
+    ...   __order__ = 'one two three four'  # only needed in 2.x
     ...   one = 1
     ...   two = 2
     ...   three = 3
@@ -278,9 +298,11 @@ all other attributes defined within an enumeration will become members of this
 enumeration, with the exception of *__dunder__* names and descriptors (methods
 are also descriptors).
 
-Note:  if your enumeration defines ``__new__`` and/or ``__init__`` then
-whatever value(s) were given to the enum member will be passed into those
-methods.  See `Planet`_ for an example.
+Note:
+
+    If your enumeration defines ``__new__`` and/or ``__init__`` then
+    whatever value(s) were given to the enum member will be passed into
+    those methods.  See `Planet`_ for an example.
 
 
 Restricted subclassing of enumerations
@@ -455,12 +477,17 @@ Some rules:
 3. When another data type is mixed in, the ``value`` attribute is *not the
    same* as the enum member itself, although it is equivalant and will compare
    equal.
-4. %-style formatting:  `%s` and `%r` call `Enum`'s `__str__` and
-   `__repr__` respectively; other codes (such as `%i` or `%h` for
+4. %-style formatting:  ``%s`` and ``%r`` call ``Enum``'s ``__str__`` and
+   ``__repr__`` respectively; other codes (such as ``%i`` or ``%h`` for
    IntEnum) treat the enum member as its mixed-in type.
-5. `str.__format__` (or `format`) will use the mixed-in
-   type's `__format__`.  If the `Enum`'s `str` or
-   `repr` is desired use the `!s` or `!r` `str` format codes.
+
+   Note: Prior to Python 3.4 there is a bug in ``str``'s %-formatting: ``int``
+   subclasses are printed as strings and not numbers when the ``%d``, ``%i``,
+   or ``%u`` codes are used.
+5. ``str.__format__`` (or ``format``) will use the mixed-in
+   type's ``__format__``.  If the ``Enum``'s ``str`` or
+   ``repr`` is desired use the ``!s`` or ``!r`` ``str`` format codes.
+
 
 Decorators
 ----------
@@ -504,12 +531,20 @@ Avoids having to specify the value for each enumeration member::
     ...         return obj
     ...
     >>> class Color(AutoNumber):
+    ...     __order__ = "red green blue"  # only needed in 2.x
     ...     red = ()
     ...     green = ()
     ...     blue = ()
     ...
     >>> Color.green.value == 2
     True
+
+Note:
+
+    The `__new__` method, if defined, is used during creation of the Enum
+    members; it is then replaced by Enum's `__new__` which is used after
+    class creation for lookup of existing members.  Due to the way Enums are
+    supposed to behave, there is no way to customize Enum's `__new__`.
 
 
 UniqueEnum
@@ -603,3 +638,64 @@ will be passed to those methods::
     (5.976e+24, 6378140.0)
     >>> Planet.EARTH.surface_gravity
     9.802652743337129
+
+
+How are Enums different?
+------------------------
+
+Enums have a custom metaclass that affects many aspects of both derived Enum
+classes and their instances (members).
+
+
+Enum Classes
+^^^^^^^^^^^^
+
+The ``EnumMeta`` metaclass is responsible for providing the
+``__contains__``, ``__dir__``, ``__iter__`` and other methods that
+allow one to do things with an ``Enum`` class that fail on a typical
+class, such as ``list(Color)`` or ``some_var in Color``.  ``EnumMeta`` is
+responsible for ensuring that various other methods on the final ``Enum``
+class are correct (such as ``__new__``, ``__getnewargs__``,
+``__str__`` and ``__repr__``)
+
+
+Enum Members (aka instances)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The most interesting thing about Enum members is that they are singletons.
+``EnumMeta`` creates them all while it is creating the ``Enum``
+class itself, and then puts a custom ``__new__`` in place to ensure
+that no new ones are ever instantiated by returning only the existing
+member instances.
+
+
+Finer Points
+^^^^^^^^^^^^
+
+Enum members are instances of an Enum class, and even though they are
+accessible as ``EnumClass.member``, they are not accessible directly from
+the member::
+
+    >>> Color.red
+    <Color.red: 1>
+    >>> Color.red.blue
+    Traceback (most recent call last):
+    ...
+    AttributeError: 'Color' object has no attribute 'blue'
+
+Likewise, ``__members__`` is only available on the class.
+
+If you give your ``Enum`` subclass extra methods, like the `Planet`_
+class above, those methods will show up in a `dir` of the member,
+but not of the class::
+
+    >>> dir(Planet)
+    ['EARTH', 'JUPITER', 'MARS', 'MERCURY', 'NEPTUNE', 'SATURN', 'URANUS',
+    'VENUS', '__class__', '__doc__', '__members__', '__module__']
+    >>> dir(Planet.EARTH)
+    ['__class__', '__doc__', '__module__', 'name', 'surface_gravity', 'value']
+
+A ``__new__`` method will only be used for the creation of the
+``Enum`` members -- after that it is replaced.  This means if you wish to
+change how ``Enum`` members are looked up you either have to write a
+helper function or a ``classmethod``.

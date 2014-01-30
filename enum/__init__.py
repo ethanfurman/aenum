@@ -15,6 +15,11 @@ except NameError:
                 return True
         return False
 
+try:
+    basestring
+except NameError:
+    # In Python 2 basestring is the ancestor of both str and unicode
+    basestring = str
 
 class _RouteClassAttributeToGetattr(object):
     """Route attribute access on a class to __getattr__.
@@ -40,18 +45,28 @@ class _RouteClassAttributeToGetattr(object):
         raise AttributeError("can't delete attribute")
 
 
+def _is_descriptor(obj):
+    """Returns True if obj is a descriptor, False otherwise."""
+    return (
+            hasattr(obj, '__get__') or
+            hasattr(obj, '__set__') or
+            hasattr(obj, '__delete__'))
+
+
 def _is_dunder(name):
     """Returns True if a __dunder__ name, False otherwise."""
     return (name[:2] == name[-2:] == '__' and
             name[2:3] != '_' and
-            name[-3:-2] != '_')
+            name[-3:-2] != '_' and
+            len(name) > 4)
 
 
 def _is_sunder(name):
     """Returns True if a _sunder_ name, False otherwise."""
     return (name[0] == name[-1] == '_' and 
             name[1:2] != '_' and
-            name[-2:-1] != '_')
+            name[-2:-1] != '_' and
+            len(name) > 2)
 
 
 def _make_class_unpicklable(cls):
@@ -63,7 +78,7 @@ def _make_class_unpicklable(cls):
 
 
 class _EnumDict(dict):
-    """Keeps track of definition order of the enum items.
+    """Track enum member order and ensure member names are not reused.
 
     EnumMeta will use the names found in self._member_names as the
     enumeration member names.
@@ -74,7 +89,7 @@ class _EnumDict(dict):
         self._member_names = []
 
     def __setitem__(self, key, value):
-        """Changes anything not dundered or that doesn't have __get__.
+        """Changes anything not dundered or not a descriptor.
 
         If a descriptor is added with the same name as an enum member, the name
         is removed from _member_names (this may leave a hole in the numerical
@@ -93,15 +108,15 @@ class _EnumDict(dict):
                 return
         if _is_sunder(key):
             raise ValueError('_names_ are reserved for future Enum use')
-        elif _is_dunder(key) or hasattr(value, '__get__'):
-            if key in self._member_names:
-                # overwriting an enum with a method?  then remove the name from
-                # _member_names or it will become an enum anyway when the class
-                # is created
-                self._member_names.remove(key)
-        else:
-            if key in self._member_names:
-                raise TypeError('Attempted to reuse key: %r' % key)
+        elif _is_dunder(key):
+            pass
+        elif key in self._member_names:
+            # descriptor overwriting an enum?
+            raise TypeError('Attempted to reuse key: %r' % key)
+        elif not _is_descriptor(value):
+            if key in self:
+                # enum overwriting a descriptor?
+                raise TypeError('Key already defined as: %r' % self[key])
             self._member_names.append(key)
         super(_EnumDict, self).__setitem__(key, value)
 
@@ -300,8 +315,17 @@ class EnumMeta(type):
     def __contains__(cls, member):
         return isinstance(member, cls) and member.name in cls._member_map_
 
+    def __delattr__(cls, attr):
+        # nicer error message when someone tries to delete an attribute
+        # (see issue19025).
+        if attr in cls._member_map_:
+            raise AttributeError(
+                    "%s: cannot delete Enum member." % cls.__name__)
+        super(EnumMeta, cls).__delattr__(attr)
+
     def __dir__(self):
-        return ['__class__', '__doc__', '__members__'] + self._member_names_
+        return (['__class__', '__doc__', '__members__', '__module__'] +
+                self._member_names_)
 
     @property
     def __members__(cls):
@@ -335,11 +359,27 @@ class EnumMeta(type):
     def __iter__(cls):
         return (cls._member_map_[name] for name in cls._member_names_)
 
+    def __reversed__(cls):
+        return (cls._member_map_[name] for name in reversed(cls._member_names_))
+
     def __len__(cls):
         return len(cls._member_names_)
 
     def __repr__(cls):
         return "<enum %r>" % cls.__name__
+
+    def __setattr__(cls, name, value):
+        """Block attempts to reassign Enum members.
+
+        A simple assignment to the class namespace only changes one of the
+        several possible ways to get an Enum member from the Enum class,
+        resulting in an inconsistent Enumeration.
+
+        """
+        member_map = cls.__dict__.get('_member_map_', {})
+        if name in member_map:
+            raise AttributeError('Cannot reassign members.')
+        super(EnumMeta, cls).__setattr__(name, value)
 
     def _create_(cls, class_name, names=None, module=None, type=None):
         """Convenience method to create a new Enum class.
@@ -362,21 +402,21 @@ class EnumMeta(type):
         __order__ = []
 
         # special processing needed for names?
-        if isinstance(names, str):
+        if isinstance(names, basestring):
             names = names.replace(',', ' ').split()
-        if isinstance(names, (tuple, list)) and isinstance(names[0], str):
+        if isinstance(names, (tuple, list)) and isinstance(names[0], basestring):
             names = [(e, i+1) for (i, e) in enumerate(names)]
 
         # Here, names is either an iterable of (name, value) or a mapping.
         for item in names:
-            if isinstance(item, str):
+            if isinstance(item, basestring):
                 member_name, member_value = item, names[item]
             else:
                 member_name, member_value = item
             classdict[member_name] = member_value
             __order__.append(member_name)
         # only set __order__ in classdict if name/value was not from a mapping
-        if not isinstance(item, str):
+        if not isinstance(item, basestring):
             classdict['__order__'] = ' '.join(__order__)
         enum_class = metacls.__new__(metacls, class_name, bases, classdict)
 
@@ -589,7 +629,8 @@ temp_enum_dict['__str__'] = __str__
 del __str__
 
 def __dir__(self):
-    return (['__class__', '__doc__', 'name', 'value'])
+    added_behavior = [m for m in self.__class__.__dict__ if m[0] != '_']
+    return (['__class__', '__doc__', '__module__', 'name', 'value'] + added_behavior)
 temp_enum_dict['__dir__'] = __dir__
 del __dir__
 
