@@ -151,10 +151,6 @@ class EnumMeta(type):
                 classdict[k] = v
 
         member_type, first_enum = metacls._get_mixins_(bases)
-        #if member_type is object:
-        #    use_args = False
-        #else:
-        #    use_args = True
         __new__, save_new, use_args = metacls._find_new_(classdict, member_type,
                                                         first_enum)
         # save enum items into separate mapping so they don't get baked into
@@ -166,16 +162,12 @@ class EnumMeta(type):
         # py2 support for definition order
         __order__ = classdict.get('__order__')
         if __order__ is None:
-            #__order__ = members_in_value_order
             if pyver < 3.0:
                 __order__ = [name for (name, value) in sorted(members.items(), key=lambda item: item[1])]
-                #order_specified = False
             else:
                 __order__ = classdict._member_names
-                #order_specified = True
         else:
             del classdict['__order__']
-            #order_specified = True
             if pyver < 3.0:
                 __order__ = __order__.replace(',', ' ').split()
                 aliases = [name for name in members if name not in __order__]
@@ -243,14 +235,6 @@ class EnumMeta(type):
             except TypeError:
                 pass
 
-        # in Python2.x we cannot know definition order, so go with value order
-        # unless __order__ was specified in the class definition
-        #if not order_specified:
-        #    enum_class._member_names_ = [
-        #        e[0] for e in sorted(
-        #        [(name, enum_class._member_map_[name]) for name in enum_class._member_names_],
-        #         key=lambda t: t[1]._value_
-        #                )]
 
         # If a custom type is mixed into the Enum, and it does not know how
         # to pickle itself, pickle.dumps will succeed but pickle.loads will
@@ -278,7 +262,6 @@ class EnumMeta(type):
             class_method = getattr(enum_class, name)
             obj_method = getattr(member_type, name, None)
             enum_method = getattr(first_enum, name, None)
-            #if obj_method is not None and obj_method is class_method:
             if name not in classdict and class_method is not enum_method:
                 if name == '__reduce_ex__' and unpicklable:
                     continue
