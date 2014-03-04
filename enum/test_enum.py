@@ -1,6 +1,5 @@
 import enum
 import sys
-import traceback
 import unittest
 from enum import Enum, IntEnum, unique, EnumMeta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -1155,9 +1154,9 @@ class TestEnum(unittest.TestCase):
             globals()['NEI'] = NEI
             NI5 = NamedInt('test', 5)
             self.assertEqual(NI5, 5)
-            test_pickle_dump_load(self.assertEqual, NI5, 5, protocol=(4, 4))
+            test_pickle_dump_load(self.assertEqual, NI5, 5, protocol=(4, HIGHEST_PROTOCOL))
             self.assertEqual(NEI.y.value, 2)
-            test_pickle_dump_load(self.assertTrue, NEI.y, protocol=(4, 4))
+            test_pickle_dump_load(self.assertTrue, NEI.y, protocol=(4, HIGHEST_PROTOCOL))
 
     def test_subclasses_with_reduce(self):
         class NamedInt(int):
@@ -1341,7 +1340,7 @@ class TestEnum(unittest.TestCase):
                 return self._intname
             def __repr__(self):
                 # repr() is updated to include the name and type info
-                return "{}({!r}, {})".format(type(self).__name__,
+                return "%s(%r, %s)" % (type(self).__name__,
                                              self.__name__,
                                              int.__repr__(self))
             def __str__(self):
@@ -1357,7 +1356,7 @@ class TestEnum(unittest.TestCase):
                 temp = int(self) + int( other)
                 if isinstance(self, NamedInt) and isinstance(other, NamedInt):
                     return NamedInt(
-                        '({0} + {1})'.format(self.__name__, other.__name__),
+                        '(%s + %s)' % (self.__name__, other.__name__),
                         temp )
                 else:
                     return temp
@@ -1369,7 +1368,7 @@ class TestEnum(unittest.TestCase):
             def __reduce_ex__(self, proto):
                 return getattr, (self.__class__, self._name_)
 
-        self.assertIs(NEI.__new__, Enum.__new__)
+        self.assertTrue(NEI.__new__ is Enum.__new__)
         self.assertEqual(repr(NEI.x + NEI.y), "NamedInt('(the-x + the-y)', 3)")
         globals()['NamedInt'] = NamedInt
         globals()['NEI'] = NEI
