@@ -4,7 +4,7 @@ from distutils.core import setup
 long_desc = open('enum/doc/enum.rst').read()
 
 setup( name='enum34',
-       version='0.9.20',
+       version='0.9.23',
        url='https://pypi.python.org/pypi/enum34',
        packages=['enum'],
        package_data={

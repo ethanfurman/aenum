@@ -1,5 +1,6 @@
 import enum
 import sys
+import traceback
 import unittest
 from enum import Enum, IntEnum, unique, EnumMeta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -19,6 +20,11 @@ try:
     unicode
 except NameError:
     unicode = str
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    OrderedDict = None
 
 # for pickle tests
 try:
@@ -65,6 +71,11 @@ try:
 except Exception:
     Answer = sys.exc_info()[1]
 
+try:
+    Theory = Enum('Theory', 'rule law supposition', qualname='spanish_inquisition')
+except Exception:
+    Theory = sys.exc_info()[1]
+
 # for doctests
 try:
     class Fruit(Enum):
@@ -73,6 +84,35 @@ try:
         cherry = 3
 except Exception:
     pass
+
+def test_pickle_dump_load(assertion, source, target=None,
+        protocol=(0, HIGHEST_PROTOCOL)):
+    start, stop = protocol
+    failures = []
+    for protocol in range(start, stop+1):
+        try:
+            if target is None:
+                assertion(loads(dumps(source, protocol=protocol)) is source)
+            else:
+                assertion(loads(dumps(source, protocol=protocol)), target)
+        except Exception:
+            exc, tb = sys.exc_info()[1:]
+            failures.append('%2d: %s' %(protocol, exc))
+    if failures:
+        raise ValueError('Failed with protocols: %s' % ', '.join(failures))
+
+def test_pickle_exception(assertion, exception, obj,
+        protocol=(0, HIGHEST_PROTOCOL)):
+    start, stop = protocol
+    failures = []
+    for protocol in range(start, stop+1):
+        try:
+            assertion(exception, dumps, obj, protocol=protocol)
+        except Exception:
+            exc = sys.exc_info()[1]
+            failures.append('%d: %s %s' % (protocol, exc.__class__.__name__, exc))
+    if failures:
+        raise ValueError('Failed with protocols: %s' % ', '.join(failures))
 
 
 class TestHelpers(unittest.TestCase):
@@ -155,7 +195,29 @@ class TestEnum(unittest.TestCase):
                 set(['__class__', '__doc__', '__module__', 'name', 'value']),
                 )
 
+    if pyver >= 2.7:    # OrderedDict first available here
+        def test_members_is_ordereddict_if_ordered(self):
+            class Ordered(Enum):
+                __order__ = 'first second third'
+                first = 'bippity'
+                second = 'boppity'
+                third = 'boo'
+            self.assertTrue(type(Ordered.__members__) is OrderedDict)
+
+        def test_members_is_ordereddict_if_not_ordered(self):
+            class Unordered(Enum):
+                this = 'that'
+                these = 'those'
+            self.assertTrue(type(Unordered.__members__) is OrderedDict)
+
     if pyver >= 3.0:     # all objects are ordered in Python 2.x
+        def test_members_is_always_ordered(self):
+            class AlwaysOrdered(Enum):
+                first = 1
+                second = 2
+                third = 3
+            self.assertTrue(type(AlwaysOrdered.__members__) is OrderedDict)
+
         def test_comparisons(self):
             def bad_compare():
                 Season.SPRING > 4
@@ -366,7 +428,7 @@ class TestEnum(unittest.TestCase):
 
     if pyver >= 3.0:
         cls = vars()
-        result = {}
+        result = {'Enum':Enum}
         exec("""def test_duplicate_name(self):
             with self.assertRaises(TypeError):
                 class Color(Enum):
@@ -497,39 +559,54 @@ class TestEnum(unittest.TestCase):
     def test_pickle_enum(self):
         if isinstance(Stooges, Exception):
             raise Stooges
-        self.assertTrue(Stooges.CURLY is loads(dumps(Stooges.CURLY, protocol=HIGHEST_PROTOCOL)))
-        self.assertTrue(Stooges is loads(dumps(Stooges, protocol=HIGHEST_PROTOCOL)))
+        test_pickle_dump_load(self.assertTrue, Stooges.CURLY)
+        test_pickle_dump_load(self.assertTrue, Stooges)
 
     def test_pickle_int(self):
         if isinstance(IntStooges, Exception):
             raise IntStooges
-        self.assertTrue(IntStooges.CURLY is loads(dumps(IntStooges.CURLY, protocol=HIGHEST_PROTOCOL)))
-        self.assertTrue(IntStooges is loads(dumps(IntStooges, protocol=HIGHEST_PROTOCOL)))
+        test_pickle_dump_load(self.assertTrue, IntStooges.CURLY)
+        test_pickle_dump_load(self.assertTrue, IntStooges)
 
     def test_pickle_float(self):
         if isinstance(FloatStooges, Exception):
             raise FloatStooges
-        self.assertTrue(FloatStooges.CURLY is loads(dumps(FloatStooges.CURLY, protocol=HIGHEST_PROTOCOL)))
-        self.assertTrue(FloatStooges is loads(dumps(FloatStooges, protocol=HIGHEST_PROTOCOL)))
+        test_pickle_dump_load(self.assertTrue, FloatStooges.CURLY)
+        test_pickle_dump_load(self.assertTrue, FloatStooges)
 
     def test_pickle_enum_function(self):
         if isinstance(Answer, Exception):
             raise Answer
-        self.assertTrue(Answer.him is loads(dumps(Answer.him, protocol=HIGHEST_PROTOCOL)))
-        self.assertTrue(Answer is loads(dumps(Answer, protocol=HIGHEST_PROTOCOL)))
+        test_pickle_dump_load(self.assertTrue, Answer.him)
+        test_pickle_dump_load(self.assertTrue, Answer)
 
     def test_pickle_enum_function_with_module(self):
         if isinstance(Question, Exception):
             raise Question
-        self.assertTrue(Question.who is loads(dumps(Question.who, protocol=HIGHEST_PROTOCOL)))
-        self.assertTrue(Question is loads(dumps(Question, protocol=HIGHEST_PROTOCOL)))
+        test_pickle_dump_load(self.assertTrue, Question.who)
+        test_pickle_dump_load(self.assertTrue, Question)
+
+    if pyver >= 3.4:
+        def test_class_nested_enum_and_pickle_protocol_four(self):
+            # would normally just have this directly in the class namespace
+            class NestedEnum(Enum):
+                twigs = 'common'
+                shiny = 'rare'
+
+            self.__class__.NestedEnum = NestedEnum
+            self.NestedEnum.__qualname__ = '%s.NestedEnum' % self.__class__.__name__
+            test_pickle_exception(
+                    self.assertRaises, PicklingError, self.NestedEnum.twigs,
+                    protocol=(0, 3))
+            test_pickle_dump_load(self.assertTrue, self.NestedEnum.twigs,
+                    protocol=(4, HIGHEST_PROTOCOL))
 
     def test_exploding_pickle(self):
         BadPickle = Enum('BadPickle', 'dill sweet bread-n-butter')
         enum._make_class_unpicklable(BadPickle)
         globals()['BadPickle'] = BadPickle
-        self.assertRaises(TypeError, dumps, BadPickle.dill)
-        self.assertRaises(PicklingError, dumps, BadPickle)
+        test_pickle_exception(self.assertRaises, TypeError, BadPickle.dill)
+        test_pickle_exception(self.assertRaises, PicklingError, BadPickle)
 
     def test_string_enum(self):
         class SkillLevel(str, Enum):
@@ -796,7 +873,7 @@ class TestEnum(unittest.TestCase):
         self.assertEqual(Name.BDFL, 'Guido van Rossum')
         self.assertTrue(Name.BDFL, Name('Guido van Rossum'))
         self.assertTrue(Name.BDFL is getattr(Name, 'BDFL'))
-        self.assertTrue(Name.BDFL is loads(dumps(Name.BDFL, protocol=HIGHEST_PROTOCOL)))
+        test_pickle_dump_load(self.assertTrue, Name.BDFL)
 
     def test_extending(self):
         def bad_extension():
@@ -972,11 +1049,12 @@ class TestEnum(unittest.TestCase):
 
     def test_subclasses_with_getnewargs(self):
         class NamedInt(int):
+            __qualname__ = 'NamedInt'  # needed for pickle protocol 4
             def __new__(cls, *args):
                 _args = args
-                name, args = args[0], args[1:]
-                if len(args) == 0:
+                if len(args) < 1:
                     raise TypeError("name and value must be specified")
+                name, args = args[0], args[1:]
                 self = int.__new__(cls, *args)
                 self._intname = name
                 self._args = _args
@@ -1010,6 +1088,7 @@ class TestEnum(unittest.TestCase):
                     return temp
 
         class NEI(NamedInt, Enum):
+            __qualname__ = 'NEI'  # needed for pickle protocol 4
             x = ('the-x', 1)
             y = ('the-y', 2)
 
@@ -1019,12 +1098,182 @@ class TestEnum(unittest.TestCase):
         globals()['NEI'] = NEI
         NI5 = NamedInt('test', 5)
         self.assertEqual(NI5, 5)
-        self.assertEqual(loads(dumps(NI5, protocol=HIGHEST_PROTOCOL)), 5)
+        test_pickle_dump_load(self.assertTrue, NI5, 5)
         self.assertEqual(NEI.y.value, 2)
-        self.assertTrue(loads(dumps(NEI.y, protocol=HIGHEST_PROTOCOL)) is NEI.y)
+        test_pickle_dump_load(self.assertTrue, NEI.y)
 
-    def test_subclasses_without_getnewargs(self):
+    if pyver >= 3.4:
+        def test_subclasses_with_getnewargs_ex(self):
+            class NamedInt(int):
+                __qualname__ = 'NamedInt'       # needed for pickle protocol 4
+                def __new__(cls, *args):
+                    _args = args
+                    if len(args) < 2:
+                        raise TypeError("name and value must be specified")
+                    name, args = args[0], args[1:]
+                    self = int.__new__(cls, *args)
+                    self._intname = name
+                    self._args = _args
+                    return self
+                def __getnewargs_ex__(self):
+                    return self._args, {}
+                @property
+                def __name__(self):
+                    return self._intname
+                def __repr__(self):
+                    # repr() is updated to include the name and type info
+                    return "{}({!r}, {})".format(type(self).__name__,
+                                                 self.__name__,
+                                                 int.__repr__(self))
+                def __str__(self):
+                    # str() is unchanged, even if it relies on the repr() fallback
+                    base = int
+                    base_str = base.__str__
+                    if base_str.__objclass__ is object:
+                        return base.__repr__(self)
+                    return base_str(self)
+                # for simplicity, we only define one operator that
+                # propagates expressions
+                def __add__(self, other):
+                    temp = int(self) + int( other)
+                    if isinstance(self, NamedInt) and isinstance(other, NamedInt):
+                        return NamedInt(
+                            '({0} + {1})'.format(self.__name__, other.__name__),
+                            temp )
+                    else:
+                        return temp
+
+            class NEI(NamedInt, Enum):
+                __qualname__ = 'NEI'      # needed for pickle protocol 4
+                x = ('the-x', 1)
+                y = ('the-y', 2)
+
+
+            self.assertIs(NEI.__new__, Enum.__new__)
+            self.assertEqual(repr(NEI.x + NEI.y), "NamedInt('(the-x + the-y)', 3)")
+            globals()['NamedInt'] = NamedInt
+            globals()['NEI'] = NEI
+            NI5 = NamedInt('test', 5)
+            self.assertEqual(NI5, 5)
+            test_pickle_dump_load(self.assertEqual, NI5, 5, protocol=(4, 4))
+            self.assertEqual(NEI.y.value, 2)
+            test_pickle_dump_load(self.assertTrue, NEI.y, protocol=(4, 4))
+
+    def test_subclasses_with_reduce(self):
         class NamedInt(int):
+            __qualname__ = 'NamedInt'       # needed for pickle protocol 4
+            def __new__(cls, *args):
+                _args = args
+                if len(args) < 1:
+                    raise TypeError("name and value must be specified")
+                name, args = args[0], args[1:]
+                self = int.__new__(cls, *args)
+                self._intname = name
+                self._args = _args
+                return self
+            def __reduce__(self):
+                return self.__class__, self._args
+            @property
+            def __name__(self):
+                return self._intname
+            def __repr__(self):
+                # repr() is updated to include the name and type info
+                return "%s(%r, %s)" % (type(self).__name__,
+                                             self.__name__,
+                                             int.__repr__(self))
+            def __str__(self):
+                # str() is unchanged, even if it relies on the repr() fallback
+                base = int
+                base_str = base.__str__
+                if base_str.__objclass__ is object:
+                    return base.__repr__(self)
+                return base_str(self)
+            # for simplicity, we only define one operator that
+            # propagates expressions
+            def __add__(self, other):
+                temp = int(self) + int( other)
+                if isinstance(self, NamedInt) and isinstance(other, NamedInt):
+                    return NamedInt(
+                        '(%s + %s)' % (self.__name__, other.__name__),
+                        temp )
+                else:
+                    return temp
+
+        class NEI(NamedInt, Enum):
+            __qualname__ = 'NEI'      # needed for pickle protocol 4
+            x = ('the-x', 1)
+            y = ('the-y', 2)
+
+
+        self.assertTrue(NEI.__new__ is Enum.__new__)
+        self.assertEqual(repr(NEI.x + NEI.y), "NamedInt('(the-x + the-y)', 3)")
+        globals()['NamedInt'] = NamedInt
+        globals()['NEI'] = NEI
+        NI5 = NamedInt('test', 5)
+        self.assertEqual(NI5, 5)
+        test_pickle_dump_load(self.assertEqual, NI5, 5)
+        self.assertEqual(NEI.y.value, 2)
+        test_pickle_dump_load(self.assertTrue, NEI.y)
+
+    def test_subclasses_with_reduce_ex(self):
+        class NamedInt(int):
+            __qualname__ = 'NamedInt'       # needed for pickle protocol 4
+            def __new__(cls, *args):
+                _args = args
+                if len(args) < 1:
+                    raise TypeError("name and value must be specified")
+                name, args = args[0], args[1:]
+                self = int.__new__(cls, *args)
+                self._intname = name
+                self._args = _args
+                return self
+            def __reduce_ex__(self, proto):
+                return self.__class__, self._args
+            @property
+            def __name__(self):
+                return self._intname
+            def __repr__(self):
+                # repr() is updated to include the name and type info
+                return "%s(%r, %s)" % (type(self).__name__,
+                                             self.__name__,
+                                             int.__repr__(self))
+            def __str__(self):
+                # str() is unchanged, even if it relies on the repr() fallback
+                base = int
+                base_str = base.__str__
+                if base_str.__objclass__ is object:
+                    return base.__repr__(self)
+                return base_str(self)
+            # for simplicity, we only define one operator that
+            # propagates expressions
+            def __add__(self, other):
+                temp = int(self) + int( other)
+                if isinstance(self, NamedInt) and isinstance(other, NamedInt):
+                    return NamedInt(
+                        '(%s + %s)' % (self.__name__, other.__name__),
+                        temp )
+                else:
+                    return temp
+
+        class NEI(NamedInt, Enum):
+            __qualname__ = 'NEI'      # needed for pickle protocol 4
+            x = ('the-x', 1)
+            y = ('the-y', 2)
+
+
+        self.assertTrue(NEI.__new__ is Enum.__new__)
+        self.assertEqual(repr(NEI.x + NEI.y), "NamedInt('(the-x + the-y)', 3)")
+        globals()['NamedInt'] = NamedInt
+        globals()['NEI'] = NEI
+        NI5 = NamedInt('test', 5)
+        self.assertEqual(NI5, 5)
+        test_pickle_dump_load(self.assertEqual, NI5, 5)
+        self.assertEqual(NEI.y.value, 2)
+        test_pickle_dump_load(self.assertTrue, NEI.y)
+
+    def test_subclasses_without_direct_pickle_support(self):
+        class NamedInt(int):
+            __qualname__ = 'NamedInt'
             def __new__(cls, *args):
                 _args = args
                 name, args = args[0], args[1:]
@@ -1061,6 +1310,7 @@ class TestEnum(unittest.TestCase):
                     return temp
 
         class NEI(NamedInt, Enum):
+            __qualname__ = 'NEI'
             x = ('the-x', 1)
             y = ('the-y', 2)
 
@@ -1071,25 +1321,67 @@ class TestEnum(unittest.TestCase):
         NI5 = NamedInt('test', 5)
         self.assertEqual(NI5, 5)
         self.assertEqual(NEI.y.value, 2)
-        self.assertRaises(TypeError, dumps, NEI.y, protocol=HIGHEST_PROTOCOL)
-        self.assertRaises(PicklingError, dumps, NEI, protocol=HIGHEST_PROTOCOL)
+        test_pickle_exception(self.assertRaises, TypeError, NEI.x)
+        test_pickle_exception(self.assertRaises, PicklingError, NEI)
+
+    def test_subclasses_without_direct_pickle_support_using_name(self):
+        class NamedInt(int):
+            __qualname__ = 'NamedInt'
+            def __new__(cls, *args):
+                _args = args
+                name, args = args[0], args[1:]
+                if len(args) == 0:
+                    raise TypeError("name and value must be specified")
+                self = int.__new__(cls, *args)
+                self._intname = name
+                self._args = _args
+                return self
+            @property
+            def __name__(self):
+                return self._intname
+            def __repr__(self):
+                # repr() is updated to include the name and type info
+                return "{}({!r}, {})".format(type(self).__name__,
+                                             self.__name__,
+                                             int.__repr__(self))
+            def __str__(self):
+                # str() is unchanged, even if it relies on the repr() fallback
+                base = int
+                base_str = base.__str__
+                if base_str.__objclass__ is object:
+                    return base.__repr__(self)
+                return base_str(self)
+            # for simplicity, we only define one operator that
+            # propagates expressions
+            def __add__(self, other):
+                temp = int(self) + int( other)
+                if isinstance(self, NamedInt) and isinstance(other, NamedInt):
+                    return NamedInt(
+                        '({0} + {1})'.format(self.__name__, other.__name__),
+                        temp )
+                else:
+                    return temp
 
         class NEI(NamedInt, Enum):
+            __qualname__ = 'NEI'
             x = ('the-x', 1)
             y = ('the-y', 2)
+            def __reduce_ex__(self, proto):
+                return getattr, (self.__class__, self._name_)
 
-        self.assertTrue(NEI.__new__ is Enum.__new__)
+        self.assertIs(NEI.__new__, Enum.__new__)
         self.assertEqual(repr(NEI.x + NEI.y), "NamedInt('(the-x + the-y)', 3)")
         globals()['NamedInt'] = NamedInt
         globals()['NEI'] = NEI
         NI5 = NamedInt('test', 5)
         self.assertEqual(NI5, 5)
         self.assertEqual(NEI.y.value, 2)
-        self.assertRaises(TypeError, dumps, NEI.x)
-        self.assertRaises(PicklingError, dumps, NEI)
+        test_pickle_dump_load(self.assertTrue, NEI.y)
+        test_pickle_dump_load(self.assertTrue, NEI)
 
     def test_tuple_subclass(self):
         class SomeTuple(tuple, Enum):
+            __qualname__ = 'SomeTuple'
             first = (1, 'for the money')
             second = (2, 'for the show')
             third = (3, 'for the music')
@@ -1097,7 +1389,7 @@ class TestEnum(unittest.TestCase):
         self.assertTrue(isinstance(SomeTuple.second, tuple))
         self.assertEqual(SomeTuple.third, (3, 'for the music'))
         globals()['SomeTuple'] = SomeTuple
-        self.assertTrue(loads(dumps(SomeTuple.first, protocol=HIGHEST_PROTOCOL)) is SomeTuple.first)
+        test_pickle_dump_load(self.assertTrue, SomeTuple.first)
 
     def test_duplicate_values_give_unique_enum_items(self):
         class AutoNumber(Enum):

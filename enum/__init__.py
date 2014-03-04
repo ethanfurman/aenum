@@ -16,9 +16,15 @@ except NameError:
         return False
 
 try:
+    from collections import OrderedDict
+except ImportError:
+    OrderedDict = None
+
+try:
     basestring
 except NameError:
     # In Python 2 basestring is the ancestor of both str and unicode
+    # in Python 3 it's just str, but was missing in 3.1
     basestring = str
 
 class _RouteClassAttributeToGetattr(object):
@@ -71,9 +77,9 @@ def _is_sunder(name):
 
 def _make_class_unpicklable(cls):
     """Make the given class un-picklable."""
-    def _break_on_call_reduce(self):
+    def _break_on_call_reduce(self, protocol=None):
         raise TypeError('%r cannot be pickled' % self)
-    cls.__reduce__ = _break_on_call_reduce
+    cls.__reduce_ex__ = _break_on_call_reduce
     cls.__module__ = '<unknown>'
 
 
@@ -160,14 +166,16 @@ class EnumMeta(type):
         # py2 support for definition order
         __order__ = classdict.get('__order__')
         if __order__ is None:
-            __order__ = classdict._member_names
+            #__order__ = members_in_value_order
             if pyver < 3.0:
-                order_specified = False
+                __order__ = [name for (name, value) in sorted(members.items(), key=lambda item: item[1])]
+                #order_specified = False
             else:
-                order_specified = True
+                __order__ = classdict._member_names
+                #order_specified = True
         else:
             del classdict['__order__']
-            order_specified = True
+            #order_specified = True
             if pyver < 3.0:
                 __order__ = __order__.replace(',', ' ').split()
                 aliases = [name for name in members if name not in __order__]
@@ -182,18 +190,14 @@ class EnumMeta(type):
         # create our new Enum type
         enum_class = super(EnumMeta, metacls).__new__(metacls, cls, bases, classdict)
         enum_class._member_names_ = []               # names in random order
-        enum_class._member_map_ = {}                 # name->value map
+        if OrderedDict is not None:
+            enum_class._member_map_ = OrderedDict()
+        else:
+            enum_class._member_map_ = {}             # name->value map
         enum_class._member_type_ = member_type
 
         # Reverse value->name map for hashable values.
         enum_class._value2member_map_ = {}
-
-        # check for a __getnewargs__, and if not present sabotage
-        # pickling, since it won't work anyway
-        if (member_type is not object and
-            member_type.__dict__.get('__getnewargs__') is None
-            ):
-            _make_class_unpicklable(enum_class)
 
         # instantiate them, checking for duplicates as we go
         # we instantiate first instead of checking for duplicates first in case
@@ -241,22 +245,43 @@ class EnumMeta(type):
 
         # in Python2.x we cannot know definition order, so go with value order
         # unless __order__ was specified in the class definition
-        if not order_specified:
-            enum_class._member_names_ = [
-                e[0] for e in sorted(
-                [(name, enum_class._member_map_[name]) for name in enum_class._member_names_],
-                 key=lambda t: t[1]._value_
-                        )]
+        #if not order_specified:
+        #    enum_class._member_names_ = [
+        #        e[0] for e in sorted(
+        #        [(name, enum_class._member_map_[name]) for name in enum_class._member_names_],
+        #         key=lambda t: t[1]._value_
+        #                )]
+
+        # If a custom type is mixed into the Enum, and it does not know how
+        # to pickle itself, pickle.dumps will succeed but pickle.loads will
+        # fail.  Rather than have the error show up later and possibly far
+        # from the source, sabotage the pickle protocol for this class so
+        # that pickle.dumps also fails.
+        #
+        # However, if the new class implements its own __reduce_ex__, do not
+        # sabotage -- it's on them to make sure it works correctly.  We use
+        # __reduce_ex__ instead of any of the others as it is preferred by
+        # pickle over __reduce__, and it handles all pickle protocols.
+        unpicklable = False
+        if '__reduce_ex__' not in classdict:
+            if member_type is not object:
+                methods = ('__getnewargs_ex__', '__getnewargs__',
+                        '__reduce_ex__', '__reduce__')
+                if not any(m in member_type.__dict__ for m in methods):
+                    _make_class_unpicklable(enum_class)
+                    unpicklable = True
+
 
         # double check that repr and friends are not the mixin's or various
         # things break (such as pickle)
-        if Enum is not None:
-            setattr(enum_class, '__getnewargs__', Enum.__getnewargs__)
-        for name in ('__repr__', '__str__', '__format__'):
+        for name in ('__repr__', '__str__', '__format__', '__reduce_ex__'):
             class_method = getattr(enum_class, name)
             obj_method = getattr(member_type, name, None)
             enum_method = getattr(first_enum, name, None)
-            if obj_method is not None and obj_method is class_method:
+            #if obj_method is not None and obj_method is class_method:
+            if name not in classdict and class_method is not enum_method:
+                if name == '__reduce_ex__' and unpicklable:
+                    continue
                 setattr(enum_class, name, enum_method)
 
         # method resolution and int's are not playing nice
@@ -704,15 +729,15 @@ def __ne__(self, other):
 temp_enum_dict['__ne__'] = __ne__
 del __ne__
 
-def __getnewargs__(self):
-    return (self._value_, )
-temp_enum_dict['__getnewargs__'] = __getnewargs__
-del __getnewargs__
-
 def __hash__(self):
     return hash(self._name_)
 temp_enum_dict['__hash__'] = __hash__
 del __hash__
+
+def __reduce_ex__(self, proto):
+    return self.__class__, (self._value_, )
+temp_enum_dict['__reduce_ex__'] = __reduce_ex__
+del __reduce_ex__
 
 # _RouteClassAttributeToGetattr is used to provide access to the `name`
 # and `value` properties of enum members while keeping some measure of

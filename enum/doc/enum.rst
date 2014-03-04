@@ -14,10 +14,26 @@ An enumeration is a set of symbolic names (members) bound to unique, constant
 values.  Within an enumeration, the members can be compared by identity, and
 the enumeration itself can be iterated over.
 
+
+Module Contents
+---------------
+
 This module defines two enumeration classes that can be used to define unique
-sets of names and values: ``Enum`` and ``IntEnum``.  It also defines one
-decorator, ``unique``, that ensures only unique member names are present
-in an enumeration.
+sets of names and values: ``Enum`` and ``IntEnum``.  It also defines
+one decorator, ``unique``.
+
+``Enum``
+
+Base class for creating enumerated constants.  See section `Functional API`_
+for an alternate construction syntax.
+
+``IntEnum``
+
+Base class for creating enumerated constants that are also subclasses of ``int``.
+
+``unique``
+
+Enum class decorator that ensures only one name is bound to any one value.
 
 
 Creating an Enum
@@ -91,8 +107,9 @@ Python 2.x the definition order is not available, but class attribute
     Shake.cookies
     Shake.mint
 
-The ``__order__`` attribute is ignored, but still removed, in 3.x; however, in
-the stdlib version it will be ignored but not removed.
+The ``__order__`` attribute is always removed, and in 3.x it is also ignored
+(order is definition order); however, in the stdlib version it will be ignored
+but not removed.
 
 Enumeration members are hashable, so they can be used in dictionaries and sets::
 
@@ -348,10 +365,11 @@ The usual restrictions for pickling apply: picklable enums must be defined in
 the top level of a module, since unpickling requires them to be importable
 from that module.
 
-.. warning::
+Note:
 
-    In order to support the singleton nature of enumeration members, pickle
-    protocol version 2 or higher must be used.  The default in Python 2.x is 0.
+    With pickle protocol version 4 (introduced in Python 3.4) it is possible
+    to easily pickle enums nested in other classes.
+
 
 
 Functional API
@@ -684,6 +702,12 @@ the member::
     AttributeError: 'Color' object has no attribute 'blue'
 
 Likewise, ``__members__`` is only available on the class.
+
+In Python 3.x ``__members__`` is always an ``OrderedDict``, with the order being
+the definition order.  In Python 2.7 ``__members__`` is an ``OrderedDict`` if
+``__order__`` was specified, and a plain ``dict`` otherwise.  In all other Python
+2.x versions ``__members__`` is a plain ``dict`` even if ``__order__`` was specified
+as the ``OrderedDict`` type didn't exist yet.
 
 If you give your ``Enum`` subclass extra methods, like the `Planet`_
 class above, those methods will show up in a `dir` of the member,
