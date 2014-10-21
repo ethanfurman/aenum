@@ -178,7 +178,7 @@ class TestEnum(unittest.TestCase):
             IDES_OF_MARCH = 2013, 3, 15
         self.Holiday = Holiday
 
-    if pyver >= 2.6:     # cannot specify custom `dir` on this version
+    if pyver >= 2.6:     # cannot specify custom `dir` on previous versions
         def test_dir_on_class(self):
             Season = self.Season
             self.assertEqual(
@@ -193,6 +193,18 @@ class TestEnum(unittest.TestCase):
                 set(dir(Season.WINTER)),
                 set(['__class__', '__doc__', '__module__', 'name', 'value']),
                 )
+
+        def test_dir_on_sub_with_behavior_on_super(self):
+            # see issue22506
+            class SuperEnum(Enum):
+                def invisible(self):
+                    return "did you see me?"
+            class SubEnum(SuperEnum):
+                sample = 5
+            self.assertEqual(
+                    set(dir(SubEnum.sample)),
+                    set(['__class__', '__doc__', '__module__', 'name', 'value', 'invisible']),
+                    )
 
     if pyver >= 2.7:    # OrderedDict first available here
         def test_members_is_ordereddict_if_ordered(self):
