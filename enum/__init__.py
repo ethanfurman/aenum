@@ -163,7 +163,10 @@ class EnumMeta(type):
         __order__ = classdict.get('__order__')
         if __order__ is None:
             if pyver < 3.0:
-                __order__ = [name for (name, value) in sorted(members.items(), key=lambda item: item[1])]
+                try:
+                    __order__ = [name for (name, value) in sorted(members.items(), key=lambda item: item[1])]
+                except TypeError:
+                    __order__ = [name for name in sorted(members.keys())]
             else:
                 __order__ = classdict._member_names
         else:

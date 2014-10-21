@@ -653,6 +653,17 @@ class TestEnum(unittest.TestCase):
                 [Season.SUMMER, Season.WINTER, Season.AUTUMN, Season.SPRING],
                 )
 
+    def test_iteration_order_with_unorderable_values(self):
+        class Complex(Enum):
+            a = complex(7, 9)
+            b = complex(3.14, 2)
+            c = complex(1, -1)
+            d = complex(-77, 32)
+        self.assertEqual(
+                list(Complex),
+                [Complex.a, Complex.b, Complex.c, Complex.d],
+                )
+
     def test_programatic_function_string(self):
         SummerMonth = Enum('SummerMonth', 'june july august')
         lst = list(SummerMonth)
