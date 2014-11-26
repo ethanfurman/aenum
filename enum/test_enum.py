@@ -460,6 +460,7 @@ class TestEnum(unittest.TestCase):
             with self.assertRaises(TypeError):
                 class Color(Enum):
                     @property
+
                     def red(self):
                         return 'redder'
                     red = 1
@@ -889,6 +890,31 @@ class TestEnum(unittest.TestCase):
             self.assertEqual(e.name, month)
             self.assertTrue(e in SummerMonth)
             self.assertTrue(type(e) is SummerMonth)
+
+    def test_programmatic_function_unicode_class(self):
+        if pyver < 3.0:
+            class_names = unicode('SummerMonth'), 'S\xfcmm\xe9rM\xf6nth'.decode('latin1')
+        else:
+            class_names = 'SummerMonth', 'S\xfcmm\xe9rM\xf6nth'
+        for i, class_name in enumerate(class_names):
+            if pyver < 3.0 and i == 1:
+                self.assertRaises(TypeError, Enum, class_name, unicode('june july august'))
+            else:
+                SummerMonth = Enum(class_name, unicode('june july august'))
+                lst = list(SummerMonth)
+                self.assertEqual(len(lst), len(SummerMonth))
+                self.assertEqual(len(SummerMonth), 3, SummerMonth)
+                self.assertEqual(
+                        [SummerMonth.june, SummerMonth.july, SummerMonth.august],
+                        lst,
+                        )
+                for i, month in enumerate(unicode('june july august').split()):
+                    i += 1
+                    e = SummerMonth(i)
+                    self.assertEqual(e.value, i)
+                    self.assertEqual(e.name, month)
+                    self.assertTrue(e in SummerMonth)
+                    self.assertTrue(type(e) is SummerMonth)
 
     def test_subclassing(self):
         if isinstance(Name, Exception):

@@ -4,7 +4,7 @@ import sys as _sys
 
 __all__ = ['Enum', 'IntEnum', 'unique']
 
-version = 1, 0, 3
+version = 1, 0, 4
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
@@ -28,6 +28,12 @@ except NameError:
     # In Python 2 basestring is the ancestor of both str and unicode
     # in Python 3 it's just str, but was missing in 3.1
     basestring = str
+
+try:
+    unicode
+except NameError:
+    # In Python 3 unicode no longer exists (it's just str)
+    unicode = str
 
 class _RouteClassAttributeToGetattr(object):
     """Route attribute access on a class to __getattr__.
@@ -406,6 +412,13 @@ class EnumMeta(type):
         * A mapping of member name -> value.
 
         """
+        if pyver < 3.0:
+            # if class_name is unicode, attempt a conversion to ASCII
+            if isinstance(class_name, unicode):
+                try:
+                    class_name = class_name.encode('ascii')
+                except UnicodeEncodeError:
+                    raise TypeError('%r is not representable in ASCII' % class_name)
         metacls = cls.__class__
         if type is None:
             bases = (cls, )
