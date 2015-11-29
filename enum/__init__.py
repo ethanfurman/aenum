@@ -434,6 +434,7 @@ class EnumMeta(type):
             names = [(e, i+start) for (i, e) in enumerate(names)]
 
         # Here, names is either an iterable of (name, value) or a mapping.
+        item = None  # in case names is empty
         for item in names:
             if isinstance(item, basestring):
                 member_name, member_value = item, names[item]

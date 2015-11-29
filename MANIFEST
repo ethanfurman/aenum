@@ -4,5 +4,6 @@ enum/LICENSE
 enum/README
 enum/__init__.py
 enum/enum.py
+enum/py35_test_enum.py
 enum/test_enum.py
 enum/doc/enum.rst

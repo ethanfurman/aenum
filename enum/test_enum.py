@@ -1748,6 +1748,11 @@ class TestEnum(unittest.TestCase):
         self.assertEqual(LabelledList.unprocessed, 1)
         self.assertEqual(LabelledList(1), LabelledList.unprocessed)
 
+    def test_empty_with_functional_api(self):
+        empty = enum.IntEnum('Foo', {})
+        self.assertEqual(len(empty), 0)
+
+
 class TestUnique(unittest.TestCase):
     """2.4 doesn't allow class decorators, use function syntax."""
 
