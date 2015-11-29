@@ -77,7 +77,7 @@ def _is_dunder(name):
 
 def _is_sunder(name):
     """Returns True if a _sunder_ name, False otherwise."""
-    return (name[0] == name[-1] == '_' and 
+    return (name[0] == name[-1] == '_' and
             name[1:2] != '_' and
             name[-2:-1] != '_' and
             len(name) > 2)
@@ -310,7 +310,7 @@ class EnumMeta(type):
             setattr(enum_class, '__new__', Enum.__dict__['__new__'])
         return enum_class
 
-    def __call__(cls, value, names=None, module=None, type=None):
+    def __call__(cls, value, names=None, module=None, type=None, start=1):
         """Either returns an existing member, or creates a new enum class.
 
         This method is used both when an enum class is given a value to match
@@ -329,7 +329,7 @@ class EnumMeta(type):
         if names is None:  # simple value lookup
             return cls.__new__(cls, value)
         # otherwise, functional API: we're creating a new Enum type
-        return cls._create_(value, names, module=module, type=type)
+        return cls._create_(value, names, module=module, type=type, start=start)
 
     def __contains__(cls, member):
         return isinstance(member, cls) and member.name in cls._member_map_
@@ -400,7 +400,7 @@ class EnumMeta(type):
             raise AttributeError('Cannot reassign members.')
         super(EnumMeta, cls).__setattr__(name, value)
 
-    def _create_(cls, class_name, names=None, module=None, type=None):
+    def _create_(cls, class_name, names=None, module=None, type=None, start=1):
         """Convenience method to create a new Enum class.
 
         `names` can be:
@@ -431,7 +431,7 @@ class EnumMeta(type):
         if isinstance(names, basestring):
             names = names.replace(',', ' ').split()
         if isinstance(names, (tuple, list)) and isinstance(names[0], basestring):
-            names = [(e, i+1) for (i, e) in enumerate(names)]
+            names = [(e, i+start) for (i, e) in enumerate(names)]
 
         # Here, names is either an iterable of (name, value) or a mapping.
         for item in names:
@@ -470,7 +470,7 @@ class EnumMeta(type):
         """
         if not bases or Enum is None:
             return object, Enum
-        
+
 
         # double check that we are not subclassing a class with existing
         # enumeration members; while we're at it, see if any other data
@@ -719,7 +719,7 @@ else:
         raise TypeError("unorderable types: %s() > %s()" % (self.__class__.__name__, other.__class__.__name__))
     temp_enum_dict['__gt__'] = __gt__
     del __gt__
-    
+
 
 def __eq__(self, other):
     if type(other) is self.__class__:
@@ -739,6 +739,14 @@ def __hash__(self):
     return hash(self._name_)
 temp_enum_dict['__hash__'] = __hash__
 del __hash__
+
+def __bool__(self):
+    return bool(self._value_)
+if pyver < 3.0:
+    temp_enum_dict['__nonzero__'] = __bool__
+else:
+    temp_enum_dict['__bool__'] = __bool__
+    del __bool__
 
 def __reduce_ex__(self, proto):
     return self.__class__, (self._value_, )
@@ -764,6 +772,30 @@ def value(self):
 temp_enum_dict['value'] = value
 del value
 
+@classmethod
+def _convert(cls, name, module, filter, source=None):
+    """
+    Create a new Enum subclass that replaces a collection of global constants
+    """
+    # convert all constants from source (or module) that pass filter() to
+    # a new Enum called name, and export the enum and its members back to
+    # module;
+    # also, replace the __reduce_ex__ method so unpickling works in
+    # previous Python versions
+    module_globals = vars(_sys.modules[module])
+    if source:
+        source = vars(source)
+    else:
+        source = module_globals
+    members = dict((name, value) for name, value in source.items() if filter(name))
+    cls = cls(name, members, module=module)
+    cls.__reduce_ex__ = _reduce_ex_by_name
+    module_globals.update(cls.__members__)
+    module_globals[name] = cls
+    return cls
+temp_enum_dict['_convert'] = _convert
+del _convert
+
 Enum = EnumMeta('Enum', (object, ), temp_enum_dict)
 del temp_enum_dict
 
@@ -773,6 +805,8 @@ del temp_enum_dict
 class IntEnum(int, Enum):
     """Enum where members are also (and must be) ints"""
 
+def _reduce_ex_by_name(self, proto):
+    return self.name
 
 def unique(enumeration):
     """Class decorator that ensures only unique members exist in an enumeration."""

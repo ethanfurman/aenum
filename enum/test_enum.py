@@ -194,6 +194,21 @@ class TestEnum(unittest.TestCase):
                 set(['__class__', '__doc__', '__module__', 'name', 'value']),
                 )
 
+        def test_dir_with_added_behavior(self):
+            class Test(Enum):
+                this = 'that'
+                these = 'those'
+                def wowser(self):
+                    return ("Wowser! I'm %s!" % self.name)
+            self.assertEqual(
+                    set(dir(Test)),
+                    set(['__class__', '__doc__', '__members__', '__module__', 'this', 'these']),
+                    )
+            self.assertEqual(
+                    set(dir(Test.this)),
+                    set(['__class__', '__doc__', '__module__', 'name', 'value', 'wowser']),
+                    )
+
         def test_dir_on_sub_with_behavior_on_super(self):
             # see issue22506
             class SuperEnum(Enum):
@@ -244,7 +259,7 @@ class TestEnum(unittest.TestCase):
             self.assertNotEqual(Season.SPRING, Part.SPRING)
             def bad_compare():
                 Season.SPRING < Part.CLIP
-            self.assertRaises(TypeError, bad_compare) 
+            self.assertRaises(TypeError, bad_compare)
 
     def test_enum_in_enum_out(self):
         Season = self.Season
@@ -319,6 +334,13 @@ class TestEnum(unittest.TestCase):
                 _reserved_ = 3
         self.assertRaises(ValueError, create_bad_class_1)
         self.assertRaises(ValueError, create_bad_class_2)
+
+    def test_bool(self):
+        class Logic(Enum):
+            true = True
+            false = False
+        self.assertTrue(Logic.true)
+        self.assertFalse(Logic.false)
 
     def test_contains(self):
         Season = self.Season
@@ -599,7 +621,7 @@ class TestEnum(unittest.TestCase):
         test_pickle_dump_load(self.assertTrue, Question.who)
         test_pickle_dump_load(self.assertTrue, Question)
 
-    if pyver >= 3.4:
+    if pyver == 3.4:
         def test_class_nested_enum_and_pickle_protocol_four(self):
             # would normally just have this directly in the class namespace
             class NestedEnum(Enum):
@@ -613,6 +635,18 @@ class TestEnum(unittest.TestCase):
                     protocol=(0, 3))
             test_pickle_dump_load(self.assertTrue, self.NestedEnum.twigs,
                     protocol=(4, HIGHEST_PROTOCOL))
+
+    elif pyver == 3.5:
+        def test_class_nested_enum_and_pickle_protocol_four(self):
+            # would normally just have this directly in the class namespace
+            class NestedEnum(Enum):
+                twigs = 'common'
+                shiny = 'rare'
+
+            self.__class__.NestedEnum = NestedEnum
+            self.NestedEnum.__qualname__ = '%s.NestedEnum' % self.__class__.__name__
+            test_pickle_dump_load(self.assertTrue, self.NestedEnum.twigs,
+                    protocol=(0, HIGHEST_PROTOCOL))
 
     def test_exploding_pickle(self):
         BadPickle = Enum('BadPickle', 'dill sweet bread-n-butter')
@@ -654,6 +688,13 @@ class TestEnum(unittest.TestCase):
                 [Season.SUMMER, Season.WINTER, Season.AUTUMN, Season.SPRING],
                 )
 
+    def test_iteration_order_reversed(self):
+        self.assertEqual(
+                list(reversed(self.Season)),
+                [self.Season.WINTER, self.Season.AUTUMN, self.Season.SUMMER,
+                 self.Season.SPRING]
+                )
+
     def test_iteration_order_with_unorderable_values(self):
         class Complex(Enum):
             a = complex(7, 9)
@@ -683,6 +724,23 @@ class TestEnum(unittest.TestCase):
             self.assertTrue(e in SummerMonth)
             self.assertTrue(type(e) is SummerMonth)
 
+    def test_programatic_function_string_with_start(self):
+        SummerMonth = Enum('SummerMonth', 'june july august', start=10)
+        lst = list(SummerMonth)
+        self.assertEqual(len(lst), len(SummerMonth))
+        self.assertEqual(len(SummerMonth), 3, SummerMonth)
+        self.assertEqual(
+                [SummerMonth.june, SummerMonth.july, SummerMonth.august],
+                lst,
+                )
+        for i, month in enumerate('june july august'.split(), 10):
+            e = SummerMonth(i)
+            self.assertEqual(int(e.value), i)
+            self.assertNotEqual(e, i)
+            self.assertEqual(e.name, month)
+            self.assertTrue(e in SummerMonth)
+            self.assertTrue(type(e) is SummerMonth)
+
     def test_programatic_function_string_list(self):
         SummerMonth = Enum('SummerMonth', ['june', 'july', 'august'])
         lst = list(SummerMonth)
@@ -694,6 +752,23 @@ class TestEnum(unittest.TestCase):
                 )
         for i, month in enumerate('june july august'.split()):
             i += 1
+            e = SummerMonth(i)
+            self.assertEqual(int(e.value), i)
+            self.assertNotEqual(e, i)
+            self.assertEqual(e.name, month)
+            self.assertTrue(e in SummerMonth)
+            self.assertTrue(type(e) is SummerMonth)
+
+    def test_programatic_function_string_list_with_start(self):
+        SummerMonth = Enum('SummerMonth', ['june', 'july', 'august'], start=20)
+        lst = list(SummerMonth)
+        self.assertEqual(len(lst), len(SummerMonth))
+        self.assertEqual(len(SummerMonth), 3, SummerMonth)
+        self.assertEqual(
+                [SummerMonth.june, SummerMonth.july, SummerMonth.august],
+                lst,
+                )
+        for i, month in enumerate('june july august'.split(), 20):
             e = SummerMonth(i)
             self.assertEqual(int(e.value), i)
             self.assertNotEqual(e, i)
@@ -761,6 +836,22 @@ class TestEnum(unittest.TestCase):
             self.assertTrue(e in SummerMonth)
             self.assertTrue(type(e) is SummerMonth)
 
+    def test_programatic_function_type_with_start(self):
+        SummerMonth = Enum('SummerMonth', 'june july august', type=int, start=30)
+        lst = list(SummerMonth)
+        self.assertEqual(len(lst), len(SummerMonth))
+        self.assertEqual(len(SummerMonth), 3, SummerMonth)
+        self.assertEqual(
+                [SummerMonth.june, SummerMonth.july, SummerMonth.august],
+                lst,
+                )
+        for i, month in enumerate('june july august'.split(), 30):
+            e = SummerMonth(i)
+            self.assertEqual(e, i)
+            self.assertEqual(e.name, month)
+            self.assertTrue(e in SummerMonth)
+            self.assertTrue(type(e) is SummerMonth)
+
     def test_programatic_function_type_from_subclass(self):
         SummerMonth = IntEnum('SummerMonth', 'june july august')
         lst = list(SummerMonth)
@@ -772,6 +863,22 @@ class TestEnum(unittest.TestCase):
                 )
         for i, month in enumerate('june july august'.split()):
             i += 1
+            e = SummerMonth(i)
+            self.assertEqual(e, i)
+            self.assertEqual(e.name, month)
+            self.assertTrue(e in SummerMonth)
+            self.assertTrue(type(e) is SummerMonth)
+
+    def test_programatic_function_type_from_subclass_with_start(self):
+        SummerMonth = IntEnum('SummerMonth', 'june july august', start=40)
+        lst = list(SummerMonth)
+        self.assertEqual(len(lst), len(SummerMonth))
+        self.assertEqual(len(SummerMonth), 3, SummerMonth)
+        self.assertEqual(
+                [SummerMonth.june, SummerMonth.july, SummerMonth.august],
+                lst,
+                )
+        for i, month in enumerate('june july august'.split(), 40):
             e = SummerMonth(i)
             self.assertEqual(e, i)
             self.assertEqual(e.name, month)
@@ -1496,6 +1603,15 @@ class TestEnum(unittest.TestCase):
         Color.green
         Color.blue
 
+    def test_equality(self):
+        class AlwaysEqual:
+            def __eq__(self, other):
+                return True
+        class OrdinaryEnum(Enum):
+            a = 1
+        self.assertEqual(AlwaysEqual(), OrdinaryEnum.a)
+        self.assertEqual(OrdinaryEnum.a, AlwaysEqual())
+
     def test_ordered_mixin(self):
         class OrderedEnum(Enum):
             def __ge__(self, other):
@@ -1577,13 +1693,6 @@ class TestEnum(unittest.TestCase):
                 blue = 3
                 grene = 2
         self.assertRaises(ValueError, bad_duplicates)
-
-    def test_reversed(self):
-        self.assertEqual(
-                list(reversed(self.Season)),
-                [self.Season.WINTER, self.Season.AUTUMN, self.Season.SUMMER,
-                 self.Season.SPRING]
-                )
 
     def test_init(self):
         class Planet(Enum):
