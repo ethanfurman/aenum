@@ -674,7 +674,12 @@ allow one to do things with an ``Enum`` class that fail on a typical
 class, such as ``list(Color)`` or ``some_var in Color``.  ``EnumMeta`` is
 responsible for ensuring that various other methods on the final ``Enum``
 class are correct (such as ``__new__``, ``__getnewargs__``,
-``__str__`` and ``__repr__``)
+``__str__`` and ``__repr__``).
+
+.. note::
+
+    ``__dir__`` is not changed in the Python 2 line as it messes up some
+    of the decorators included in the stdlib.
 
 
 Enum Members (aka instances)
@@ -690,16 +695,20 @@ member instances.
 Finer Points
 ^^^^^^^^^^^^
 
-Enum members are instances of an Enum class, and even though they are
-accessible as ``EnumClass.member``, they are not accessible directly from
-the member::
+``Enum`` members are instances of an ``Enum`` class, and even
+though they are accessible as `EnumClass.member`, they should not be accessed
+directly from the member as that lookup may fail or, worse, return something
+besides the ``Enum`` member you were looking for (changed in version 1.1.1)::
 
-    >>> Color.red
-    <Color.red: 1>
-    >>> Color.red.blue
-    Traceback (most recent call last):
+    >>> class FieldTypes(Enum):
+    ...     name = 0
+    ...     value = 1
+    ...     size = 2
     ...
-    AttributeError: 'Color' object has no attribute 'blue'
+    >>> FieldTypes.value.size
+    <FieldTypes.size: 2>
+    >>> FieldTypes.size.value
+    2
 
 Likewise, ``__members__`` is only available on the class.
 

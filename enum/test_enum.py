@@ -178,7 +178,7 @@ class TestEnum(unittest.TestCase):
             IDES_OF_MARCH = 2013, 3, 15
         self.Holiday = Holiday
 
-    if pyver >= 2.6:     # cannot specify custom `dir` on previous versions
+    if pyver >= 3.0:     # do not specify custom `dir` on previous versions
         def test_dir_on_class(self):
             Season = self.Season
             self.assertEqual(

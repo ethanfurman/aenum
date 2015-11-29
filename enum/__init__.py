@@ -190,6 +190,9 @@ class EnumMeta(type):
             raise ValueError('Invalid enum member name(s): %s' % (
                 ', '.join(invalid_names), ))
 
+        # save attributes from super classes so we know if we can take
+        # the shortcut of storing members in the class dict
+        base_attributes = set([a for b in bases for a in b.__dict__])
         # create our new Enum type
         enum_class = super(EnumMeta, metacls).__new__(metacls, cls, bases, classdict)
         enum_class._member_names_ = []               # names in random order
@@ -237,6 +240,11 @@ class EnumMeta(type):
             else:
                 # Aliases don't appear in member names (only in __members__).
                 enum_class._member_names_.append(member_name)
+            # performance boost for any member that would not shadow
+            # a DynamicClassAttribute (aka _RouteClassAttributeToGetattr)
+            if member_name not in base_attributes:
+                setattr(enum_class, member_name, enum_member)
+            # now add to _member_map_
             enum_class._member_map_[member_name] = enum_member
             try:
                 # This may fail if value is not hashable. We can't add the value
@@ -655,16 +663,17 @@ def __str__(self):
 temp_enum_dict['__str__'] = __str__
 del __str__
 
-def __dir__(self):
-    added_behavior = [
-            m
-            for cls in self.__class__.mro()
-            for m in cls.__dict__
-            if m[0] != '_'
-            ]
-    return (['__class__', '__doc__', '__module__', ] + added_behavior)
-temp_enum_dict['__dir__'] = __dir__
-del __dir__
+if pyver >= 3.0:
+    def __dir__(self):
+        added_behavior = [
+                m
+                for cls in self.__class__.mro()
+                for m in cls.__dict__
+                if m[0] != '_' and m not in self._member_map_
+                ]
+        return (['__class__', '__doc__', '__module__', ] + added_behavior)
+    temp_enum_dict['__dir__'] = __dir__
+    del __dir__
 
 def __format__(self, format_spec):
     # mixed-in Enums should use the mixed-in type's __format__, otherwise
