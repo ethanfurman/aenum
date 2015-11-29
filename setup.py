@@ -10,7 +10,7 @@ else:
 long_desc = open('enum/doc/enum.rst').read()
 
 setup( name='enum34',
-       version='1.1.0',
+       version='1.1.1',
        url='https://pypi.python.org/pypi/enum34',
        packages=['enum'],
        package_data={

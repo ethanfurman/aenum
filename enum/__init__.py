@@ -4,7 +4,7 @@ import sys as _sys
 
 __all__ = ['Enum', 'IntEnum', 'unique']
 
-version = 1, 1, 0
+version = 1, 1, 1
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
