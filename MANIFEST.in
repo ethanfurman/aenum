@@ -1,8 +1,8 @@
-exclude enum/*
+exclude aenum/*
 include setup.py
-include enum/__init__.py
-include enum/test_enum.py
-include enum/LICENSE
-include enum/README
-include enum/doc/enum.pdf
-include enum/doc/enum.rst
+include aenum/__init__.py
+include aenum/test.py
+include aenum/LICENSE
+include aenum/README
+include aenum/doc/aenum.pdf
+include aenum/doc/aenum.rst

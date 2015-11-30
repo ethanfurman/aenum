@@ -1,5 +1,5 @@
-``enum`` --- support for enumerations
-========================================
+``aenum`` --- support for advanced enumerations
+===============================================
 
 .. :synopsis: enumerations are sets of symbolic names bound to unique, constant
   values.
@@ -44,7 +44,7 @@ easy to read and write.  An alternative creation method is described in
 `Functional API`_.  To define an enumeration, subclass ``Enum`` as
 follows::
 
-    >>> from enum import Enum
+    >>> from aenum import Enum
     >>> class Color(Enum):
     ...     red = 1
     ...     green = 2
@@ -194,7 +194,7 @@ return A::
 Allowing aliases is not always desirable.  ``unique`` can be used to ensure
 that none exist in a particular enumeration::
 
-    >>> from enum import unique
+    >>> from aenum import unique
     >>> @unique
     ... class Mistake(Enum):
     ...   __order__ = 'one two three four'  # only needed in 2.x
@@ -356,7 +356,7 @@ Pickling
 
 Enumerations can be pickled and unpickled::
 
-    >>> from enum.test_enum import Fruit
+    >>> from aenum.test import Fruit
     >>> from pickle import dumps, loads
     >>> Fruit.tomato is loads(dumps(Fruit.tomato, 2))
     True
@@ -423,7 +423,7 @@ A variation of ``Enum`` is provided which is also a subclass of
 by extension, integer enumerations of different types can also be compared
 to each other::
 
-    >>> from enum import IntEnum
+    >>> from aenum import IntEnum
     >>> class Shape(IntEnum):
     ...   circle = 1
     ...   square = 2
@@ -473,7 +473,7 @@ that still expects integers.
 Others
 ^^^^^^
 
-While ``IntEnum`` is part of the ``enum`` module, it would be very
+While ``IntEnum`` is part of the ``aenum`` module, it would be very
 simple to implement independently::
 
     class IntEnum(int, Enum):

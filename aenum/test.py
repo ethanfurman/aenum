@@ -1,7 +1,7 @@
-import enum
+import aenum
 import sys
 import unittest
-from enum import Enum, IntEnum, unique, EnumMeta
+from aenum import Enum, IntEnum, unique, EnumMeta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 
 pyver = float('%s.%s' % sys.version_info[:2])
@@ -122,24 +122,24 @@ class TestHelpers(unittest.TestCase):
             pass
         for attr in ('__get__','__set__','__delete__'):
             obj = foo()
-            self.assertFalse(enum._is_descriptor(obj))
+            self.assertFalse(aenum._is_descriptor(obj))
             setattr(obj, attr, 1)
-            self.assertTrue(enum._is_descriptor(obj))
+            self.assertTrue(aenum._is_descriptor(obj))
 
     def test_is_sunder(self):
         for s in ('_a_', '_aa_'):
-            self.assertTrue(enum._is_sunder(s))
+            self.assertTrue(aenum._is_sunder(s))
 
         for s in ('a', 'a_', '_a', '__a', 'a__', '__a__', '_a__', '__a_', '_',
                 '__', '___', '____', '_____',):
-            self.assertFalse(enum._is_sunder(s))
+            self.assertFalse(aenum._is_sunder(s))
 
     def test_is_dunder(self):
         for s in ('__a__', '__aa__'):
-            self.assertTrue(enum._is_dunder(s))
+            self.assertTrue(aenum._is_dunder(s))
         for s in ('a', 'a_', '_a', '__a', 'a__', '_a_', '_a__', '__a_', '_',
                 '__', '___', '____', '_____',):
-            self.assertFalse(enum._is_dunder(s))
+            self.assertFalse(aenum._is_dunder(s))
 
 
 class TestEnum(unittest.TestCase):
@@ -650,7 +650,7 @@ class TestEnum(unittest.TestCase):
 
     def test_exploding_pickle(self):
         BadPickle = Enum('BadPickle', 'dill sweet bread-n-butter')
-        enum._make_class_unpicklable(BadPickle)
+        aenum._make_class_unpicklable(BadPickle)
         globals()['BadPickle'] = BadPickle
         test_pickle_exception(self.assertRaises, TypeError, BadPickle.dill)
         test_pickle_exception(self.assertRaises, PicklingError, BadPickle)
@@ -1169,7 +1169,7 @@ class TestEnum(unittest.TestCase):
         class auto_enum(EnumMeta):
             def __new__(metacls, cls, bases, classdict):
                 original_dict = classdict
-                classdict = enum._EnumDict()
+                classdict = aenum._EnumDict()
                 for k, v in original_dict.items():
                     classdict[k] = v
                 temp = type(classdict)()
@@ -1749,7 +1749,7 @@ class TestEnum(unittest.TestCase):
         self.assertEqual(LabelledList(1), LabelledList.unprocessed)
 
     def test_empty_with_functional_api(self):
-        empty = enum.IntEnum('Foo', {})
+        empty = aenum.IntEnum('Foo', {})
         self.assertEqual(len(empty), 0)
 
 
