@@ -1,12 +1,10 @@
-``aenum`` --- support for advanced enumerations
-===============================================
+``aenum`` --- support for advanced enumerations and namedtuples
+===============================================================
 
-.. :synopsis: enumerations are sets of symbolic names bound to unique, constant
-  values.
+.. :synopsis:: enumerations are sets of symbolic names bound to unique, constant
+    values; namedtuples are fixed-length tuples with the positions addressable
+    by field name
 .. :moduleauthor:: Ethan Furman <ethan@stoneleaf.us>
-.. :sectionauthor:: Barry Warsaw <barry@python.org>,
-.. :sectionauthor:: Eli Bendersky <eliben@gmail.com>,
-.. :sectionauthor:: Ethan Furman <ethan@stoneleaf.us>
 
 ----------------
 
@@ -14,26 +12,51 @@ An enumeration is a set of symbolic names (members) bound to unique, constant
 values.  Within an enumeration, the members can be compared by identity, and
 the enumeration itself can be iterated over.
 
+A NamedTuple is a class-based, fixed-length tuple with a name for each possible
+position accessible using attribute-access notation.
+
 
 Module Contents
 ---------------
 
-This module defines two enumeration classes that can be used to define unique
-sets of names and values: ``Enum`` and ``IntEnum``.  It also defines
-one decorator, ``unique``.
+This module defines five enumeration classes that can be used to define unique
+sets of names and values, one ``Enum`` class decorator, and one named tuple
+class
 
 ``Enum``
 
-Base class for creating enumerated constants.  See section `Functional API`_
+Base class for creating enumerated constants.  See section `Enum Functional API`_
 for an alternate construction syntax.
 
 ``IntEnum``
 
 Base class for creating enumerated constants that are also subclasses of ``int``.
 
+``AutoNumberEnum``
+
+Derived class that automatically assigns an ``int`` value to each member.
+
+``OrderedEnum``
+
+Derived class that adds ``<``, ``<=``, ``>=``, and ``>`` methods to an ``Enum``.
+
+``UniqueEnum``
+
+Derived class that ensures only one name is bound to any one value.
+
 ``unique``
 
 Enum class decorator that ensures only one name is bound to any one value.
+
+``NamedTuple``
+
+Base class for `creating NamedTuples`_, either by subclassing or via it's
+functional API.
+
+.. note::
+
+    the ``UniqueEnum`` class and the ``unique`` decorator both do the same
+    thing, you do not need to use both of them at the same time.
 
 
 Creating an Enum
@@ -41,7 +64,7 @@ Creating an Enum
 
 Enumerations are created using the ``class`` syntax, which makes them
 easy to read and write.  An alternative creation method is described in
-`Functional API`_.  To define an enumeration, subclass ``Enum`` as
+`Enum Functional API`_.  To define an enumeration, subclass ``Enum`` as
 follows::
 
     >>> from aenum import Enum
@@ -50,7 +73,9 @@ follows::
     ...     green = 2
     ...     blue = 3
 
-Note: Nomenclature
+.. note::
+
+  Nomenclature
 
   - The class ``Color`` is an *enumeration* (or *enum*)
   - The attributes ``Color.red``, ``Color.green``, etc., are
@@ -58,8 +83,8 @@ Note: Nomenclature
   - The enum members have *names* and *values* (the name of
     ``Color.red`` is ``red``, the value of ``Color.blue`` is
     ``3``, etc.)
-    
-Note:
+
+.. note::
 
     Even though we use the ``class`` syntax to create Enums, Enums
     are not normal Python classes.  See `How are Enums different?`_ for
@@ -155,16 +180,16 @@ Having two enum members (or any other attribute) with the same name is invalid;
 in Python 3.x this would raise an error, but in Python 2.x the second member
 simply overwrites the first::
 
-    >>> # python 2.x
-    >>> class Shape(Enum):
+    # python 2.x
+    --> class Shape(Enum):
     ...   square = 2
     ...   square = 3
     ...
-    >>> Shape.square
+    --> Shape.square
     <Shape.square: 3>
 
-    >>> # python 3.x
-    >>> class Shape(Enum):
+    # python 3.x
+    --> class Shape(Enum):
     ...   square = 2
     ...   square = 3
     Traceback (most recent call last):
@@ -252,7 +277,7 @@ members are not integers (but see `IntEnum`_ below)::
 
     In Python 2 *everything* is ordered, even though the ordering may not
     make sense.  If you want your enumerations to have a sensible ordering
-    check out the `OrderedEnum`_ recipe below.
+    consider using an `OrderedEnum`_.
 
 
 Equality comparisons are defined though::
@@ -276,7 +301,7 @@ Allowed members and attributes of enumerations
 ----------------------------------------------
 
 The examples above use integers for enumeration values.  Using integers is
-short and handy (and provided by default by the `Functional API`_), but not
+short and handy (and provided by default by the `Enum Functional API`_), but not
 strictly enforced.  In the vast majority of use-cases, one doesn't care what
 the actual value of an enumeration is.  But if the value *is* important,
 enumerations can have arbitrary values.
@@ -287,14 +312,14 @@ usual.  If we have this enumeration::
     >>> class Mood(Enum):
     ...   funky = 1
     ...   happy = 3
-    ... 
+    ...
     ...   def describe(self):
     ...     # self is the member here
     ...     return self.name, self.value
-    ... 
+    ...
     ...   def __str__(self):
     ...     return 'my custom str! {0}'.format(self.value)
-    ... 
+    ...
     ...   @classmethod
     ...   def favorite_mood(cls):
     ...     # cls here is the enumeration
@@ -315,7 +340,7 @@ all other attributes defined within an enumeration will become members of this
 enumeration, with the exception of *__dunder__* names and descriptors (methods
 are also descriptors).
 
-Note:
+.. note::
 
     If your enumeration defines ``__new__`` and/or ``__init__`` then
     whatever value(s) were given to the enum member will be passed into
@@ -365,15 +390,15 @@ The usual restrictions for pickling apply: picklable enums must be defined in
 the top level of a module, since unpickling requires them to be importable
 from that module.
 
-Note:
+.. note::
 
     With pickle protocol version 4 (introduced in Python 3.4) it is possible
     to easily pickle enums nested in other classes.
 
 
 
-Functional API
---------------
+Enum Functional API
+-------------------
 
 The ``Enum`` class is callable, providing the following functional API::
 
@@ -388,7 +413,7 @@ The ``Enum`` class is callable, providing the following functional API::
     [<Animal.ant: 1>, <Animal.bee: 2>, <Animal.cat: 3>, <Animal.dog: 4>]
 
 The semantics of this API resemble ``namedtuple``. The first argument
-of the call to ``Enum`` is the name of the enumeration. 
+of the call to ``Enum`` is the name of the enumeration.
 
 The second argument is the *source* of enumeration member names.  It can be a
 whitespace-separated string of names, a sequence of names, a sequence of
@@ -499,13 +524,15 @@ Some rules:
    ``__repr__`` respectively; other codes (such as ``%i`` or ``%h`` for
    IntEnum) treat the enum member as its mixed-in type.
 
-   Note: Prior to Python 3.4 there is a bug in ``str``'s %-formatting: ``int``
-   subclasses are printed as strings and not numbers when the ``%d``, ``%i``,
-   or ``%u`` codes are used.
 5. ``str.__format__`` (or ``format``) will use the mixed-in
    type's ``__format__``.  If the ``Enum``'s ``str`` or
    ``repr`` is desired use the ``!s`` or ``!r`` ``str`` format codes.
 
+.. note::
+
+   Prior to Python 3.4 there is a bug in ``str``'s %-formatting: ``int``
+   subclasses are printed as strings and not numbers when the ``%d``, ``%i``,
+   or ``%u`` codes are used.
 
 Decorators
 ----------
@@ -532,8 +559,8 @@ Interesting examples
 
 While ``Enum`` and ``IntEnum`` are expected to cover the majority of
 use-cases, they cannot cover them all.  Here are recipes for some different
-types of enumerations that can be used directly, or as examples for creating
-one's own.
+types of enumerations that can be used directly (the first three are included
+in the module), or as examples for creating one's own.
 
 
 AutoNumber
@@ -557,12 +584,13 @@ Avoids having to specify the value for each enumeration member::
     >>> Color.green.value == 2
     True
 
-Note:
+.. note::
 
     The `__new__` method, if defined, is used during creation of the Enum
     members; it is then replaced by Enum's `__new__` which is used after
     class creation for lookup of existing members.  Due to the way Enums are
-    supposed to behave, there is no way to customize Enum's `__new__`.
+    supposed to behave, there is no way to customize Enum's `__new__` without
+    modifying the class after it is created.
 
 
 UniqueEnum
@@ -580,8 +608,9 @@ alias::
     ...             raise ValueError(
     ...                     "aliases not allowed in UniqueEnum:  %r --> %r"
     ...                     % (a, e))
-    ... 
+    ...
     >>> class Color(UniqueEnum):
+    ...     __order__ = 'red green blue'
     ...     red = 1
     ...     green = 2
     ...     blue = 3
@@ -589,7 +618,7 @@ alias::
     Traceback (most recent call last):
     ...
     ValueError: aliases not allowed in UniqueEnum:  'grene' --> 'green'
-    
+
 
 OrderedEnum
 ^^^^^^^^^^^
@@ -651,7 +680,7 @@ will be passed to those methods::
     ...         # universal gravitational constant  (m3 kg-1 s-2)
     ...         G = 6.67300E-11
     ...         return G * self.mass / (self.radius * self.radius)
-    ... 
+    ...
     >>> Planet.EARTH.value
     (5.976e+24, 6378140.0)
     >>> Planet.EARTH.surface_gravity
@@ -712,23 +741,210 @@ besides the ``Enum`` member you were looking for (changed in version 1.1.1)::
 
 Likewise, ``__members__`` is only available on the class.
 
-In Python 3.x ``__members__`` is always an ``OrderedDict``, with the order being
-the definition order.  In Python 2.7 ``__members__`` is an ``OrderedDict`` if
-``__order__`` was specified, and a plain ``dict`` otherwise.  In all other Python
-2.x versions ``__members__`` is a plain ``dict`` even if ``__order__`` was specified
-as the ``OrderedDict`` type didn't exist yet.
+``__members__`` is always an ``OrderedDict``, with the order being the
+definition order in Python 3.x or the order in ``__order__`` in Python 2.7;
+if no ``__order__`` was specified in Python 2.7 then the order of 
+``__members__`` is meaningless.
 
 If you give your ``Enum`` subclass extra methods, like the `Planet`_
 class above, those methods will show up in a `dir` of the member,
-but not of the class::
+but not of the class (in Python 3.x)::
 
-    >>> dir(Planet)
+    --> dir(Planet)
     ['EARTH', 'JUPITER', 'MARS', 'MERCURY', 'NEPTUNE', 'SATURN', 'URANUS',
-    'VENUS', '__class__', '__doc__', '__members__', '__module__']
-    >>> dir(Planet.EARTH)
+     'VENUS', '__class__', '__doc__', '__members__', '__module__']
+    --> dir(Planet.EARTH)
     ['__class__', '__doc__', '__module__', 'name', 'surface_gravity', 'value']
 
 A ``__new__`` method will only be used for the creation of the
 ``Enum`` members -- after that it is replaced.  This means if you wish to
 change how ``Enum`` members are looked up you either have to write a
 helper function or a ``classmethod``.
+
+
+Creating NamedTuples
+--------------------
+
+Simple
+^^^^^^
+
+The most common way to create a new NamedTuple will be via the functional API::
+
+    >>> from aenum import NamedTuple
+    >>> Book = NamedTuple('Book', 'title author genre', module=__name__)
+
+This creates a ``NamedTuple`` called ``Book`` that will always contain three
+items, each of which is also addressable as ``title``, ``author``, or ``genre``.
+
+``Book`` instances can be created using positional or keyword argements or a
+mixture of the two::
+
+    >>> b1 = Book('Lord of the Rings', 'J.R.R. Tolkien', 'fantasy')
+    >>> b2 = Book(title='Jhereg', author='Steven Brust', genre='fantasy')
+    >>> b3 = Book('Empire', 'Orson Scott Card', genre='scifi')
+
+If too few or too many arguments are used a ``TypeError`` will be raised::
+
+    >>> b4 = Book('Hidden Empire')
+    Traceback (most recent call last):
+    ...
+    TypeError: values not provided for field(s): author, genre
+    >>> b5 = Book(genre='business')
+    Traceback (most recent call last):
+    ...
+    TypeError: values not provided for field(s): title, author
+
+As a ``class`` the above ``Book`` ``NamedTuple`` would look like::
+
+    >>> class Book(NamedTuple):
+    ...     title = 0
+    ...     author = 1
+    ...     genre = 2
+    ...
+
+For compatibility with the stdlib ``namedtuple``, NamedTuple also has the
+``_asdict``, ``_make``, and ``_replace`` methods, which function similarly::
+
+    >>> class Point(NamedTuple):
+    ...     x = 0, 'horizontal coordinate', 1
+    ...     y = 1, 'vertical coordinate', -1
+    ...
+    >>> class Color(NamedTuple):
+    ...     r = 0, 'red component', 11
+    ...     g = 1, 'green component', 29
+    ...     b = 2, 'blue component', 37
+    ...
+    >>> Pixel = NamedTuple('Pixel', Point+Color, module=__name__)
+    >>> pixel = Pixel(99, -101, 255, 128, 0)
+    >>> pixel._asdict()
+    OrderedDict([('x', 99), ('y', -101), ('r', 255), ('g', 128), ('b', 0)])
+
+    >>> class Point(NamedTuple):
+    ...     x = 0, 'horizontal coordinate', 1
+    ...     y = 1, 'vertical coordinate', -1
+    ...
+    >>> Point._make((4, 5))
+    Point(x=4, y=5)
+
+    >>> class Color(NamedTuple):
+    ...     r = 0, 'red component', 11
+    ...     g = 1, 'green component', 29
+    ...     b = 2, 'blue component', 37
+    ...
+    >>> purple = Color(127, 0, 127)
+    >>> mid_gray = purple._replace(g=127)
+    >>> mid_gray
+    Color(r=127, g=127, b=127)
+
+
+Advanced
+^^^^^^^^
+
+The simple method of creating ``NamedTuples`` requires always specifying all
+possible arguments when creating instances; failure to do so will raise
+exceptions::
+
+    >>> class Point(NamedTuple):
+    ...     x = 0
+    ...     y = 1
+    ...
+    >>> Point()
+    Traceback (most recent call last):
+    ...
+    TypeError: values not provided for field(s): x, y
+    >>> Point(1)
+    Traceback (most recent call last):
+    ...
+    TypeError: values not provided for field(s): y
+    >>> Point(y=2)
+    Traceback (most recent call last):
+    ...
+    TypeError: values not provided for field(s): x
+
+However, it is possible to specify both docstrings and default values when
+creating a ``NamedTuple``::
+
+    >>> class Point(NamedTuple):
+    ...     x = 0, 'horizontal coordinate', 0
+    ...     y = 1, 'vertical coordinate', 0
+    ...
+    >>> Point()
+    Point(x=0, y=0)
+    >>> Point(1)
+    Point(x=1, y=0)
+    >>> Point(y=2)
+    Point(x=0, y=2)
+
+It is also possible to create ``NamedTuples`` that only have named attributes
+for certain fields; any fields without names can still be accessed by index::
+
+    >>> class Person(NamedTuple):
+    ...     fullname = 2
+    ...     phone = 5
+    ...
+    >>> p = Person('Ethan', 'Furman', 'Ethan Furman',
+    ...            'ethan at stoneleaf dot us',
+    ...            'ethan.furman', '999.555.1212')
+    >>> p
+    Person('Ethan', 'Furman', 'Ethan Furman', 'ethan at stoneleaf dot us',
+           'ethan.furman', '999.555.1212')
+    >>> p.fullname
+    'Ethan Furman'
+    >>> p.phone
+    '999.555.1212'
+    >>> p[0]
+    'Ethan'
+
+In the above example the last named field was also the last field possible; in
+those cases where you don't need to have the last possible field named, you can
+provide a ``__size__`` of ``TupleSize.minimum`` to declare that more fields are
+okay::
+
+    >>> from aenum import TupleSize
+    >>> class Person(NamedTuple):
+    ...     __size__ = TupleSize.minimum
+    ...     first = 0
+    ...     last = 1
+    ...
+
+    >>> Person('Ethan', 'Furman')
+    Person(first='Ethan', last='Furman')
+
+    >>> Person('Ethan', 'Furman', 'ethan.furman')
+    Person('Ethan', 'Furman', 'ethan.furman')
+
+    >>> Person('Ethan', 'Furman', 'ethan.furman', 'yay Python!')
+    Person('Ethan', 'Furman', 'ethan.furman', 'yay Python!')
+
+    >>> Person('Ethan')
+    Traceback (most recent call last):
+    ...
+    TypeError: values not provided for field(s): last
+
+Also, for those cases where even named fields may not be present, you can
+specify ``TupleSize.variable``::
+
+    >>> class Person(NamedTuple):
+    ...     __size__ = TupleSize.variable
+    ...     first = 0
+    ...     last = 1
+    ...
+
+    >>> Person('Ethan')
+    Person('Ethan')
+
+    >>> Person(last='Furman')
+    Traceback (most recent call last):
+    ...
+    TypeError: values not provided for field(s): first
+
+Creating new ``NamedTuples`` from existing ``NamedTuples`` is simple::
+
+    >>> Point = NamedTuple('Point', 'x y')
+    >>> Color = NamedTuple('Color', 'r g b')
+    >>> Pixel = NamedTuple('Pixel', Point+Color, module=__name__)
+    >>> Pixel
+    NamedTuple('Pixel', 'x y r g b', module=...)
+
+The existing fields in the bases classes are renumbered to fit the new class,
+but keep their doc strings and default values.
