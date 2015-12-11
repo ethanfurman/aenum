@@ -1101,7 +1101,7 @@ class NamedTupleMeta(type):
         if not isinstance(other, NamedTupleMeta):
             return NotImplemented
         new_fields = cls._convert_fields(*(cls, other))
-        return NamedTuple('%s_%s' % (cls.__name__, other.__name__), new_fields)
+        return NamedTuple('%s_%s' % (cls.__name__, other.__name__), new_fields, type=(cls, other))
 
     def __call__(cls, *args, **kwds):
         """Creates a new NamedTuple class or an instance of a NamedTuple subclass.
@@ -1144,6 +1144,13 @@ class NamedTupleMeta(type):
                     module, args = args[0], args[1:]
                 else:
                     module = None
+                if 'type' in kwds:
+                    type = kwds.pop('type')
+                elif args:
+                    type, args = args[0], args[1:]
+                else:
+                    type = None
+
             except IndexError:
                 raise TypeError('too few arguments to NamedTuple: %s, %s' % (original_args, original_kwds))
             if args or kwds:
@@ -1165,6 +1172,7 @@ class NamedTupleMeta(type):
             if isinstance(names, (tuple, list)) and isinstance(names[0], basestring):
                 names = [(e, i) for (i, e) in enumerate(names)]
             if isinstance(names, NamedTupleMeta):
+                bases = (names, )
                 names = cls._convert_fields(names)
             # Here, names is either an iterable of (name, index) or (name, index, doc, default) or a mapping.
             item = None  # in case names is empty
@@ -1179,6 +1187,10 @@ class NamedTupleMeta(type):
                     elif len(item) == 4:
                         field_name, field_index = item[0], item[1:]
                 classdict[field_name] = field_index
+            if type is not None:
+                if not isinstance(type, tuple):
+                    type = (type, )
+                bases = type + bases
             namedtuple_class = metacls.__new__(metacls, class_name, bases, classdict)
 
             # TODO: replace the frame hack if a blessed way to know the calling
@@ -1210,7 +1222,7 @@ class NamedTupleMeta(type):
         return list(cls._aliases_)
 
     def __repr__(cls):
-        return "NamedTuple(%r, %r, module=%r)" % (cls.__name__, ' '.join(cls._fields_), cls.__module__)
+        return "<NamedTuple %r>" % cls.__name__
 
 temp_namedtuple_dict = {}
 temp_namedtuple_dict['__doc__'] = "NamedTuple base class.\n\n    Derive from this class to define new NamedTuples.\n\n"

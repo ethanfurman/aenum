@@ -944,7 +944,7 @@ Creating new ``NamedTuples`` from existing ``NamedTuples`` is simple::
     >>> Color = NamedTuple('Color', 'r g b')
     >>> Pixel = NamedTuple('Pixel', Point+Color, module=__name__)
     >>> Pixel
-    NamedTuple('Pixel', 'x y r g b', module=...)
+    <NamedTuple 'Pixel'>
 
 The existing fields in the bases classes are renumbered to fit the new class,
 but keep their doc strings and default values.

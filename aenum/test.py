@@ -2123,6 +2123,14 @@ class TestNamedTuple(unittest.TestCase):
         self.assertEqual(Pixel2.b.__doc__, 'blue component')
         self.assertEqual(Pixel2.b.default, 37)
 
+    def test_function_api_type(self):
+        class Tester(NamedTuple):
+            def howdy(self):
+                return 'backwards', list(reversed(self))
+        Testee = NamedTuple('Testee', 'a c e', type=Tester)
+        t = Testee(1, 2, 3)
+        self.assertEqual(t.howdy(), ('backwards', [3, 2, 1]))
+
     def test_asdict(self):
         class Point(NamedTuple):
             x = 0, 'horizontal coordinate', 1
