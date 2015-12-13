@@ -862,7 +862,7 @@ exceptions::
     TypeError: values not provided for field(s): x
 
 However, it is possible to specify both docstrings and default values when
-creating a ``NamedTuple``::
+creating a ``NamedTuple`` using the class method::
 
     >>> class Point(NamedTuple):
     ...     x = 0, 'horizontal coordinate', 0
