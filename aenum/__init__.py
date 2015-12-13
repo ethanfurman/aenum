@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 __all__ = ['Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum', 'unique', 'NamedTuple']
 
-version = 1, 0
+version = 1, 2, 1
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 

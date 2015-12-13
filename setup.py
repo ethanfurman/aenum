@@ -106,7 +106,7 @@ creating a `NamedTuple` using the class method::
 '''
 
 setup( name='aenum',
-       version='1.0',
+       version='1.2.1',
        url='https://pypi.python.org/pypi/aenum',
        packages=['aenum'],
        package_data={
