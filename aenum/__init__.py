@@ -8,7 +8,6 @@ __all__ = ['Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum', 'un
 version = 1, 0
 
 pyver = float('%s.%s' % _sys.version_info[:2])
-py3 = pyver >= 3.0
 
 try:
     any
@@ -951,13 +950,17 @@ class NamedTupleMeta(type):
             else:
                 bases = bases + (tuple, )
         # construct properly ordered dict with normalized indexes
-        original_dict = _NamedTupleDict(classdict)
+        if type(classdict) is _NamedTupleDict:
+            add_order = True
+            original_dict = classdict
+        else:
+            add_order = False
+            original_dict = _NamedTupleDict(classdict)
         classdict = _NamedTupleDict()
         classdict.setdefault('__size__', TupleSize.fixed)
         unnumbered = OrderedDict()
         numbered = OrderedDict()
         __order__ = original_dict.pop('__order__', [])
-        add_order = py3
         if __order__ :
             __order__ = __order__.replace(',',' ').split()
             add_order = False
@@ -998,7 +1001,7 @@ class NamedTupleMeta(type):
                     v = v
                     i = v[0] + 1
                     target = numbered
-                elif isinstance(v, tuple) and len(v) in (1, 2) and isinstance(v[0], basestring):
+                elif isinstance(v, tuple) and len(v) in (1, 2) and isinstance(v[0], (basestring, NoneType)):
                     # assume a docstring, and (maybe) a default
                     if len(v) == 1:
                         v = v + (undefined, )
@@ -1184,7 +1187,7 @@ class NamedTupleMeta(type):
                     # non-mapping
                     if len(item) == 2:
                         field_name, field_index = item
-                    elif len(item) == 4:
+                    else:
                         field_name, field_index = item[0], item[1:]
                 classdict[field_name] = field_index
             if type is not None:
