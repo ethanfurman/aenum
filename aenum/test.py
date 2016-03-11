@@ -2089,7 +2089,7 @@ class TestNamedTuple(unittest.TestCase):
         self.assertRaises(TypeError, Book, title='Teckla', genre='fantasy')
         self.assertRaises(TypeError, Book, author='Steven Brust')
 
-    def test_adding_namedtuples(self):
+    def test_combining_namedtuples(self):
         class Point(NamedTuple):
             x = 0, 'horizontal coordinate', 1
             y = 1, 'vertical coordinate', -1
@@ -2100,6 +2100,10 @@ class TestNamedTuple(unittest.TestCase):
         Pixel1 = NamedTuple('Pixel', Point+Color, module=__name__)
         class Pixel2(Point, Color):
             "a colored dot"
+        class Pixel3(Point):
+            r = 2, 'red component', 11
+            g = 3, 'green component', 29
+            b = 4, 'blue component', 37
         self.assertEqual(Pixel1._fields_, 'x y r g b'.split())
         self.assertEqual(Pixel1.x.__doc__, 'horizontal coordinate')
         self.assertEqual(Pixel1.x.default, 1)
@@ -2122,6 +2126,17 @@ class TestNamedTuple(unittest.TestCase):
         self.assertEqual(Pixel2.g.default, 29)
         self.assertEqual(Pixel2.b.__doc__, 'blue component')
         self.assertEqual(Pixel2.b.default, 37)
+        self.assertEqual(Pixel3._fields_, 'x y r g b'.split())
+        self.assertEqual(Pixel3.x.__doc__, 'horizontal coordinate')
+        self.assertEqual(Pixel3.x.default, 1)
+        self.assertEqual(Pixel3.y.__doc__, 'vertical coordinate')
+        self.assertEqual(Pixel3.y.default, -1)
+        self.assertEqual(Pixel3.r.__doc__, 'red component')
+        self.assertEqual(Pixel3.r.default, 11)
+        self.assertEqual(Pixel3.g.__doc__, 'green component')
+        self.assertEqual(Pixel3.g.default, 29)
+        self.assertEqual(Pixel3.b.__doc__, 'blue component')
+        self.assertEqual(Pixel3.b.default, 37)
 
     def test_function_api_type(self):
         class Tester(NamedTuple):
