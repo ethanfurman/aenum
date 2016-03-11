@@ -68,6 +68,17 @@ class _RouteClassAttributeToGetattr(object):
         raise AttributeError("can't delete attribute")
 
 
+class skip(object):
+    """
+    Protects item from becaming an Enum member during class creation.
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def __get__(self, instance, ownerclass=None):
+        return self.value
+
+
 def _is_descriptor(obj):
     """Returns True if obj is a descriptor, False otherwise."""
     return (
@@ -100,6 +111,22 @@ def _make_class_unpicklable(cls):
     cls.__module__ = '<unknown>'
 
 
+class constant(object):
+    def __init__(self, value):
+        self.value = value
+
+    def __get__(self, *args):
+        return self.value
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.value)
+
+
+# Dummy value for Enum as EnumMeta explicity checks for it, but of course until
+# EnumMeta finishes running the first time the Enum class doesn't exist.  This
+# is also why there are checks in EnumMeta like `if Enum is not None`
+Enum = None
+
 class _EnumDict(dict):
     """Track enum member order and ensure member names are not reused.
 
@@ -109,6 +136,19 @@ class _EnumDict(dict):
     def __init__(self):
         super(_EnumDict, self).__init__()
         self._member_names = []
+        self._value = 0
+        self._locked = pyver >= 3.0
+
+    def __getattr__(self, name):
+        if self._locked:
+            raise AttributeError('%s not found' % name)
+        try:
+            # try to generate the next value
+            self._value += 1
+            self.__setitem__(name, self._value)
+        except:
+            # couldn't work the magic, report error
+            raise AttributeError('%s not found' % name)
 
     def __setitem__(self, key, value):
         """Changes anything not dundered or not a descriptor.
@@ -126,51 +166,52 @@ class _EnumDict(dict):
         if _is_sunder(key):
             raise ValueError('_names_ are reserved for future Enum use')
         elif _is_dunder(key):
+            # __order__, if present, should be first
+            if key != '__order__':
+                self.lock = True
             pass
         elif key in self._member_names:
             # descriptor overwriting an enum?
-            raise TypeError('Attempted to reuse key: %r' % key)
+            raise TypeError('Attempted to reuse name: %r' % key)
         elif not _is_descriptor(value):
             if key in self:
                 # enum overwriting a descriptor?
-                raise TypeError('Key already defined as: %r' % self[key])
+                raise TypeError('%s already defined as: %r' % (key, self[key]))
             self._member_names.append(key)
+        else:
+            # not a new member, turn off the autoassign magic
+            self._locked = True
         super(_EnumDict, self).__setitem__(key, value)
 
 
-# Dummy value for Enum as EnumMeta explicity checks for it, but of course until
-# EnumMeta finishes running the first time the Enum class doesn't exist.  This
-# is also why there are checks in EnumMeta like `if Enum is not None`
-
-Enum = None
 class EnumMeta(type):
     """Metaclass for Enum"""
     @classmethod
     def __prepare__(metacls, cls, bases):
         return _EnumDict()
 
-    def __new__(metacls, cls, bases, classdict):
+    def __new__(metacls, cls, bases, clsdict):
         # an Enum class is final once enumeration items have been defined; it
         # cannot be mixed with other types (int, float, etc.) if it has an
         # inherited __new__ unless a new __new__ is defined (or the resulting
         # class will fail).
-        if type(classdict) is dict:
-            original_dict = classdict
-            classdict = _EnumDict()
+        if type(clsdict) is dict:
+            original_dict = clsdict
+            clsdict = _EnumDict()
             for k, v in original_dict.items():
-                classdict[k] = v
+                clsdict[k] = v
 
         member_type, first_enum = metacls._get_mixins_(bases)
-        __new__, save_new, use_args = metacls._find_new_(classdict, member_type,
+        __new__, save_new, use_args = metacls._find_new_(clsdict, member_type,
                                                         first_enum)
         # save enum items into separate mapping so they don't get baked into
         # the new class
-        members = dict((k, classdict[k]) for k in classdict._member_names)
-        for name in classdict._member_names:
-            del classdict[name]
+        members = dict((k, clsdict[k]) for k in clsdict._member_names)
+        for name in clsdict._member_names:
+            del clsdict[name]
 
         # py2 support for definition order
-        __order__ = classdict.get('__order__')
+        __order__ = clsdict.get('__order__')
         if __order__ is None:
             if pyver < 3.0:
                 try:
@@ -178,10 +219,10 @@ class EnumMeta(type):
                 except TypeError:
                     __order__ = [name for name in sorted(members.keys())]
             else:
-                __order__ = classdict._member_names
+                __order__ = clsdict._member_names
 
         else:
-            del classdict['__order__']
+            del clsdict['__order__']
             if pyver < 3.0:
                 __order__ = __order__.replace(',', ' ').split()
                 aliases = [name for name in members if name not in __order__]
@@ -197,7 +238,7 @@ class EnumMeta(type):
         # the shortcut of storing members in the class dict
         base_attributes = set([a for b in bases for a in b.__dict__])
         # create our new Enum type
-        enum_class = super(EnumMeta, metacls).__new__(metacls, cls, bases, classdict)
+        enum_class = super(EnumMeta, metacls).__new__(metacls, cls, bases, clsdict)
         enum_class._member_names_ = []               # names in random order
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
@@ -266,7 +307,7 @@ class EnumMeta(type):
         # __reduce_ex__ instead of any of the others as it is preferred by
         # pickle over __reduce__, and it handles all pickle protocols.
         unpicklable = False
-        if '__reduce_ex__' not in classdict:
+        if '__reduce_ex__' not in clsdict:
             if member_type is not object:
                 methods = ('__getnewargs_ex__', '__getnewargs__',
                         '__reduce_ex__', '__reduce__')
@@ -281,7 +322,7 @@ class EnumMeta(type):
             class_method = getattr(enum_class, name)
             obj_method = getattr(member_type, name, None)
             enum_method = getattr(first_enum, name, None)
-            if name not in classdict and class_method is not enum_method:
+            if name not in clsdict and class_method is not enum_method:
                 if name == '__reduce_ex__' and unpicklable:
                     continue
                 setattr(enum_class, name, enum_method)
@@ -393,7 +434,7 @@ class EnumMeta(type):
         return "<enum %r>" % cls.__name__
 
     def __setattr__(cls, name, value):
-        """Block attempts to reassign Enum members.
+        """Block attempts to reassign Enum members/constants.
 
         A simple assignment to the class namespace only changes one of the
         several possible ways to get an Enum member from the Enum class,
@@ -402,6 +443,9 @@ class EnumMeta(type):
         member_map = cls.__dict__.get('_member_map_', {})
         if name in member_map:
             raise AttributeError('Cannot reassign members.')
+        cur_obj = cls.__dict__.get(name)
+        if isinstance(cur_obj, constant):
+            raise AttributeError('Cannot reassign constants')
         super(EnumMeta, cls).__setattr__(name, value)
 
     def _create_(cls, class_name, names=None, module=None, type=None, start=1):
@@ -427,7 +471,7 @@ class EnumMeta(type):
             bases = (cls, )
         else:
             bases = (type, cls)
-        classdict = metacls.__prepare__(class_name, bases)
+        clsdict = metacls.__prepare__(class_name, bases)
         __order__ = []
 
         # special processing needed for names?
@@ -443,12 +487,12 @@ class EnumMeta(type):
                 member_name, member_value = item, names[item]
             else:
                 member_name, member_value = item
-            classdict[member_name] = member_value
+            clsdict[member_name] = member_value
             __order__.append(member_name)
-        # only set __order__ in classdict if name/value was not from a mapping
+        # only set __order__ in clsdict if name/value was not from a mapping
         if not isinstance(item, basestring):
-            classdict['__order__'] = ' '.join(__order__)
-        enum_class = metacls.__new__(metacls, class_name, bases, classdict)
+            clsdict['__order__'] = ' '.join(__order__)
+        enum_class = metacls.__new__(metacls, class_name, bases, clsdict)
 
         # TODO: replace the frame hack if a blessed way to know the calling
         # module is ever developed
@@ -511,17 +555,17 @@ class EnumMeta(type):
 
     if pyver < 3.0:
         @staticmethod
-        def _find_new_(classdict, member_type, first_enum):
+        def _find_new_(clsdict, member_type, first_enum):
             """Returns the __new__ to be used for creating the enum members.
 
-            classdict: the class dictionary given to __new__
+            clsdict: the class dictionary given to __new__
             member_type: the data type whose __new__ will be used by default
             first_enum: enumeration to check for an overriding __new__
             """
             # now find the correct __new__, checking to see of one was defined
             # by the user; also check earlier enum classes in case a __new__ was
             # saved as __member_new__
-            __new__ = classdict.get('__new__', None)
+            __new__ = clsdict.get('__new__', None)
             if __new__:
                 return None, True, True      # __new__, save_new, use_args
 
@@ -546,7 +590,7 @@ class EnumMeta(type):
                             E__new__,
                             ]:
                         if method == '__member_new__':
-                            classdict['__new__'] = target
+                            clsdict['__new__'] = target
                             return None, False, True
                         if isinstance(target, staticmethod):
                             target = target.__get__(member_type)
@@ -568,17 +612,17 @@ class EnumMeta(type):
             return __new__, False, use_args
     else:
         @staticmethod
-        def _find_new_(classdict, member_type, first_enum):
+        def _find_new_(clsdict, member_type, first_enum):
             """Returns the __new__ to be used for creating the enum members.
 
-            classdict: the class dictionary given to __new__
+            clsdict: the class dictionary given to __new__
             member_type: the data type whose __new__ will be used by default
             first_enum: enumeration to check for an overriding __new__
             """
             # now find the correct __new__, checking to see of one was defined
             # by the user; also check earlier enum classes in case a __new__ was
             # saved as __member_new__
-            __new__ = classdict.get('__new__', None)
+            __new__ = clsdict.get('__new__', None)
 
             # should __new__ be saved as __member_new__ later?
             save_new = __new__ is not None
@@ -798,6 +842,9 @@ def _convert(cls, name, module, filter, source=None):
 temp_enum_dict['_convert'] = _convert
 del _convert
 
+def _reduce_ex_by_name(self, proto):
+    return self.name
+
 Enum = EnumMeta('Enum', (object, ), temp_enum_dict)
 del temp_enum_dict
 
@@ -856,9 +903,6 @@ class OrderedEnum(Enum):
         if self.__class__ is other.__class__:
             return self._value_ < other._value_
         return NotImplemented
-
-def _reduce_ex_by_name(self, proto):
-    return self.name
 
 
 def unique(enumeration):
@@ -979,7 +1023,7 @@ class _TupleAttributeAtIndex(object):
 
 class undefined(object):
     def __repr__(self):
-        return '<undefined>'
+        return 'undefined'
 undefined = undefined()
 
 
