@@ -808,6 +808,12 @@ class IntEnum(int, Enum):
     """Enum where members are also (and must be) ints"""
 
 class AutoNumberEnum(Enum):
+    """
+    Automatically assign increasing values to members.
+
+    Py3: numbers match creation order
+    Py2: numbers are randomly assigned
+    """
     def __new__(cls):
         value = len(cls.__members__) + 1
         obj = object.__new__(cls)
@@ -815,6 +821,9 @@ class AutoNumberEnum(Enum):
         return obj
 
 class UniqueEnum(Enum):
+    """
+    Ensure no duplicate values exist.
+    """
     def __init__(self, *args):
         cls = self.__class__
         if any(self.value == e.value for e in cls):
@@ -825,6 +834,9 @@ class UniqueEnum(Enum):
                     % (a, e))
 
 class OrderedEnum(Enum):
+    """
+    Add ordering based on values of Enum members.
+    """
     def __ge__(self, other):
         if self.__class__ is other.__class__:
             return self._value_ >= other._value_
@@ -850,7 +862,9 @@ def _reduce_ex_by_name(self, proto):
 
 
 def unique(enumeration):
-    """Class decorator that ensures only unique members exist in an enumeration."""
+    """
+    Class decorator that ensures only unique members exist in an enumeration.
+    """
     duplicates = []
     for name, member in enumeration.__members__.items():
         if name != member.name:
@@ -863,6 +877,45 @@ def unique(enumeration):
                 (enumeration, duplicate_names)
                 )
     return enumeration
+
+def extend_enum(enum, name, *args):
+    """
+    Add a new member to an existing Enum.
+    """
+    _new = getattr(enum, '__new_member__', object.__new__)
+    if _new is object.__new__:
+        use_args = False
+    else:
+        use_args = True
+    if len(args) == 1:
+        [value] = args
+    else:
+        value = args
+    if enum._member_type_ is tuple:
+        args = (args, )
+    if not use_args:
+        new_member = _new(enum)
+        if not hasattr(new_member, '_value_'):
+            new_member._value_ = value
+    else:
+        new_member = _new(enum, *args)
+        if not hasattr(new_member, '_value_'):
+            new_member._value_ = enum._member_type_(*args)
+    value = new_member._value_
+    new_member._name_ = name
+    new_member.__objclass__ = enum.__class__
+    new_member.__init__(*args)
+    for canonical_member in enum._member_map_.values():
+        if canonical_member._value_ == new_member._value_:
+            new_member = canonical_member
+            break
+    else:
+        enum._member_names_.append(name)
+    enum._member_map_[name] = new_member
+    try:
+        enum._value2member_map_[value] = new_member
+    except TypeError:
+        pass
 
 # now for a NamedTuple
 
