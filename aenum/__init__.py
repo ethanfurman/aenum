@@ -44,6 +44,7 @@ try:
 except NameError:
     NoneType = type(None)
 
+
 class _RouteClassAttributeToGetattr(object):
     """Route attribute access on a class to __getattr__.
 
@@ -140,9 +141,8 @@ class _EnumDict(dict):
 # Dummy value for Enum as EnumMeta explicity checks for it, but of course until
 # EnumMeta finishes running the first time the Enum class doesn't exist.  This
 # is also why there are checks in EnumMeta like `if Enum is not None`
+
 Enum = None
-
-
 class EnumMeta(type):
     """Metaclass for Enum"""
     @classmethod
@@ -829,14 +829,17 @@ class OrderedEnum(Enum):
         if self.__class__ is other.__class__:
             return self._value_ >= other._value_
         return NotImplemented
+
     def __gt__(self, other):
         if self.__class__ is other.__class__:
             return self._value_ > other._value_
         return NotImplemented
+
     def __le__(self, other):
         if self.__class__ is other.__class__:
             return self._value_ <= other._value_
         return NotImplemented
+
     def __lt__(self, other):
         if self.__class__ is other.__class__:
             return self._value_ < other._value_
@@ -844,6 +847,7 @@ class OrderedEnum(Enum):
 
 def _reduce_ex_by_name(self, proto):
     return self.name
+
 
 def unique(enumeration):
     """Class decorator that ensures only unique members exist in an enumeration."""
@@ -861,8 +865,6 @@ def unique(enumeration):
     return enumeration
 
 # now for a NamedTuple
-
-NamedTuple = None
 
 class _NamedTupleDict(OrderedDict):
     """Track field order and ensure field names are not reused.
@@ -891,12 +893,12 @@ class _NamedTupleDict(OrderedDict):
         elif _is_dunder(key):
             pass
         elif key in self._field_names:
-            # descriptor overwriting a field?
+            # overwriting a field?
             raise TypeError('Attempted to reuse field name: %r' % key)
         elif not _is_descriptor(value):
             if key in self:
                 # field overwriting a descriptor?
-                raise TypeError('name already defined as: %r' % self[key])
+                raise TypeError('%s already defined as: %r' % (key, self[key]))
             self._field_names.append(key)
         super(_NamedTupleDict, self).__setitem__(key, value)
 
@@ -919,12 +921,12 @@ class _TupleAttributeAtIndex(object):
         return instance[self.index]
 
     def __repr__(self):
-        return '_TupleAttributeAtindex(%d)' % self.index
+        return '%s(%d)' % (self.__class__.__name__, self.index)
 
 
 class undefined(object):
     def __repr__(self):
-        return 'undefined'
+        return '<undefined>'
 undefined = undefined()
 
 
@@ -940,7 +942,7 @@ class NamedTupleMeta(type):
     def __prepare__(metacls, cls, bases):
         return _NamedTupleDict()
 
-    def __new__(metacls, cls, bases, classdict):
+    def __new__(metacls, cls, bases, clsdict):
         if bases == (object, ):
             bases = (tuple, object)
         elif tuple not in bases:
@@ -949,22 +951,8 @@ class NamedTupleMeta(type):
                 bases = bases[:index] + (tuple, ) + bases[index:]
             else:
                 bases = bases + (tuple, )
-        # construct properly ordered dict with normalized indexes
-        if type(classdict) is _NamedTupleDict:
-            add_order = True
-            original_dict = classdict
-        else:
-            add_order = False
-            original_dict = _NamedTupleDict(classdict)
-        classdict = _NamedTupleDict()
-        classdict.setdefault('__size__', TupleSize.fixed)
-        unnumbered = OrderedDict()
-        numbered = OrderedDict()
-        __order__ = original_dict.pop('__order__', [])
-        if __order__ :
-            __order__ = __order__.replace(',',' ').split()
-            add_order = False
         # include any fields from base classes
+        base_dict = _NamedTupleDict()
         namedtuple_bases = []
         for base in bases:
             if isinstance(base, NamedTupleMeta):
@@ -972,12 +960,25 @@ class NamedTupleMeta(type):
         i = 0
         if namedtuple_bases:
             for name, index, doc, default in metacls._convert_fields(*namedtuple_bases):
-                numbered[name] = index, doc, default
-                i = index
+                base_dict[name] = index, doc, default
+                i = max(i, index)
+        # construct properly ordered dict with normalized indexes
+        for k, v in clsdict.items():
+            base_dict[k] = v
+        original_dict = base_dict
+        add_order = isinstance(clsdict, _NamedTupleDict)
+        clsdict = _NamedTupleDict()
+        clsdict.setdefault('__size__', TupleSize.fixed)
+        unnumbered = OrderedDict()
+        numbered = OrderedDict()
+        __order__ = original_dict.pop('__order__', [])
+        if __order__ :
+            __order__ = __order__.replace(',',' ').split()
+            add_order = False
         # and process this class
         for k, v in original_dict.items():
             if k not in original_dict._field_names:
-                classdict[k] = v
+                clsdict[k] = v
             else:
                 # TODO:normalize v here
                 if isinstance(v, baseinteger):
@@ -1077,15 +1078,14 @@ class NamedTupleMeta(type):
 
         # create descriptors for fields
         for name, (index, doc, default) in offsets.items():
-            classdict[name] = _TupleAttributeAtIndex(name, index, doc, default)
-        classdict['__slots__'] = ()
+            clsdict[name] = _TupleAttributeAtIndex(name, index, doc, default)
+        clsdict['__slots__'] = ()
 
         # create our new NamedTuple type
-        namedtuple_class = super(NamedTupleMeta, metacls).__new__(metacls, cls, bases, classdict)
+        namedtuple_class = super(NamedTupleMeta, metacls).__new__(metacls, cls, bases, clsdict)
         namedtuple_class._fields_ = fields
         namedtuple_class._aliases_ = aliases
         namedtuple_class._defined_len_ = max_len
-
         return namedtuple_class
 
     @staticmethod
@@ -1103,8 +1103,8 @@ class NamedTupleMeta(type):
         "A new NamedTuple is created by concatenating the _fields_ and adjusting the descriptors"
         if not isinstance(other, NamedTupleMeta):
             return NotImplemented
-        new_fields = cls._convert_fields(*(cls, other))
-        return NamedTuple('%s_%s' % (cls.__name__, other.__name__), new_fields, type=(cls, other))
+        # new_fields = cls._convert_fields(*(cls, other))
+        return NamedTupleMeta('%s%s' % (cls.__name__, other.__name__), (cls, other), {})
 
     def __call__(cls, *args, **kwds):
         """Creates a new NamedTuple class or an instance of a NamedTuple subclass.
@@ -1165,18 +1165,22 @@ class NamedTupleMeta(type):
                         class_name = class_name.encode('ascii')
                     except UnicodeEncodeError:
                         raise TypeError('%r is not representable in ASCII' % class_name)
+            # quick exit if names is a NamedTuple
+            if isinstance(names, NamedTupleMeta):
+                names.__name__ = class_name
+                if type is not None and type not in names.__bases__:
+                    names.__bases__ = (type, ) + bases
+                return names
+
             metacls = cls.__class__
             bases = (cls, )
-            classdict = metacls.__prepare__(class_name, bases)
+            clsdict = metacls.__prepare__(class_name, bases)
 
             # special processing needed for names?
             if isinstance(names, basestring):
                 names = names.replace(',', ' ').split()
             if isinstance(names, (tuple, list)) and isinstance(names[0], basestring):
                 names = [(e, i) for (i, e) in enumerate(names)]
-            if isinstance(names, NamedTupleMeta):
-                bases = (names, )
-                names = cls._convert_fields(names)
             # Here, names is either an iterable of (name, index) or (name, index, doc, default) or a mapping.
             item = None  # in case names is empty
             for item in names:
@@ -1189,12 +1193,12 @@ class NamedTupleMeta(type):
                         field_name, field_index = item
                     else:
                         field_name, field_index = item[0], item[1:]
-                classdict[field_name] = field_index
+                clsdict[field_name] = field_index
             if type is not None:
                 if not isinstance(type, tuple):
                     type = (type, )
                 bases = type + bases
-            namedtuple_class = metacls.__new__(metacls, class_name, bases, classdict)
+            namedtuple_class = metacls.__new__(metacls, class_name, bases, clsdict)
 
             # TODO: replace the frame hack if a blessed way to know the calling
             # module is ever developed
@@ -1219,6 +1223,8 @@ class NamedTupleMeta(type):
     @property
     def __fields__(cls):
         return list(cls._fields_)
+    # collections.namedtuple compatibility
+    _fields = __fields__
 
     @property
     def __aliases__(cls):
