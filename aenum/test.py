@@ -1955,9 +1955,24 @@ class TestNamedTuple(unittest.TestCase):
         self.assertTrue('Steven Brust' in b)
         self.assertTrue('fantasy' in b)
 
+    def test_fixed_size(self):
+        class Book(NamedTuple):
+            _size_ = TupleSize.fixed
+            title = 0
+            author = 1
+            genre = 2
+        b = Book('Teckla', 'Steven Brust', 'fantasy')
+        self.assertTrue('Teckla' in b)
+        self.assertTrue('Steven Brust' in b)
+        self.assertTrue('fantasy' in b)
+        self.assertEqual(b.title, 'Teckla')
+        self.assertEqual(b.author, 'Steven Brust')
+        self.assertRaises(TypeError, Book, 'Teckla', 'Steven Brust')
+        self.assertRaises(TypeError, Book, 'Teckla')
+
     def test_minimum_size(self):
         class Book(NamedTuple):
-            __size__ = TupleSize.minimum
+            _size_ = TupleSize.minimum
             title = 0
             author = 1
         b = Book('Teckla', 'Steven Brust', 'fantasy')
@@ -1975,7 +1990,7 @@ class TestNamedTuple(unittest.TestCase):
 
     def test_variable_size(self):
         class Book(NamedTuple):
-            __size__ = TupleSize.variable
+            _size_ = TupleSize.variable
             title = 0
             author = 1
             genre = 2

@@ -1,4 +1,4 @@
-from aenum import Enum, IntEnum
+from aenum import Enum, IntEnum, NamedTuple, TupleSize
 from collections import OrderedDict
 from unittest import TestCase
 
@@ -152,3 +152,56 @@ class TestEnumV3(TestCase):
                 red = 1
                 green = 2
                 blue = 3
+
+    def test_fixed_size(self):
+        class Book(NamedTuple, size=TupleSize.fixed):
+            title = 0
+            author = 1
+            genre = 2
+        b = Book('Teckla', 'Steven Brust', 'fantasy')
+        self.assertTrue('Teckla' in b)
+        self.assertTrue('Steven Brust' in b)
+        self.assertTrue('fantasy' in b)
+        self.assertEqual(b.title, 'Teckla')
+        self.assertEqual(b.author, 'Steven Brust')
+        self.assertRaises(TypeError, Book, 'Teckla', 'Steven Brust')
+        self.assertRaises(TypeError, Book, 'Teckla')
+
+    def test_minimum_size(self):
+        class Book(NamedTuple, size=TupleSize.minimum):
+            title = 0
+            author = 1
+        b = Book('Teckla', 'Steven Brust', 'fantasy')
+        self.assertTrue('Teckla' in b)
+        self.assertTrue('Steven Brust' in b)
+        self.assertTrue('fantasy' in b)
+        self.assertEqual(b.title, 'Teckla')
+        self.assertEqual(b.author, 'Steven Brust')
+        self.assertEqual(b[2], 'fantasy')
+        b = Book('Teckla', 'Steven Brust')
+        self.assertTrue('Teckla' in b)
+        self.assertTrue('Steven Brust' in b)
+        self.assertEqual(b.title, 'Teckla')
+        self.assertEqual(b.author, 'Steven Brust')
+        self.assertRaises(TypeError, Book, 'Teckla')
+
+    def test_variable_size(self):
+        class Book(NamedTuple, size=TupleSize.variable):
+            title = 0
+            author = 1
+            genre = 2
+        b = Book('Teckla', 'Steven Brust', 'fantasy')
+        self.assertTrue('Teckla' in b)
+        self.assertTrue('Steven Brust' in b)
+        self.assertTrue('fantasy' in b)
+        self.assertEqual(b.title, 'Teckla')
+        self.assertEqual(b.author, 'Steven Brust')
+        self.assertEqual(b.genre, 'fantasy')
+        b = Book('Teckla', 'Steven Brust')
+        self.assertTrue('Teckla' in b)
+        self.assertTrue('Steven Brust' in b)
+        self.assertEqual(b.title, 'Teckla')
+        self.assertEqual(b.author, 'Steven Brust')
+        self.assertRaises(AttributeError, getattr, b, 'genre')
+        self.assertRaises(TypeError, Book, title='Teckla', genre='fantasy')
+        self.assertRaises(TypeError, Book, author='Steven Brust')
