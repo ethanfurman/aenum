@@ -3,7 +3,11 @@
 import sys as _sys
 from collections import OrderedDict
 
-__all__ = ['Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum', 'unique', 'NamedTuple']
+__all__ = [
+        'Constant', 'constant', 'skip'
+        'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum', 'enum', 'extend_enum', 'unique',
+        'NamedTuple',
+        ]
 
 version = 1, 2, 1
 
@@ -111,6 +115,97 @@ def _make_class_unpicklable(cls):
     cls.__module__ = '<unknown>'
 
 
+# metaclass and class dict for Constant
+
+class _ConstantDict(dict):
+    """Track enum member order and ensure member names are not reused.
+
+    ConstantMeta will use the names found in self._names as the
+    enumeration member names.
+    """
+    def __init__(self):
+        super(_ConstantDict, self).__init__()
+        self._names = []
+
+    def __setitem__(self, key, value):
+        """Changes anything not dundered or not a descriptor.
+
+        If an enum member name is used twice, an error is raised; duplicate
+        values are not checked for.
+
+        Single underscore (sunder) names are reserved.
+
+        Note:   in 3.x __order__ is simply discarded as a not necessary piece
+                leftover from 2.x
+        """
+        if _is_sunder(key):
+            raise ValueError('_names_ are reserved for future Constant use')
+        elif _is_dunder(key):
+            pass
+        elif key in self._names:
+            # overwriting an existing constant?
+            raise TypeError('Attempted to reuse name: %r' % key)
+        elif not _is_descriptor(value):
+            if key in self:
+                # overwriting a descriptor?
+                raise TypeError('%s already defined as: %r' % (key, self[key]))
+            self._names.append(key)
+        super(_ConstantDict, self).__setitem__(key, value)
+
+
+class ConstantMeta(type):
+    """
+    Block attempts to reassign Constant attributes.
+    """
+    def __new__(metacls, cls, bases, clsdict):
+        _ConstantCache = {}
+        if type(clsdict) is dict:
+            original_dict = clsdict
+            clsdict = _ConstantDict()
+            for k, v in original_dict.items():
+                clsdict[k] = v
+        newdict = {}
+        for name, obj in clsdict.items():
+            if name in clsdict._names:
+                actual_type = type(obj)
+                value = obj
+                obj_type = _ConstantCache.get(actual_type)
+                if obj_type is None:
+                    obj_type = type(cls, (Constant, type(obj)), {})
+                    _ConstantCache[type(obj)] = obj_type
+                obj = actual_type.__new__(obj_type, obj)
+                obj._name_ = name
+                obj._value_ = value
+            elif isinstance(obj, skip):
+                obj = obj.value
+            newdict[name] = obj
+        return super(ConstantMeta, metacls).__new__(metacls, cls, bases, newdict)
+
+    def __setattr__(cls, name, value):
+        """Block attempts to reassign Constants.
+        """
+        cur_obj = cls.__dict__.get(name)
+        if isinstance(cur_obj, Constant):
+            raise AttributeError('Cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
+        super(ConstantMeta, cls).__setattr__(name, value)
+
+temp_constant_dict = {}
+temp_constant_dict['__doc__'] = "Constants protection.\n\n    Derive from this class to lock Constants.\n\n"
+
+def __new__(cls, value):
+    raise ValueError("cannot create new instances of %s" % (cls.__name__, ))
+temp_constant_dict['__new__'] = __new__
+del __new__
+
+def __repr__(self):
+    return "<%s.%s: %r>" % (
+            self.__class__.__name__, self._name_, self._value_)
+temp_constant_dict['__repr__'] = __repr__
+del __repr__
+
+Constant = ConstantMeta('Constant', (object, ), temp_constant_dict)
+del temp_constant_dict
+
 class constant(object):
     def __init__(self, value):
         self.value = value
@@ -127,28 +222,47 @@ class constant(object):
 # is also why there are checks in EnumMeta like `if Enum is not None`
 Enum = None
 
+class enum(object):
+    """
+    Helper class to track args, kwds.
+    """
+    def __init__(self, *args, **kwds):
+        self.args = args
+        self.kwds = kwds
+
+    def __repr__(self):
+        final = []
+        args = ', '.join(['%r' % a for a in self.args])
+        if args:
+            final.append(args)
+        kwds = ', '.join([('%s=%r') % (k, v) for k, v in sorted(self.kwds.items())])
+        if kwds:
+            final.append(kwds)
+        return 'enum(%s)' % ', '.join(final)
+
 class _EnumDict(dict):
     """Track enum member order and ensure member names are not reused.
 
     EnumMeta will use the names found in self._member_names as the
     enumeration member names.
     """
-    def __init__(self):
+    def __init__(self, locked=True):
         super(_EnumDict, self).__init__()
         self._member_names = []
         self._value = 0
-        self._locked = pyver >= 3.0
+        self._locked = locked
 
-    def __getattr__(self, name):
-        if self._locked:
-            raise AttributeError('%s not found' % name)
+    def __getitem__(self, key):
+        if self._locked or _is_dunder(key) or key in self:
+            return super(_EnumDict, self).__getitem__(key)
         try:
             # try to generate the next value
-            self._value += 1
-            self.__setitem__(name, self._value)
+            value = self._value + 1
+            self.__setitem__(key, value)
+            return value
         except:
             # couldn't work the magic, report error
-            raise AttributeError('%s not found' % name)
+            raise KeyError('%s not found' % key)
 
     def __setitem__(self, key, value):
         """Changes anything not dundered or not a descriptor.
@@ -161,14 +275,10 @@ class _EnumDict(dict):
         Note:   in 3.x __order__ is simply discarded as a not necessary piece
                 leftover from 2.x
         """
-        if pyver >= 3.0 and key == '__order__':
-                return
         if _is_sunder(key):
             raise ValueError('_names_ are reserved for future Enum use')
         elif _is_dunder(key):
             # __order__, if present, should be first
-            if key != '__order__':
-                self.lock = True
             pass
         elif key in self._member_names:
             # descriptor overwriting an enum?
@@ -178,6 +288,7 @@ class _EnumDict(dict):
                 # enum overwriting a descriptor?
                 raise TypeError('%s already defined as: %r' % (key, self[key]))
             self._member_names.append(key)
+            self._value = value
         else:
             # not a new member, turn off the autoassign magic
             self._locked = True
@@ -187,10 +298,13 @@ class _EnumDict(dict):
 class EnumMeta(type):
     """Metaclass for Enum"""
     @classmethod
-    def __prepare__(metacls, cls, bases):
-        return _EnumDict()
+    def __prepare__(metacls, cls, bases, auto=False, init=None):
+        return _EnumDict(locked=not auto)
 
-    def __new__(metacls, cls, bases, clsdict):
+    def __init__(cls, *args , **kwds):
+        super(EnumMeta, cls).__init__(*args)
+
+    def __new__(metacls, cls, bases, clsdict, auto=False, init=''):
         # an Enum class is final once enumeration items have been defined; it
         # cannot be mixed with other types (int, float, etc.) if it has an
         # inherited __new__ unless a new __new__ is defined (or the resulting
@@ -200,6 +314,12 @@ class EnumMeta(type):
             clsdict = _EnumDict()
             for k, v in original_dict.items():
                 clsdict[k] = v
+        else:
+            clsdict._locked = True
+
+        # check for clash between class and init
+        if init and clsdict.get('__init__'):
+            raise TypeError('cannot specify init and define an __init__ method')
 
         member_type, first_enum = metacls._get_mixins_(bases)
         __new__, save_new, use_args = metacls._find_new_(clsdict, member_type,
@@ -223,10 +343,13 @@ class EnumMeta(type):
 
         else:
             del clsdict['__order__']
-            if pyver < 3.0:
-                __order__ = __order__.replace(',', ' ').split()
-                aliases = [name for name in members if name not in __order__]
-                __order__ += aliases
+            __order__ = __order__.replace(',', ' ').split()
+            aliases = [name for name in members if name not in __order__]
+            if pyver >= 3.0:
+                unique_members = [n for n in clsdict._member_names if n in __order__]
+                if __order__ != unique_members:
+                    raise TypeError('member order does not match __order__')
+            __order__ += aliases
 
         # check for illegal enum names (any others?)
         invalid_names = set(members) & set(['mro'])
@@ -239,6 +362,7 @@ class EnumMeta(type):
         base_attributes = set([a for b in bases for a in b.__dict__])
         # create our new Enum type
         enum_class = super(EnumMeta, metacls).__new__(metacls, cls, bases, clsdict)
+        enum_class._auto_init_ = init.replace(',',' ').split()
         enum_class._member_names_ = []               # names in random order
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
@@ -254,24 +378,28 @@ class EnumMeta(type):
             __new__ = enum_class.__new__
         for member_name in __order__:
             value = members[member_name]
-            if not isinstance(value, tuple):
+            kwds = {}
+            if isinstance(value, enum):
+                args = value.args
+                kwds = value.kwds
+            elif not isinstance(value, tuple):
                 args = (value, )
             else:
                 args = value
             if member_type is tuple:   # special case for tuple enums
                 args = (args, )     # wrap it one more time
-            if not use_args or not args:
+            if not use_args or not (args or kwds):
                 enum_member = __new__(enum_class)
                 if not hasattr(enum_member, '_value_'):
                     enum_member._value_ = value
             else:
-                enum_member = __new__(enum_class, *args)
+                enum_member = __new__(enum_class, *args, **kwds)
                 if not hasattr(enum_member, '_value_'):
                     enum_member._value_ = member_type(*args)
             value = enum_member._value_
             enum_member._name_ = member_name
             enum_member.__objclass__ = enum_class
-            enum_member.__init__(*args)
+            enum_member.__init__(*args, **kwds)
             # If another member with the same value was already defined, the
             # new member becomes an alias to the existing one.
             for name, canonical_member in enum_class._member_map_.items():
@@ -442,10 +570,10 @@ class EnumMeta(type):
         """
         member_map = cls.__dict__.get('_member_map_', {})
         if name in member_map:
-            raise AttributeError('Cannot reassign members.')
+            raise AttributeError('Cannot rebind %s.' % name)
         cur_obj = cls.__dict__.get(name)
         if isinstance(cur_obj, constant):
-            raise AttributeError('Cannot reassign constants')
+            raise AttributeError('Cannot rebind %r' % cur_obj)
         super(EnumMeta, cls).__setattr__(name, value)
 
     def _create_(cls, class_name, names=None, module=None, type=None, start=1):
@@ -527,7 +655,7 @@ class EnumMeta(type):
             if  (base is not Enum and
                     issubclass(base, Enum) and
                     base._member_names_):
-                raise TypeError("Cannot extend enumerations")
+                raise TypeError("Cannot extend enumerations via subclassing.")
         # base is now the last base in bases
         if not issubclass(base, Enum):
             raise TypeError("new enumerations must be created as "
@@ -665,6 +793,25 @@ class EnumMeta(type):
 ########################################################
 temp_enum_dict = {}
 temp_enum_dict['__doc__'] = "Generic enumeration.\n\n    Derive from this class to define new enumerations.\n\n"
+
+def __init__(self, *args, **kwds):
+    # auto-init method
+    _auto_init_ = self._auto_init_
+    if _auto_init_:
+        for name, arg in zip(_auto_init_, args):
+            setattr(self, name, arg)
+        if len(args) < len(_auto_init_):
+            remaining_args = _auto_init_[len(args):]
+            for name in remaining_args:
+                value = kwds.pop(name, undefined)
+                if value is undefined:
+                    raise TypeError('invalid keyword: %r' % name)
+                setattr(self, name, value)
+            if kwds:
+                # too many keyword arguments
+                raise TypeError('invalid keyword(s): %s' % ', '.join(kwds.keys()))
+temp_enum_dict['__init__'] = __init__
+del __init__
 
 def __new__(cls, value):
     # all enum instances are actually created during class construction
@@ -904,6 +1051,88 @@ class OrderedEnum(Enum):
             return self._value_ < other._value_
         return NotImplemented
 
+def convert(enum, name, module, filter, source=None):
+    """
+    Create a new Enum subclass that replaces a collection of global constants
+
+    enum: Enum, IntEnum, ...
+    name: name of new Enum
+    module: name of module (__name__ in global context)
+    filter: function that returns True if name should be converted to Enum member
+    source: namespace to check (defaults to 'module')
+    """
+    # convert all constants from source (or module) that pass filter() to
+    # a new Enum called name, and export the enum and its members back to
+    # module;
+    # also, replace the __reduce_ex__ method so unpickling works in
+    # previous Python versions
+    module_globals = vars(_sys.modules[module])
+    if source:
+        source = vars(source)
+    else:
+        source = module_globals
+    members = dict((name, value) for name, value in source.items() if filter(name))
+    enum = enum(name, members, module=module)
+    enum.__reduce_ex__ = _reduce_ex_by_name
+    module_globals.update(enum.__members__)
+    module_globals[name] = enum
+
+def export(enumeration, namespace):
+    """
+    Export the enumeration's members into the target namespace.
+    """
+    try:
+        data = enumeration.__members__.items()
+    except AtttributeError:
+        raise TypeError('%r is not a supported Enum' % enumeration)
+    for n, m in data:
+        namespace[n] = m
+
+def extend_enum(enumeration, name, *args):
+    """
+    Add a new member to an existing Enum.
+    """
+    try:
+        _member_map_ = enumeration._member_map_
+        _member_names_ = enumeration._member_names_
+        _member_type_ = enumeration._member_type_
+        _value2member_map_ = enumeration._value2member_map_
+    except AttributeError:
+        raise TypeError('%r is not a supported Enum' % enumeration)
+    _new = getattr(enumeration, '__new_member__', object.__new__)
+    if _new is object.__new__:
+        use_args = False
+    else:
+        use_args = True
+    if len(args) == 1:
+        [value] = args
+    else:
+        value = args
+    if _member_type_ is tuple:
+        args = (args, )
+    if not use_args:
+        new_member = _new(enumeration)
+        if not hasattr(new_member, '_value_'):
+            new_member._value_ = value
+    else:
+        new_member = _new(enumeration, *args)
+        if not hasattr(new_member, '_value_'):
+            new_member._value_ = _member_type_(*args)
+    value = new_member._value_
+    new_member._name_ = name
+    new_member.__objclass__ = enumeration.__class__
+    new_member.__init__(*args)
+    for canonical_member in _member_map_.values():
+        if canonical_member._value_ == new_member._value_:
+            new_member = canonical_member
+            break
+    else:
+        _member_names_.append(name)
+    _member_map_[name] = new_member
+    try:
+        _value2member_map_[value] = new_member
+    except TypeError:
+        pass
 
 def unique(enumeration):
     """
@@ -921,45 +1150,6 @@ def unique(enumeration):
                 (enumeration, duplicate_names)
                 )
     return enumeration
-
-def extend_enum(enum, name, *args):
-    """
-    Add a new member to an existing Enum.
-    """
-    _new = getattr(enum, '__new_member__', object.__new__)
-    if _new is object.__new__:
-        use_args = False
-    else:
-        use_args = True
-    if len(args) == 1:
-        [value] = args
-    else:
-        value = args
-    if enum._member_type_ is tuple:
-        args = (args, )
-    if not use_args:
-        new_member = _new(enum)
-        if not hasattr(new_member, '_value_'):
-            new_member._value_ = value
-    else:
-        new_member = _new(enum, *args)
-        if not hasattr(new_member, '_value_'):
-            new_member._value_ = enum._member_type_(*args)
-    value = new_member._value_
-    new_member._name_ = name
-    new_member.__objclass__ = enum.__class__
-    new_member.__init__(*args)
-    for canonical_member in enum._member_map_.values():
-        if canonical_member._value_ == new_member._value_:
-            new_member = canonical_member
-            break
-    else:
-        enum._member_names_.append(name)
-    enum._member_map_[name] = new_member
-    try:
-        enum._value2member_map_[value] = new_member
-    except TypeError:
-        pass
 
 # now for a NamedTuple
 
@@ -1391,6 +1581,19 @@ temp_namedtuple_dict['__str__'] = __str__
 del __str__
 
 # compatibility methods with stdlib namedtuple
+@property
+def __aliases__(self):
+    return list(self.__class__._aliases_)
+temp_namedtuple_dict['__aliases__'] = __aliases__
+del __aliases__
+
+@property
+def __fields__(self):
+    return list(self.__class__._fields_)
+temp_namedtuple_dict['__fields__'] = __fields__
+temp_namedtuple_dict['_fields'] = __fields__
+del __fields__
+
 def _make(cls, iterable, new=None, len=None):
     return cls.__new__(cls, *iterable)
 temp_namedtuple_dict['_make'] = classmethod(_make)
@@ -1410,3 +1613,21 @@ del _replace
 
 NamedTuple = NamedTupleMeta('NamedTuple', (object, ), temp_namedtuple_dict)
 del temp_namedtuple_dict
+
+
+class module(object):
+
+    def __init__(self, cls, *args):
+        self.__name__ = cls.__name__
+        self._parent_module = cls.__module__
+        self.__all__ = []
+        all_objects = cls.__dict__
+        if not args:
+            args = [k for k, v in all_objects.items() if isinstance(v, (Constant, Enum))]
+        for name in args:
+            self.__dict__[name] = all_objects[name]
+            self.__all__.append(name)
+
+    def register(self):
+        _sys.modules["%s.%s" % (self._parent_module, self.__name__)] = self
+
