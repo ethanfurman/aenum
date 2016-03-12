@@ -9,7 +9,7 @@ __all__ = [
         'NamedTuple',
         ]
 
-version = 1, 2, 1
+version = 1, 3, 0
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
