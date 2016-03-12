@@ -163,7 +163,7 @@ Creating Constants
 
 setup(
        name='aenum',
-       version='1.3.0',
+       version='1.3.1',
        url='https://bitbucket.org/stoneleaf/aenum',
        packages=['aenum'],
        package_data={
