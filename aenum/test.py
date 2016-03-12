@@ -3,7 +3,7 @@ import doctest
 import sys
 import unittest
 from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique
-from aenum import EnumMeta, NamedTuple, TupleSize
+from aenum import EnumMeta, NamedTuple, TupleSize, Constant
 from collections import OrderedDict
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 
@@ -174,8 +174,11 @@ class TestHelpers(unittest.TestCase):
                 '__', '___', '____', '_____',):
             self.assertFalse(aenum._is_dunder(s))
 
+if pyver >= 3.0:
+    from aenum.test_v3 import TestEnumV3
 
 class TestEnum(unittest.TestCase):
+
     def setUp(self):
         class Season(Enum):
             SPRING = 1
@@ -211,49 +214,6 @@ class TestEnum(unittest.TestCase):
             IDES_OF_MARCH = 2013, 3, 15
         self.Holiday = Holiday
 
-    if pyver >= 3.0:     # do not specify custom `dir` on previous versions
-        def test_dir_on_class(self):
-            Season = self.Season
-            self.assertEqual(
-                set(dir(Season)),
-                set(['__class__', '__doc__', '__members__', '__module__',
-                    'SPRING', 'SUMMER', 'AUTUMN', 'WINTER']),
-                )
-
-        def test_dir_on_item(self):
-            Season = self.Season
-            self.assertEqual(
-                set(dir(Season.WINTER)),
-                set(['__class__', '__doc__', '__module__', 'name', 'value']),
-                )
-
-        def test_dir_with_added_behavior(self):
-            class Test(Enum):
-                this = 'that'
-                these = 'those'
-                def wowser(self):
-                    return ("Wowser! I'm %s!" % self.name)
-            self.assertEqual(
-                    set(dir(Test)),
-                    set(['__class__', '__doc__', '__members__', '__module__', 'this', 'these']),
-                    )
-            self.assertEqual(
-                    set(dir(Test.this)),
-                    set(['__class__', '__doc__', '__module__', 'name', 'value', 'wowser']),
-                    )
-
-        def test_dir_on_sub_with_behavior_on_super(self):
-            # see issue22506
-            class SuperEnum(Enum):
-                def invisible(self):
-                    return "did you see me?"
-            class SubEnum(SuperEnum):
-                sample = 5
-            self.assertEqual(
-                    set(dir(SubEnum.sample)),
-                    set(['__class__', '__doc__', '__module__', 'name', 'value', 'invisible']),
-                    )
-
     def test_members_is_ordereddict_if_ordered(self):
         class Ordered(Enum):
             __order__ = 'first second third'
@@ -267,31 +227,6 @@ class TestEnum(unittest.TestCase):
             this = 'that'
             these = 'those'
         self.assertTrue(type(Unordered.__members__) is OrderedDict)
-
-    if pyver >= 3.0:     # all objects are ordered in Python 2.x
-        def test_members_is_always_ordered(self):
-            class AlwaysOrdered(Enum):
-                first = 1
-                second = 2
-                third = 3
-            self.assertTrue(type(AlwaysOrdered.__members__) is OrderedDict)
-
-        def test_comparisons(self):
-            def bad_compare():
-                Season.SPRING > 4
-            Season = self.Season
-            self.assertNotEqual(Season.SPRING, 1)
-            self.assertRaises(TypeError, bad_compare)
-
-            class Part(Enum):
-                SPRING = 1
-                CLIP = 2
-                BARREL = 3
-
-            self.assertNotEqual(Season.SPRING, Part.SPRING)
-            def bad_compare():
-                Season.SPRING < Part.CLIP
-            self.assertRaises(TypeError, bad_compare)
 
     def test_enum_in_enum_out(self):
         Season = self.Season
@@ -491,37 +426,6 @@ class TestEnum(unittest.TestCase):
                 set([k for k,v in Season.__members__.items() if v.name != k]),
                 set(['FALL', 'ANOTHER_SPRING']),
                 )
-
-    if pyver >= 3.0:
-        cls = vars()
-        result = {'Enum':Enum}
-        exec("""def test_duplicate_name(self):
-            with self.assertRaises(TypeError):
-                class Color(Enum):
-                    red = 1
-                    green = 2
-                    blue = 3
-                    red = 4
-
-            with self.assertRaises(TypeError):
-                class Color(Enum):
-                    red = 1
-                    green = 2
-                    blue = 3
-                    def red(self):
-                        return 'red'
-
-            with self.assertRaises(TypeError):
-                class Color(Enum):
-                    @property
-
-                    def red(self):
-                        return 'redder'
-                    red = 1
-                    green = 2
-                    blue = 3""",
-            result)
-        cls['test_duplicate_name'] = result['test_duplicate_name']
 
     def test_enum_with_value_name(self):
         class Huh(Enum):
@@ -1229,6 +1133,7 @@ class TestEnum(unittest.TestCase):
             a = ()
             b = 3
             c = ()
+        self.assertEqual(TestAutoNumber.b.value, 3)
 
         if pyver >= 3.0:
             self.assertEqual(
@@ -1240,6 +1145,7 @@ class TestEnum(unittest.TestCase):
             a = ()
             b = 3
             c = ()
+        self.assertEqual(TestAutoInt.b, 3)
 
         if pyver >= 3.0:
             self.assertEqual(
@@ -2174,6 +2080,16 @@ class TestNamedTuple(unittest.TestCase):
         mid_gray = purple._replace(g=127)
         self.assertEqual(mid_gray, (127, 127, 127))
 
+
+class TestConstant(unittest.TestCase):
+
+    def test_constantness(self):
+        class K(Constant):
+            PI = 3.141596
+            TAU = 2 * PI
+        self.assertEqual(K.PI, 3.141596)
+        self.assertEqual(K.TAU, 2 * K.PI)
+        self.assertRaises(AttributeError, setattr, K, 'PI', 9)
 
 class TestMe(unittest.TestCase):
 
