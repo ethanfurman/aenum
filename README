@@ -148,6 +148,9 @@ creating a ``NamedTuple`` using the class method::
 Creating Constants
 ------------------
 
+``Constant``s are similar to ``Enum``s, but do not support the ``Enum``
+protocols, and have no restrictions on duplications.
+
     >>> class K(Constant):
     ...     PI = 3.141596
     ...     TAU = 2 * PI
