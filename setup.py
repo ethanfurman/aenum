@@ -1,53 +1,98 @@
-import os
+import setuptools
 from distutils.core import setup
+import os
 
 long_desc = '''\
-`aenum` --- support for advanced enumerations and namedtuples
-===============================================================
+aenum --- support for advanced enumerations, namedtuples, and constants
+===========================================================================
 
-An enumeration is a set of symbolic names (members) bound to unique, constant
+aenum includes the new Python stdlib enum module available in Python 3.4
+backported for previous versions of Python from 2.7 and 3.3+
+tested on 2.7, and 3.3+
+
+
+An `Enum` is a set of symbolic names (members) bound to unique, constant
 values.  Within an enumeration, the members can be compared by identity, and
 the enumeration itself can be iterated over.
 
-A NamedTuple is a class-based, fixed-length tuple with a name for each possible
-position accessible using attribute-access notation.
+A `NamedTuple` is a class-based, fixed-length tuple with a name for each
+possible position accessible using attribute-access notation.
+
+A `Constant` is a class whose members cannot be rebound;  it lacks all other
+`Enum` capabilities, however; consequently, it can have duplicate values.
+There is also a `module` function that can insert the `Constant` class
+into `sys.modules` where it will appear to be a module whose top-level
+names cannot be rebound.
 
 
 Module Contents
 ---------------
 
-This module defines five enumeration classes that can be used to define unique
-sets of names and values, one `Enum` class decorator, and one named tuple
-class
+`NamedTuple`
+~~~~~~~~~~~~
+   Base class for `creating NamedTuples`_, either by subclassing or via it's
+   functional API.
+
+`Constant`
+~~~~~~~~~~
+   Constant class for creating groups of constants.  These names cannot be rebound
+   to other values.
 
 `Enum`
-
-Base class for creating enumerated constants.
+~~~~~~
+   Base class for creating enumerated constants.  See section `Enum Functional API`_
+   for an alternate construction syntax.
 
 `IntEnum`
-
-Base class for creating enumerated constants that are also subclasses of `int`.
+~~~~~~~~~
+   Base class for creating enumerated constants that are also subclasses of `int`.
 
 `AutoNumberEnum`
-
-Derived class that automatically assigns an `int` value to each member.
+~~~~~~~~~~~~~~~~
+   Derived class that automatically assigns an `int` value to each member.
 
 `OrderedEnum`
-
-Derived class that adds `<`, `<=`, `>=`, and `>` methods to an `Enum`.
+~~~~~~~~~~~~~
+   Derived class that adds `<`, `<=`, `>=`, and `>` methods to an `Enum`.
 
 `UniqueEnum`
-
-Derived class that ensures only one name is bound to any one value.
+~~~~~~~~~~~~
+   Derived class that ensures only one name is bound to any one value.
 
 `unique`
+~~~~~~~~
+   Enum class decorator that ensures only one name is bound to any one value.
 
-Enum class decorator that ensures only one name is bound to any one value.
+`constant`
+~~~~~~~~~~
+   Descriptor to add constant values to an `Enum`
 
-`NamedTuple`
+`convert`
+~~~~~~~~
+   Helper to transform target global variables into an `Enum`.
 
-Base class for creating NamedTuples, either by subclassing or via it's
-functional API.
+`enum`
+~~~~~~
+   Helper for specifying keyword arguments when creating `Enum` members.
+
+`export`
+~~~~~~~~
+   Helper for inserting `Enum` members into a namespace (usually `globals()`.
+
+`extend_enum`
+~~~~~~~~~~~~~
+   Helper for adding new `Enum` members after creation.
+
+`module`
+~~~~~~~~
+   Function to take a `Constant` or `Enum` class and insert it into
+   `sys.modules` with the affect of a module whose top-level constant and
+   member names cannot be rebound.
+
+`skip`
+~~~~~~
+   Descriptor to add a normal (non-`Enum` member) attribute to an `Enum`
+   or `Constant`.
 
 
 Creating an Enum
@@ -103,11 +148,23 @@ creating a `NamedTuple` using the class method::
     ...
     >>> Point()
     Point(x=0, y=0)
+
+
+Creating Constants
+------------------
+
+    >>> class K(Constant):
+    ...     PI = 3.141596
+    ...     TAU = 2 * PI
+    ...
+    >>> K.TAU
+    6.283192
 '''
 
-setup( name='aenum',
+setup(
+       name='aenum',
        version='1.2.1',
-       url='https://pypi.python.org/pypi/aenum',
+       url='https://bitbucket.org/stoneleaf/aenum',
        packages=['aenum'],
        package_data={
            'aenum' : [
@@ -118,7 +175,7 @@ setup( name='aenum',
                ]
            },
        license='BSD License',
-       description="Advanced Enumerations (compatible with Python's stdlib Enum) and NamedTuples",
+       description="Advanced Enumerations (compatible with Python's stdlib Enum), NamedTuples, and Constants",
        long_description=long_desc,
        provides=['aenum'],
        author='Ethan Furman',
