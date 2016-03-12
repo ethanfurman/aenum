@@ -6,95 +6,95 @@ backported for previous versions of Python from 2.7 and 3.3+
 tested on 2.7, and 3.3+
 
 
-An `Enum` is a set of symbolic names (members) bound to unique, constant
+An ``Enum`` is a set of symbolic names (members) bound to unique, constant
 values.  Within an enumeration, the members can be compared by identity, and
 the enumeration itself can be iterated over.
 
-A `NamedTuple` is a class-based, fixed-length tuple with a name for each
+A ``NamedTuple`` is a class-based, fixed-length tuple with a name for each
 possible position accessible using attribute-access notation.
 
-A `Constant` is a class whose members cannot be rebound;  it lacks all other
-`Enum` capabilities, however; consequently, it can have duplicate values.
-There is also a `module` function that can insert the `Constant` class
-into `sys.modules` where it will appear to be a module whose top-level
+A ``Constant`` is a class whose members cannot be rebound;  it lacks all other
+``Enum`` capabilities, however; consequently, it can have duplicate values.
+There is also a ``module`` function that can insert the ``Constant`` class
+into ``sys.modules`` where it will appear to be a module whose top-level
 names cannot be rebound.
 
 
 Module Contents
 ---------------
 
-`NamedTuple`
+``NamedTuple``
 ~~~~~~~~~~~~
-   Base class for `creating NamedTuples`_, either by subclassing or via it's
+   Base class for ``creating NamedTuples``_, either by subclassing or via it's
    functional API.
 
-`Constant`
+``Constant``
 ~~~~~~~~~~
    Constant class for creating groups of constants.  These names cannot be rebound
    to other values.
 
-`Enum`
+``Enum``
 ~~~~~~
-   Base class for creating enumerated constants.  See section `Enum Functional API`_
+   Base class for creating enumerated constants.  See section ``Enum Functional API``_
    for an alternate construction syntax.
 
-`IntEnum`
+``IntEnum``
 ~~~~~~~~~
-   Base class for creating enumerated constants that are also subclasses of `int`.
+   Base class for creating enumerated constants that are also subclasses of ``int``.
 
-`AutoNumberEnum`
+``AutoNumberEnum``
 ~~~~~~~~~~~~~~~~
-   Derived class that automatically assigns an `int` value to each member.
+   Derived class that automatically assigns an ``int`` value to each member.
 
-`OrderedEnum`
+``OrderedEnum``
 ~~~~~~~~~~~~~
-   Derived class that adds `<`, `<=`, `>=`, and `>` methods to an `Enum`.
+   Derived class that adds ``<``, ``<=``, ``>=``, and ``>`` methods to an ``Enum``.
 
-`UniqueEnum`
+``UniqueEnum``
 ~~~~~~~~~~~~
    Derived class that ensures only one name is bound to any one value.
 
-`unique`
+``unique``
 ~~~~~~~~
    Enum class decorator that ensures only one name is bound to any one value.
 
-`constant`
+``constant``
 ~~~~~~~~~~
-   Descriptor to add constant values to an `Enum`
+   Descriptor to add constant values to an ``Enum``
 
-`convert`
+``convert``
 ~~~~~~~~
-   Helper to transform target global variables into an `Enum`.
+   Helper to transform target global variables into an ``Enum``.
 
-`enum`
+``enum``
 ~~~~~~
-   Helper for specifying keyword arguments when creating `Enum` members.
+   Helper for specifying keyword arguments when creating ``Enum`` members.
 
-`export`
+``export``
 ~~~~~~~~
-   Helper for inserting `Enum` members into a namespace (usually `globals()`.
+   Helper for inserting ``Enum`` members into a namespace (usually ``globals()``.
 
-`extend_enum`
+``extend_enum``
 ~~~~~~~~~~~~~
-   Helper for adding new `Enum` members after creation.
+   Helper for adding new ``Enum`` members after creation.
 
-`module`
+``module``
 ~~~~~~~~
-   Function to take a `Constant` or `Enum` class and insert it into
-   `sys.modules` with the affect of a module whose top-level constant and
+   Function to take a ``Constant`` or ``Enum`` class and insert it into
+   ``sys.modules`` with the affect of a module whose top-level constant and
    member names cannot be rebound.
 
-`skip`
+``skip``
 ~~~~~~
-   Descriptor to add a normal (non-`Enum` member) attribute to an `Enum`
-   or `Constant`.
+   Descriptor to add a normal (non-``Enum`` member) attribute to an ``Enum``
+   or ``Constant``.
 
 
 Creating an Enum
 ----------------
 
-Enumerations can be created using the `class` syntax, which makes them
-easy to read and write.  To define an enumeration, subclass `Enum` as
+Enumerations can be created using the ``class`` syntax, which makes them
+easy to read and write.  To define an enumeration, subclass ``Enum`` as
 follows::
 
     >>> from aenum import Enum
@@ -103,7 +103,7 @@ follows::
     ...     green = 2
     ...     blue = 3
 
-The `Enum` class is also callable, providing the following functional API::
+The ``Enum`` class is also callable, providing the following functional API::
 
     >>> Animal = Enum('Animal', 'ant bee cat dog')
     >>> Animal
@@ -130,12 +130,12 @@ The most common way to create a new NamedTuple will be via the functional API::
 Advanced
 ^^^^^^^^
 
-The simple method of creating `NamedTuples` requires always specifying all
+The simple method of creating ``NamedTuples`` requires always specifying all
 possible arguments when creating instances; failure to do so will raise
 exceptions.
 
 However, it is possible to specify both docstrings and default values when
-creating a `NamedTuple` using the class method::
+creating a ``NamedTuple`` using the class method::
 
     >>> class Point(NamedTuple):
     ...     x = 0, 'horizontal coordinate', 0
