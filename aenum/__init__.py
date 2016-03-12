@@ -1176,7 +1176,8 @@ class _NamedTupleDict(OrderedDict):
         if pyver >= 3.0 and key == '__order__':
                 return
         if _is_sunder(key):
-            raise ValueError('_names_ are reserved for future NamedTuple use')
+            if key != '_size_':
+                raise ValueError('_names_ are reserved for future NamedTuple use')
         elif _is_dunder(key):
             pass
         elif key in self._field_names:
@@ -1214,6 +1215,9 @@ class _TupleAttributeAtIndex(object):
 class undefined(object):
     def __repr__(self):
         return 'undefined'
+    def __bool__(self):
+        return False
+    __nonzero__ = __bool__
 undefined = undefined()
 
 
@@ -1226,10 +1230,13 @@ class NamedTupleMeta(type):
     """Metaclass for NamedTuple"""
 
     @classmethod
-    def __prepare__(metacls, cls, bases):
+    def __prepare__(metacls, cls, bases, size=undefined):
         return _NamedTupleDict()
 
-    def __new__(metacls, cls, bases, clsdict):
+    def __init__(cls, *args , **kwds):
+        super(NamedTupleMeta, cls).__init__(*args)
+
+    def __new__(metacls, cls, bases, clsdict, size=undefined):
         if bases == (object, ):
             bases = (tuple, object)
         elif tuple not in bases:
@@ -1253,9 +1260,11 @@ class NamedTupleMeta(type):
         for k, v in clsdict.items():
             base_dict[k] = v
         original_dict = base_dict
+        if size is not undefined and '_size_' in original_dict:
+            raise TypeError('_size_ cannot be set if "size" is passed in header')
         add_order = isinstance(clsdict, _NamedTupleDict)
         clsdict = _NamedTupleDict()
-        clsdict.setdefault('__size__', TupleSize.fixed)
+        clsdict.setdefault('_size_', size or TupleSize.fixed)
         unnumbered = OrderedDict()
         numbered = OrderedDict()
         __order__ = original_dict.pop('__order__', [])
@@ -1524,7 +1533,7 @@ temp_namedtuple_dict = {}
 temp_namedtuple_dict['__doc__'] = "NamedTuple base class.\n\n    Derive from this class to define new NamedTuples.\n\n"
 
 def __new__(cls, *args, **kwds):
-    if cls.__size__ is TupleSize.fixed and len(args) > cls._defined_len_:
+    if cls._size_ is TupleSize.fixed and len(args) > cls._defined_len_:
         raise TypeError('%d fields expected, %d received' % (cls._defined_len_, len(args)))
     unknown = set(kwds) - set(cls._fields_) - set(cls._aliases_)
     if unknown:
@@ -1546,12 +1555,12 @@ def __new__(cls, *args, **kwds):
             else:
                 final_args[index] = default
     if missing:
-        if cls.__size__ in (TupleSize.fixed, TupleSize.minimum):
+        if cls._size_ in (TupleSize.fixed, TupleSize.minimum):
             raise TypeError('values not provided for field(s): %s' % ', '.join(missing))
         while final_args and final_args[-1] is undefined:
             final_args.pop()
             missing.pop()
-        if cls.__size__ is not TupleSize.variable or undefined in final_args:
+        if cls._size_ is not TupleSize.variable or undefined in final_args:
             raise TypeError('values not provided for field(s): %s' % ', '.join(missing))
     return tuple.__new__(cls, tuple(final_args))
 
