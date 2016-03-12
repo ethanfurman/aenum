@@ -175,7 +175,7 @@ class TestHelpers(unittest.TestCase):
             self.assertFalse(aenum._is_dunder(s))
 
 if pyver >= 3.0:
-    from aenum.test_v3 import TestEnumV3
+    from aenum.test_v3 import TestEnumV3, TestNamedTupleV3
 
 class TestEnum(unittest.TestCase):
 

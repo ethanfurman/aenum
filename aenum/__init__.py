@@ -246,10 +246,10 @@ class _EnumDict(dict):
     EnumMeta will use the names found in self._member_names as the
     enumeration member names.
     """
-    def __init__(self, locked=True):
+    def __init__(self, locked=True, start=1):
         super(_EnumDict, self).__init__()
         self._member_names = []
-        self._value = 0
+        self._value = start - 1
         self._locked = locked
 
     def __getitem__(self, key):
@@ -298,13 +298,16 @@ class _EnumDict(dict):
 class EnumMeta(type):
     """Metaclass for Enum"""
     @classmethod
-    def __prepare__(metacls, cls, bases, auto=False, init=None):
-        return _EnumDict(locked=not auto)
+    def __prepare__(metacls, cls, bases, auto=False, init=None, start=None):
+        auto = auto or (start is not None)
+        if start is None:
+            start = 1
+        return _EnumDict(locked=not auto, start=start)
 
     def __init__(cls, *args , **kwds):
         super(EnumMeta, cls).__init__(*args)
 
-    def __new__(metacls, cls, bases, clsdict, auto=False, init=''):
+    def __new__(metacls, cls, bases, clsdict, auto=False, init='', start=None):
         # an Enum class is final once enumeration items have been defined; it
         # cannot be mixed with other types (int, float, etc.) if it has an
         # inherited __new__ unless a new __new__ is defined (or the resulting

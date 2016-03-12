@@ -61,6 +61,13 @@ class TestEnumV3(TestCase):
         class Color(Enum, auto=True):
             red, green, blue
         self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+        self.assertEqual(Color.red.value, 1)
+
+    def test_magic_start(self):
+        class Color(Enum, start=0):
+            red, green, blue
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+        self.assertEqual(Color.red.value, 0)
 
     def test_dir_on_class(self):
         Season = self.Season
@@ -152,6 +159,8 @@ class TestEnumV3(TestCase):
                 red = 1
                 green = 2
                 blue = 3
+
+class TestNamedTupleV3(TestCase):
 
     def test_fixed_size(self):
         class Book(NamedTuple, size=TupleSize.fixed):

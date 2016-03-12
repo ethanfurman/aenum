@@ -675,14 +675,14 @@ member, use ``skip``::
     >>> Color.opacity
     0.77
 
-auto (py3 only)
-^^^^^^^^^^^^^^^
+start (py3 only)
+^^^^^^^^^^^^^^^^
 
 When using Python 3 you have the option of turning on auto-numbering
 (useful for when you don't care which numbers are assigned as long as
 they are consistent and in order)::
 
-    >>> class Color(Enum, auto=True):                # doctest: +SKIP
+    >>> class Color(Enum, start=1):                # doctest: +SKIP
     ...     red, green, blue
     ...
     >>> Color.blue
