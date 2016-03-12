@@ -1,27 +1,43 @@
-``aenum`` --- support for advanced enumerations and namedtuples
-===============================================================
+``aenum`` --- support for advanced enumerations, namedtuples, and constants
+===========================================================================
 
-.. :synopsis:: enumerations are sets of symbolic names bound to unique, constant
-    values; namedtuples are fixed-length tuples with the positions addressable
-    by field name
+.. :synopsis:: enumerations are sets of symbolic names bound to unique,
+    constant values; namedtuples are fixed- or variable-length
+    tuples with the positions addressable by field name as well as by index;
+    constants are classes where all values are constant.
 .. :moduleauthor:: Ethan Furman <ethan@stoneleaf.us>
 
 ----------------
 
-An enumeration is a set of symbolic names (members) bound to unique, constant
+An ``Enum`` is a set of symbolic names (members) bound to unique, constant
 values.  Within an enumeration, the members can be compared by identity, and
 the enumeration itself can be iterated over.
 
-A NamedTuple is a class-based, fixed-length tuple with a name for each possible
-position accessible using attribute-access notation.
+A ``NamedTuple`` is a class-based, fixed-length tuple with a name for each
+possible position accessible using attribute-access notation.
+
+A ``Constant`` is a class whose members cannot be rebound;  it lacks all other
+``Enum`` capabilities, however; consequently, it can have duplicate values.
+There is also a ``module`` function that can insert the ``Constant`` class
+into ``sys.modules`` where it will appear to be a module whose top-level
+names cannot be rebound.
+
+.. note::
+    ``constant`` refers to names not being rebound; mutable objects can be
+     mutated.
 
 
 Module Contents
 ---------------
 
 This module defines five enumeration classes that can be used to define unique
-sets of names and values, one ``Enum`` class decorator, and one named tuple
-class
+sets of names and values, one ``Enum`` class decorator, one ``NamedTuple``
+class, one ``Constant`` class, and several helpers.
+
+``Constant``
+
+Constant class for creating groups of constants.  These names cannot be rebound
+to other values.
 
 ``Enum``
 
@@ -48,15 +64,46 @@ Derived class that ensures only one name is bound to any one value.
 
 Enum class decorator that ensures only one name is bound to any one value.
 
+.. note::
+
+    the ``UniqueEnum`` class and the ``unique`` decorator both do the same
+    thing, you do not need to use both of them at the same time.
+
 ``NamedTuple``
 
 Base class for `creating NamedTuples`_, either by subclassing or via it's
 functional API.
 
-.. note::
+``constant``
 
-    the ``UniqueEnum`` class and the ``unique`` decorator both do the same
-    thing, you do not need to use both of them at the same time.
+Descriptor to add constant values to an ``Enum``
+
+``convert``
+
+Helper to transform target global variables into an ``Enum``.
+
+``enum``
+
+Helper for specifying keyword arguments when creating ``Enum`` members.
+
+``export``
+
+Helper for inserting ``Enum`` members into a namespace (usually ``globals()``.
+
+``extend_enum``
+
+Helper for adding new ``Enum`` members after creation.
+
+``module``
+
+Function to take a ``Constant`` or ``Enum`` class and insert it into
+``sys.modules`` with the affect of a module whose top-level constant and
+member names cannot be rebound.
+
+``skip``
+
+Descriptor to add a normal (non-``Enum`` member) attribute to an ``Enum``
+or ``Constant``.
 
 
 Creating an Enum
@@ -73,9 +120,7 @@ follows::
     ...     green = 2
     ...     blue = 3
 
-.. note::
-
-  Nomenclature
+*Nomenclature*
 
   - The class ``Color`` is an *enumeration* (or *enum*)
   - The attributes ``Color.red``, ``Color.green``, etc., are
@@ -106,12 +151,6 @@ The *type* of an enumeration member is the enumeration it belongs to::
     <enum 'Color'>
     >>> isinstance(Color.green, Color)
     True
-    >>>
-
-Enum members also have a property that contains just their item name::
-
-    >>> print(Color.red.name)
-    red
 
 Enumerations support iteration.  In Python 3.x definition order is used; in
 Python 2.x the definition order is not available, but class attribute
@@ -132,9 +171,9 @@ Python 2.x the definition order is not available, but class attribute
     Shake.cookies
     Shake.mint
 
-The ``__order__`` attribute is always removed, and in 3.x it is also ignored
-(order is definition order); however, in the stdlib version it will be ignored
-but not removed.
+The ``__order__`` attribute is always removed, but in 3.x it is used to verify
+that definition order is the same (useful for py2&3 code bases); however, in
+the stdlib version it will be ignored and not removed.
 
 Enumeration members are hashable, so they can be used in dictionaries and sets::
 
@@ -357,7 +396,7 @@ any members.  So this is forbidden::
     ...   pink = 17
     Traceback (most recent call last):
     ...
-    TypeError: Cannot extend enumerations
+    TypeError: Cannot extend enumerations via subclassing.
 
 But this is allowed::
 
@@ -533,6 +572,144 @@ Some rules:
    Prior to Python 3.4 there is a bug in ``str``'s %-formatting: ``int``
    subclasses are printed as strings and not numbers when the ``%d``, ``%i``,
    or ``%u`` codes are used.
+
+
+Extra Goodies
+-------------
+
+aenum supports a few extra techniques not found in the stdlib version.
+
+enum
+^^^^
+
+If you have several items to initialize your ``Enum`` members with and
+would like to use keyword arguments, the ``enum`` helper is for you::
+
+    >>> from aenum import enum
+    >>> class Presidents(Enum):
+    ...     Washington = enum('George Washington', circa=1776, death=1797)
+    ...     Jackson = enum('Andrew Jackson', circa=1830, death=1837)
+    ...     Lincoln = enum('Abraham Lincoln', circa=1860, death=1865)
+    ...
+    >>> Presidents.Lincoln
+    <Presidents.Lincoln: enum('Abraham Lincoln', circa=1860, death=1865)>
+
+extend_enum
+^^^^^^^^^^^
+
+For those rare cases when you need to create your ``Enum`` in pieces, you
+can use ``extend_enum`` to add new members after the initial creation::
+
+    >>> from aenum import extend_enum
+    >>> class Color(Enum):
+    ...     red = 1
+    ...     green = 2
+    ...     blue = 3
+    ...
+    >>> list(Color)
+    [<Color.red: 1>, <Color.green: 2>, <Color.blue: 3>]
+    >>> extend_enum(Color, 'opacity', 4)
+    >>> list(Color)
+    [<Color.red: 1>, <Color.green: 2>, <Color.blue: 3>, <Color.opacity: 4>]
+    >>> Color.opacity in Color
+    True
+    >>> Color.opacity.name == 'opacity'
+    True
+    >>> Color.opacity.value == 4
+    True
+    >>> Color(4)
+    <Color.opacity: 4>
+    >>> Color['opacity']
+    <Color.opacity: 4>
+    >>> Color.__members__
+    OrderedDict([('red', <Color.red: 1>), ('green', <Color.green: 2>), ('blue', <Color.blue: 3>), ('opacity', <Color.opacity: 4>)])
+
+constant
+^^^^^^^^
+
+If you need to have some constant value in your ``Enum`` that isn't a member,
+use ``constant``::
+
+    >>> from aenum import constant
+    >>> class Planet(Enum):
+    ...     MERCURY = (3.303e+23, 2.4397e6)
+    ...     EARTH   = (5.976e+24, 6.37814e6)
+    ...     JUPITER = (1.9e+27,   7.1492e7)
+    ...     URANUS  = (8.686e+25, 2.5559e7)
+    ...     G = constant(6.67300E-11)
+    ...     def __init__(self, mass, radius):
+    ...         self.mass = mass       # in kilograms
+    ...         self.radius = radius   # in meters
+    ...     @property
+    ...     def surface_gravity(self):
+    ...         # universal gravitational constant  (m3 kg-1 s-2)
+    ...         return self.G * self.mass / (self.radius * self.radius)
+    ...
+    >>> Planet.EARTH.value
+    (5.976e+24, 6378140.0)
+    >>> Planet.EARTH.surface_gravity
+    9.802652743337129
+    >>> Planet.G
+    6.673e-11
+    >>> Planet.G = 9
+    Traceback (most recent call last):
+    ...
+    AttributeError: Cannot rebind constant(6.673e-11)
+
+skip
+^^^^
+
+If you need a standard attribute that is not converted into an ``Enum``
+member, use ``skip``::
+
+    >>> from aenum import skip
+    >>> class Color(Enum):
+    ...     red = 1
+    ...     green = 2
+    ...     blue = 3
+    ...     opacity = skip(0.45)
+    ...
+    >>> Color.opacity
+    0.45
+    >>> Color.opacity = 0.77
+    >>> Color.opacity
+    0.77
+
+auto (py3 only)
+^^^^^^^^^^^^^^^
+
+When using Python 3 you have the option of turning on auto-numbering
+(useful for when you don't care which numbers are assigned as long as
+they are consistent and in order)::
+
+    >>> class Color(Enum, auto=True):                # doctest: +SKIP
+    ...     red, green, blue
+    ...
+    >>> Color.blue
+    <Color.blue: 3>
+
+init (py3 only)
+^^^^^^^^^^^^^^^
+
+If you need an ``__init__`` method that does nothing besides save its
+arguments, ``init`` is for you::
+
+    >>> class Planet(Enum, init='mass radius'):      # doctest: +SKIP
+    ...     MERCURY = (3.303e+23, 2.4397e6)
+    ...     EARTH   = (5.976e+24, 6.37814e6)
+    ...     JUPITER = (1.9e+27,   7.1492e7)
+    ...     URANUS  = (8.686e+25, 2.5559e7)
+    ...     G = constant(6.67300E-11)
+    ...     @property
+    ...     def surface_gravity(self):
+    ...         # universal gravitational constant  (m3 kg-1 s-2)
+    ...         return self.G * self.mass / (self.radius * self.radius)
+    ...
+    >>> Planet.JUPITER.value
+    (1.9e+27, 71492000.0)
+    >>> Planet.JUPITER.mass
+    1.9e+27
+
 
 Decorators
 ----------
@@ -743,7 +920,7 @@ Likewise, ``__members__`` is only available on the class.
 
 ``__members__`` is always an ``OrderedDict``, with the order being the
 definition order in Python 3.x or the order in ``__order__`` in Python 2.7;
-if no ``__order__`` was specified in Python 2.7 then the order of 
+if no ``__order__`` was specified in Python 2.7 then the order of
 ``__members__`` is meaningless.
 
 If you give your ``Enum`` subclass extra methods, like the `Planet`_
@@ -803,7 +980,8 @@ As a ``class`` the above ``Book`` ``NamedTuple`` would look like::
     ...
 
 For compatibility with the stdlib ``namedtuple``, NamedTuple also has the
-``_asdict``, ``_make``, and ``_replace`` methods, which function similarly::
+``_asdict``, ``_make``, and ``_replace`` methods, and the ``_fields``
+attribute, which all function similarly::
 
     >>> class Point(NamedTuple):
     ...     x = 0, 'horizontal coordinate', 1
@@ -816,25 +994,23 @@ For compatibility with the stdlib ``namedtuple``, NamedTuple also has the
     ...
     >>> Pixel = NamedTuple('Pixel', Point+Color, module=__name__)
     >>> pixel = Pixel(99, -101, 255, 128, 0)
+
     >>> pixel._asdict()
     OrderedDict([('x', 99), ('y', -101), ('r', 255), ('g', 128), ('b', 0)])
 
-    >>> class Point(NamedTuple):
-    ...     x = 0, 'horizontal coordinate', 1
-    ...     y = 1, 'vertical coordinate', -1
-    ...
     >>> Point._make((4, 5))
     Point(x=4, y=5)
 
-    >>> class Color(NamedTuple):
-    ...     r = 0, 'red component', 11
-    ...     g = 1, 'green component', 29
-    ...     b = 2, 'blue component', 37
-    ...
     >>> purple = Color(127, 0, 127)
     >>> mid_gray = purple._replace(g=127)
     >>> mid_gray
     Color(r=127, g=127, b=127)
+
+    >>> pixel._fields
+    ['x', 'y', 'r', 'g', 'b']
+
+    >>> Pixel._fields
+    ['x', 'y', 'r', 'g', 'b']
 
 
 Advanced
@@ -897,15 +1073,23 @@ for certain fields; any fields without names can still be accessed by index::
 
 In the above example the last named field was also the last field possible; in
 those cases where you don't need to have the last possible field named, you can
-provide a ``__size__`` of ``TupleSize.minimum`` to declare that more fields are
+provide a ``_size_`` of ``TupleSize.minimum`` to declare that more fields are
 okay::
 
     >>> from aenum import TupleSize
     >>> class Person(NamedTuple):
-    ...     __size__ = TupleSize.minimum
+    ...     _size_ = TupleSize.minimum
     ...     first = 0
     ...     last = 1
     ...
+
+or, optionally if using Python 3::
+
+    >>> class Person(NamedTuple, size=TupleSize.minimum):      # doctest: +SKIP
+    ...     first = 0
+    ...     last = 1
+
+and in use::
 
     >>> Person('Ethan', 'Furman')
     Person(first='Ethan', last='Furman')
@@ -925,7 +1109,7 @@ Also, for those cases where even named fields may not be present, you can
 specify ``TupleSize.variable``::
 
     >>> class Person(NamedTuple):
-    ...     __size__ = TupleSize.variable
+    ...     _size_ = TupleSize.variable
     ...     first = 0
     ...     last = 1
     ...
@@ -947,4 +1131,38 @@ Creating new ``NamedTuples`` from existing ``NamedTuples`` is simple::
     <NamedTuple 'Pixel'>
 
 The existing fields in the bases classes are renumbered to fit the new class,
-but keep their doc strings and default values.
+but keep their doc strings and default values.  If you use standard
+subclassing::
+
+    >>> Point = NamedTuple('Point', 'x y')
+    >>> class Pixel(Point):
+    ...     r = 2, 'red component', 11
+    ...     g = 3, 'green component', 29
+    ...     b = 4, 'blue component', 37
+    ...
+    >>> Pixel.__fields__
+    ['x', 'y', 'r', 'g', 'b']
+
+You must manage the numbering yourself.
+
+
+Creating Constants
+------------------
+
+A ``Constant`` class is created much like an ``Enum``::
+
+    >>> from aenum import Constant
+    >>> class Konstant(Constant):
+    ...     PI = 3.14159
+    ...     TAU = 2 * PI
+
+    >>> Konstant.PI
+    <Konstant.PI: 3.14159>
+
+    >> print(Konstant.PI)
+    3.14159
+
+    >>> Konstant.PI = 'apple'
+    Traceback (most recent call last):
+    ...
+    AttributeError: Cannot rebind constant <Konstant.PI>
