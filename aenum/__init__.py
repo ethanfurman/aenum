@@ -333,6 +333,11 @@ class EnumMeta(type):
         for name in clsdict._member_names:
             del clsdict[name]
 
+        # move skipped values out of the descriptor
+        for name, obj in clsdict.items():
+            if isinstance(obj, skip):
+                dict.__setitem__(clsdict, name, obj.value)
+
         # py2 support for definition order
         __order__ = clsdict.get('__order__')
         if __order__ is None:
@@ -1053,6 +1058,7 @@ class OrderedEnum(Enum):
         if self.__class__ is other.__class__:
             return self._value_ < other._value_
         return NotImplemented
+
 
 def convert(enum, name, module, filter, source=None):
     """

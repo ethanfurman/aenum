@@ -2,7 +2,7 @@ import aenum
 import doctest
 import sys
 import unittest
-from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique
+from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip
 from aenum import EnumMeta, NamedTuple, TupleSize, Constant
 from collections import OrderedDict
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -1669,6 +1669,18 @@ class TestEnum(unittest.TestCase):
     def test_empty_with_functional_api(self):
         empty = aenum.IntEnum('Foo', {})
         self.assertEqual(len(empty), 0)
+
+    def test_skip(self):
+        class enumA(Enum):
+            @skip
+            class enumB(Enum):
+                elementA = 'a'
+                elementB = 'b'
+            @skip
+            class enumC(Enum):
+                elementC = 'c'
+                elementD = 'd'
+        self.assertIs(enumA.enumB, enumA.__dict__['enumB'])
 
 
 class TestUnique(unittest.TestCase):
