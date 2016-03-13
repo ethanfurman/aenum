@@ -1059,6 +1059,11 @@ class OrderedEnum(Enum):
             return self._value_ < other._value_
         return NotImplemented
 
+class SqliteEnum(Enum):
+    def __conform__(self, protocol):
+        if protocol is sqlite3.PrepareProtocol:
+            return self.name
+
 
 def convert(enum, name, module, filter, source=None):
     """
