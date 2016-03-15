@@ -57,6 +57,18 @@ class TestEnumV3(TestCase):
         self.assertEqual(round(Planet.EARTH.surface_gravity, 2), 9.80)
         self.assertEqual(Planet.EARTH.value, (5.976e+24, 6.37814e6))
 
+    def test_auto_init_with_value(self):
+        class Color(Enum, init='value, rgb'):
+            RED = 1, (1, 0, 0)
+            BLUE = 2, (0, 1, 0)
+            GREEN = 3, (0, 0, 1)
+        self.assertEqual(Color.RED.value, 1)
+        self.assertEqual(Color.BLUE.value, 2)
+        self.assertEqual(Color.GREEN.value, 3)
+        self.assertEqual(Color.RED.rgb, (1, 0, 0))
+        self.assertEqual(Color.BLUE.rgb, (0, 1, 0))
+        self.assertEqual(Color.GREEN.rgb, (0, 0, 1))
+
     def test_magic(self):
         class Color(Enum, auto=True):
             red, green, blue

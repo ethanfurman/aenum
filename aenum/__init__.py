@@ -374,7 +374,9 @@ class EnumMeta(type):
         base_attributes = set([a for b in bases for a in b.__dict__])
         # create our new Enum type
         enum_class = super(EnumMeta, metacls).__new__(metacls, cls, bases, clsdict)
-        enum_class._auto_init_ = init.replace(',',' ').split()
+        enum_class._auto_init_ = _auto_init_ = init.replace(',',' ').split()
+        if 'value' in _auto_init_ and _auto_init_[0] != 'value':
+            raise TypeError("'value', if specified, must be the first item in 'init'")
         enum_class._member_names_ = []               # names in random order
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
@@ -394,10 +396,16 @@ class EnumMeta(type):
             if isinstance(value, enum):
                 args = value.args
                 kwds = value.kwds
-            elif not isinstance(value, tuple):
+            if not isinstance(value, tuple):
                 args = (value, )
             else:
                 args = value
+            # tease value out of auto-init if specified
+            if 'value' in _auto_init_:
+                if 'value' in kwds:
+                    value = kwds.pop('value')
+                else:
+                    value, args = args[0], args[1:]
             if member_type is tuple:   # special case for tuple enums
                 args = (args, )     # wrap it one more time
             if not use_args or not (args or kwds):
@@ -809,6 +817,14 @@ temp_enum_dict['__doc__'] = "Generic enumeration.\n\n    Derive from this class 
 def __init__(self, *args, **kwds):
     # auto-init method
     _auto_init_ = self._auto_init_
+    if 'value' in _auto_init_:
+        # remove 'value' from _auto_init_ as it has already been handled
+        _auto_init_ = _auto_init_[1:]
+    #     # this was taken care of in _new_, discard it here
+    #     if 'value' in kwds:
+    #         del kwds['value']
+    #     else:
+    #         args = args[1:]
     if _auto_init_:
         for name, arg in zip(_auto_init_, args):
             setattr(self, name, arg)
