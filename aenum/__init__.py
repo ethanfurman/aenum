@@ -57,6 +57,8 @@ class _RouteClassAttributeToGetattr(object):
     normal, but access to an attribute through a class will be routed to the
     class's __getattr__ method; this is done by raising AttributeError.
     """
+    name = None  # set by metaclass
+
     def __init__(self, fget=None):
         self.fget = fget
 
@@ -66,10 +68,10 @@ class _RouteClassAttributeToGetattr(object):
         return self.fget(instance)
 
     def __set__(self, instance, value):
-        raise AttributeError("can't set attribute")
+        raise AttributeError("can't set attribute %r" % self.name)
 
     def __delete__(self, instance):
-        raise AttributeError("can't delete attribute")
+        raise AttributeError("can't delete attribute %r" % self.name)
 
 
 class skip(object):
@@ -333,10 +335,12 @@ class EnumMeta(type):
         for name in clsdict._member_names:
             del clsdict[name]
 
-        # move skipped values out of the descriptor
+        # move skipped values out of the descriptor, and add names to DynamicAttributes
         for name, obj in clsdict.items():
             if isinstance(obj, skip):
                 dict.__setitem__(clsdict, name, obj.value)
+            elif isinstance(obj, _RouteClassAttributeToGetattr):
+                obj.name = name
 
         # py2 support for definition order
         __order__ = clsdict.get('__order__')
