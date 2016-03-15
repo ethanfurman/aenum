@@ -2118,6 +2118,26 @@ class TestConstant(unittest.TestCase):
         self.assertEqual(K.TAU, 2 * K.PI)
         self.assertRaises(AttributeError, setattr, K, 'PI', 9)
 
+    def test_duplicates(self):
+        class CardNumber(Constant):
+            ACE      = 11
+            TWO      = 2
+            THREE    = 3
+            FOUR     = 4
+            FIVE     = 5
+            SIX      = 6
+            SEVEN    = 7
+            EIGHT    = 8
+            NINE     = 9
+            TEN      = 10
+            JACK     = 10
+            QUEEN    = 10
+            KING     = 10
+        self.assertFalse(CardNumber.TEN is CardNumber.JACK)
+        self.assertEqual(CardNumber.TEN, CardNumber.JACK)
+        self.assertEqual(CardNumber.TEN, 10)
+
+
 class TestMe(unittest.TestCase):
 
     pass
