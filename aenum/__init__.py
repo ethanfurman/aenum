@@ -4,7 +4,7 @@ import sys as _sys
 from collections import OrderedDict
 
 __all__ = [
-        'Constant', 'constant', 'skip'
+        'NamedConstant', 'constant', 'skip'
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum', 'enum', 'extend_enum', 'unique',
         'NamedTuple',
         ]
@@ -117,16 +117,18 @@ def _make_class_unpicklable(cls):
     cls.__module__ = '<unknown>'
 
 
-# metaclass and class dict for Constant
+# metaclass and class dict for NamedConstant
 
-class _ConstantDict(dict):
+NamedConstant = None
+
+class _NamedConstantDict(dict):
     """Track enum member order and ensure member names are not reused.
 
-    ConstantMeta will use the names found in self._names as the
+    NamedConstantMeta will use the names found in self._names as the
     enumeration member names.
     """
     def __init__(self):
-        super(_ConstantDict, self).__init__()
+        super(_NamedConstantDict, self).__init__()
         self._names = []
 
     def __setitem__(self, key, value):
@@ -141,7 +143,7 @@ class _ConstantDict(dict):
                 leftover from 2.x
         """
         if _is_sunder(key):
-            raise ValueError('_names_ are reserved for future Constant use')
+            raise ValueError('_names_ are reserved for future NamedConstant use')
         elif _is_dunder(key):
             pass
         elif key in self._names:
@@ -152,50 +154,62 @@ class _ConstantDict(dict):
                 # overwriting a descriptor?
                 raise TypeError('%s already defined as: %r' % (key, self[key]))
             self._names.append(key)
-        super(_ConstantDict, self).__setitem__(key, value)
+        super(_NamedConstantDict, self).__setitem__(key, value)
 
 
-class ConstantMeta(type):
+class NamedConstantMeta(type):
     """
-    Block attempts to reassign Constant attributes.
+    Block attempts to reassign NamedConstant attributes.
     """
+
     def __new__(metacls, cls, bases, clsdict):
-        _ConstantCache = {}
         if type(clsdict) is dict:
             original_dict = clsdict
-            clsdict = _ConstantDict()
+            clsdict = _NamedConstantDict()
             for k, v in original_dict.items():
                 clsdict[k] = v
         newdict = {}
+        constants = {}
         for name, obj in clsdict.items():
             if name in clsdict._names:
-                actual_type = type(obj)
-                value = obj
-                obj_type = _ConstantCache.get(actual_type)
-                if obj_type is None:
-                    obj_type = type(cls, (Constant, type(obj)), {})
-                    _ConstantCache[type(obj)] = obj_type
-                obj = actual_type.__new__(obj_type, obj)
-                obj._name_ = name
-                obj._value_ = value
+                constants[name] = obj
+                continue
             elif isinstance(obj, skip):
                 obj = obj.value
             newdict[name] = obj
-        return super(ConstantMeta, metacls).__new__(metacls, cls, bases, newdict)
+        newcls = super(NamedConstantMeta, metacls).__new__(metacls, cls, bases, newdict)
+        newcls._named_constant_cache_ = {}
+        for name, obj in constants.items():
+            newcls.__new__(newcls, name, obj)
+        return newcls
 
     def __setattr__(cls, name, value):
-        """Block attempts to reassign Constants.
+        """Block attempts to reassign NamedConstants.
         """
         cur_obj = cls.__dict__.get(name)
-        if isinstance(cur_obj, Constant):
+        if NamedConstant is not None and isinstance(cur_obj, NamedConstant):
             raise AttributeError('Cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
-        super(ConstantMeta, cls).__setattr__(name, value)
+        super(NamedConstantMeta, cls).__setattr__(name, value)
 
 temp_constant_dict = {}
-temp_constant_dict['__doc__'] = "Constants protection.\n\n    Derive from this class to lock Constants.\n\n"
+temp_constant_dict['__doc__'] = "NamedConstants protection.\n\n    Derive from this class to lock NamedConstants.\n\n"
 
-def __new__(cls, value):
-    raise ValueError("cannot create new instances of %s" % (cls.__name__, ))
+def __new__(cls, name, value):
+    cur_obj = cls.__dict__.get(name)
+    if isinstance(cur_obj, NamedConstant):
+        raise AttributeError('Cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
+    metacls = cls.__class__
+    actual_type = type(value)
+    value_type = cls._named_constant_cache_.get(actual_type)
+    if value_type is None:
+        value_type = type(cls.__name__, (NamedConstant, type(value)), {})
+        cls._named_constant_cache_[type(value)] = value_type
+    obj = actual_type.__new__(value_type, value)
+    obj._name_ = name
+    obj._value_ = value
+    metacls.__setattr__(cls, name, obj)
+    return obj
+
 temp_constant_dict['__new__'] = __new__
 del __new__
 
@@ -205,7 +219,8 @@ def __repr__(self):
 temp_constant_dict['__repr__'] = __repr__
 del __repr__
 
-Constant = ConstantMeta('Constant', (object, ), temp_constant_dict)
+NamedConstant = NamedConstantMeta('NamedConstant', (object, ), temp_constant_dict)
+Constant = NamedConstant
 del temp_constant_dict
 
 class constant(object):
@@ -1666,7 +1681,7 @@ class module(object):
         self.__all__ = []
         all_objects = cls.__dict__
         if not args:
-            args = [k for k, v in all_objects.items() if isinstance(v, (Constant, Enum))]
+            args = [k for k, v in all_objects.items() if isinstance(v, (NamedConstant, Enum))]
         for name in args:
             self.__dict__[name] = all_objects[name]
             self.__all__.append(name)

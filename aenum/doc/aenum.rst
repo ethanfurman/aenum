@@ -16,9 +16,9 @@ the enumeration itself can be iterated over.
 A ``NamedTuple`` is a class-based, fixed-length tuple with a name for each
 possible position accessible using attribute-access notation.
 
-A ``Constant`` is a class whose members cannot be rebound;  it lacks all other
+A ``NamedConstant`` is a class whose members cannot be rebound;  it lacks all other
 ``Enum`` capabilities, however; consequently, it can have duplicate values.
-There is also a ``module`` function that can insert the ``Constant`` class
+There is also a ``module`` function that can insert the ``NamedConstant`` class
 into ``sys.modules`` where it will appear to be a module whose top-level
 names cannot be rebound.
 
@@ -32,11 +32,11 @@ Module Contents
 
 This module defines five enumeration classes that can be used to define unique
 sets of names and values, one ``Enum`` class decorator, one ``NamedTuple``
-class, one ``Constant`` class, and several helpers.
+class, one ``NamedConstant`` class, and several helpers.
 
-``Constant``
+``NamedConstant``
 
-Constant class for creating groups of constants.  These names cannot be rebound
+NamedConstant class for creating groups of constants.  These names cannot be rebound
 to other values.
 
 ``Enum``
@@ -96,14 +96,14 @@ Helper for adding new ``Enum`` members after creation.
 
 ``module``
 
-Function to take a ``Constant`` or ``Enum`` class and insert it into
+Function to take a ``NamedConstant`` or ``Enum`` class and insert it into
 ``sys.modules`` with the affect of a module whose top-level constant and
 member names cannot be rebound.
 
 ``skip``
 
 Descriptor to add a normal (non-``Enum`` member) attribute to an ``Enum``
-or ``Constant``.
+or ``NamedConstant``.
 
 
 Creating an Enum
@@ -1146,13 +1146,13 @@ subclassing::
 You must manage the numbering yourself.
 
 
-Creating Constants
-------------------
+Creating NamedConstants
+-----------------------
 
-A ``Constant`` class is created much like an ``Enum``::
+A ``NamedConstant`` class is created much like an ``Enum``::
 
-    >>> from aenum import Constant
-    >>> class Konstant(Constant):
+    >>> from aenum import NamedConstant
+    >>> class Konstant(NamedConstant):
     ...     PI = 3.14159
     ...     TAU = 2 * PI
 

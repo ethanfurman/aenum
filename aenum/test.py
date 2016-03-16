@@ -3,7 +3,7 @@ import doctest
 import sys
 import unittest
 from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip
-from aenum import EnumMeta, NamedTuple, TupleSize, Constant
+from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant
 from collections import OrderedDict
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 
@@ -2108,10 +2108,10 @@ class TestNamedTuple(unittest.TestCase):
         self.assertEqual(mid_gray, (127, 127, 127))
 
 
-class TestConstant(unittest.TestCase):
+class TestNamedConstant(unittest.TestCase):
 
     def test_constantness(self):
-        class K(Constant):
+        class K(NamedConstant):
             PI = 3.141596
             TAU = 2 * PI
         self.assertEqual(K.PI, 3.141596)
@@ -2119,7 +2119,7 @@ class TestConstant(unittest.TestCase):
         self.assertRaises(AttributeError, setattr, K, 'PI', 9)
 
     def test_duplicates(self):
-        class CardNumber(Constant):
+        class CardNumber(NamedConstant):
             ACE      = 11
             TWO      = 2
             THREE    = 3
@@ -2136,6 +2136,17 @@ class TestConstant(unittest.TestCase):
         self.assertFalse(CardNumber.TEN is CardNumber.JACK)
         self.assertEqual(CardNumber.TEN, CardNumber.JACK)
         self.assertEqual(CardNumber.TEN, 10)
+
+    def test_extend_constants(self):
+        class CardSuit(NamedConstant):
+            HEARTS = 1
+            SPADES = 2
+            DIAMONTS = 3
+            CLUBS = 4
+        self.assertEqual(CardSuit.HEARTS, 1)
+        stars = CardSuit('STARS', 5)
+        self.assertIs(stars, CardSuit.STARS)
+        self.assertEqual(CardSuit.STARS, 5)
 
 
 class TestMe(unittest.TestCase):
