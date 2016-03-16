@@ -296,7 +296,8 @@ class _EnumDict(dict):
             raise ValueError('_names_ are reserved for future Enum use')
         elif _is_dunder(key):
             # __order__, if present, should be first
-            pass
+            if _is_descriptor(value):
+                self._locked = True
         elif key in self._member_names:
             # descriptor overwriting an enum?
             raise TypeError('Attempted to reuse name: %r' % key)

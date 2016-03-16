@@ -69,6 +69,24 @@ class TestEnumV3(TestCase):
         self.assertEqual(Color.BLUE.rgb, (0, 1, 0))
         self.assertEqual(Color.GREEN.rgb, (0, 0, 1))
 
+    def test_auto_turns_off(self):
+        with self.assertRaises(NameError):
+            class Color(Enum, auto=True):
+                red
+                green
+                blue
+                def hello(self):
+                    print('Hello!  My serial is %s.' % self.value)
+                rose
+        with self.assertRaises(NameError):
+            class Color(Enum, auto=True):
+                red
+                green
+                blue
+                def __init__(self, *args):
+                    pass
+                rose
+
     def test_magic(self):
         class Color(Enum, auto=True):
             red, green, blue

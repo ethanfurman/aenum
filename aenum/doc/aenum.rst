@@ -4,7 +4,7 @@
 .. :synopsis:: enumerations are sets of symbolic names bound to unique,
     constant values; namedtuples are fixed- or variable-length
     tuples with the positions addressable by field name as well as by index;
-    constants are classes where all values are constant.
+    constants are classes of named constants that cannot be rebound.
 .. :moduleauthor:: Ethan Furman <ethan@stoneleaf.us>
 
 ----------------
@@ -687,6 +687,8 @@ they are consistent and in order)::
     ...
     >>> Color.blue
     <Color.blue: 3>
+
+.. note:: auto-numbering turns off when a non-member is defined
 
 init (py3 only)
 ^^^^^^^^^^^^^^^
