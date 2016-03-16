@@ -1549,7 +1549,7 @@ class NamedTupleMeta(type):
             # module is ever developed
             if module is None:
                 try:
-                    module = _sys._getframe(2).f_globals['__name__']
+                    module = _sys._getframe(1).f_globals['__name__']
                 except (AttributeError, KeyError):
                     pass
             if module is None:
