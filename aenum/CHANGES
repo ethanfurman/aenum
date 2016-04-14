@@ -1,0 +1,12 @@
+1.4.0
+=====
+
+Breaking change: enum members now default to evaluating as True to maintain
+compatibility with the stdlib.
+
+Add your own __bool__ (__nonzero__ in Python 2) if need this behavior:
+
+    def __bool__(self):
+        return bool(self.value)
+    __nonzero__ = __bool__
+
