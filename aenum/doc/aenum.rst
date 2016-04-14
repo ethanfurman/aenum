@@ -903,22 +903,24 @@ member instances.
 Finer Points
 ^^^^^^^^^^^^
 
-``Enum`` members are instances of an ``Enum`` class, and even
-though they are accessible as `EnumClass.member`, they should not be accessed
-directly from the member as that lookup may fail or, worse, return something
-besides the ``Enum`` member you were looking for (changed in version 1.1.1)::
+``Enum`` members are instances of an ``Enum`` class, and even though they
+are accessible as `EnumClass.member1.member2`, they should not be
+accessed directly from the member as that lookup may fail or, worse,
+return something besides the ``Enum`` member you were looking for
+(changed in version 1.1.1)::
 
     >>> class FieldTypes(Enum):
-    ...     name = 0
-    ...     value = 1
-    ...     size = 2
+    ...     name = 1
+    ...     value = 2
+    ...     size = 3
     ...
     >>> FieldTypes.value.size
-    <FieldTypes.size: 2>
+    <FieldTypes.size: 3>
     >>> FieldTypes.size.value
-    2
+    3
 
-Likewise, ``__members__`` is only available on the class.
+The ``__members__`` attribute is only available on the class.
+
 
 ``__members__`` is always an ``OrderedDict``, with the order being the
 definition order in Python 3.x or the order in ``__order__`` in Python 2.7;
