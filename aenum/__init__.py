@@ -523,6 +523,12 @@ class EnumMeta(type):
             setattr(enum_class, '__new__', Enum.__dict__['__new__'])
         return enum_class
 
+    def __bool__(cls):
+        """
+        classes/types should always be True.
+        """
+        return True
+
     def __call__(cls, value, names=None, module=None, type=None, start=1):
         """Either returns an existing member, or creates a new enum class.
 
@@ -593,6 +599,8 @@ class EnumMeta(type):
 
     def __len__(cls):
         return len(cls._member_names_)
+
+    __nonzero__ = __bool__
 
     def __repr__(cls):
         return "<enum %r>" % cls.__name__

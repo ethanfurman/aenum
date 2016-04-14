@@ -292,6 +292,19 @@ class TestEnum(unittest.TestCase):
         self.assertRaises(AttributeError, delattr, Season, 'DRY')
         self.assertRaises(AttributeError, delattr, Season.SPRING, 'name')
 
+    def test_bool_of_class(self):
+        class Empty(Enum):
+            pass
+        self.assertTrue(bool(Empty))
+
+    def test_bool_of_member(self):
+        class Count(Enum):
+            zero = 0
+            one = 1
+            two = 2
+        for member in Count:
+            self.assertTrue(bool(member))
+
     def test_invalid_names(self):
         def create_bad_class_1():
             class Wrong(Enum):
