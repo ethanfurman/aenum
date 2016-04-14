@@ -48,6 +48,16 @@ try:
 except NameError:
     NoneType = type(None)
 
+try:
+    # derive from stdlib enum if possible
+    from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum
+    import enum
+    if hasattr(enum, 'version'):
+        StdlibEnumMeta = StdlibEnum = None
+    del enum
+except ImportError:
+    StdlibEnumMeta = StdlibEnum = None
+
 class _RouteClassAttributeToGetattr(object):
     """Route attribute access on a class to __getattr__.
 
@@ -312,7 +322,7 @@ class _EnumDict(dict):
         super(_EnumDict, self).__setitem__(key, value)
 
 
-class EnumMeta(type):
+class EnumMeta(StdlibEnumMeta or type):
     """Metaclass for Enum"""
     @classmethod
     def __prepare__(metacls, cls, bases, auto=False, init=None, start=None):
@@ -388,7 +398,7 @@ class EnumMeta(type):
         # the shortcut of storing members in the class dict
         base_attributes = set([a for b in bases for a in b.__dict__])
         # create our new Enum type
-        enum_class = super(EnumMeta, metacls).__new__(metacls, cls, bases, clsdict)
+        enum_class = type.__new__(metacls, cls, bases, clsdict)
         enum_class._auto_init_ = _auto_init_ = init.replace(',',' ').split()
         if 'value' in _auto_init_ and _auto_init_[0] != 'value':
             raise TypeError("'value', if specified, must be the first item in 'init'")
@@ -602,7 +612,7 @@ class EnumMeta(type):
     __nonzero__ = __bool__
 
     def __repr__(cls):
-        return "<enum %r>" % cls.__name__
+        return "<aenum %r>" % cls.__name__
 
     def __setattr__(cls, name, value):
         """Block attempts to reassign Enum members/constants.
@@ -695,7 +705,7 @@ class EnumMeta(type):
         # type has been mixed in so we can use the correct __new__
         member_type = first_enum = None
         for base in bases:
-            if  (base is not Enum and
+            if  (base is not Enum and base is not StdlibEnum and
                     issubclass(base, Enum) and
                     base._member_names_):
                 raise TypeError("Cannot extend enumerations via subclassing.")
@@ -706,7 +716,11 @@ class EnumMeta(type):
 
         # get correct mix-in type (either mix-in type of Enum subclass, or
         # first base if last base is Enum)
-        if not issubclass(bases[0], Enum):
+        if StdlibEnum is not None:
+            enum_classes = Enum, StdlibEnum
+        else:
+            enum_classes = Enum
+        if not issubclass(bases[0], enum_classes):
             member_type = bases[0]     # first data type
             first_enum = bases[-1]  # enum type
         else:
@@ -715,7 +729,7 @@ class EnumMeta(type):
                 # possible:    (<Enum 'AutoIntEnum'>, <Enum 'IntEnum'>,
                 #               <class 'int'>, <Enum 'Enum'>,
                 #               <class 'object'>)
-                if issubclass(base, Enum):
+                if issubclass(base, enum_classes):
                     if first_enum is None:
                         first_enum = base
                 else:
@@ -809,6 +823,7 @@ class EnumMeta(type):
                                 None.__new__,
                                 object.__new__,
                                 Enum.__new__,
+                                StdlibEnum.__new__
                                 ):
                             __new__ = target
                             break
@@ -816,7 +831,6 @@ class EnumMeta(type):
                         break
                 else:
                     __new__ = object.__new__
-
             # if a non-object.__new__ is used then whatever value/tuple was
             # assigned to the enum member name will be passed to __new__ and to the
             # new enum member's __init__
@@ -1035,7 +1049,11 @@ del _convert
 def _reduce_ex_by_name(self, proto):
     return self.name
 
-Enum = EnumMeta('Enum', (object, ), temp_enum_dict)
+if StdlibEnum is not None:
+    enum_base = StdlibEnum
+else:
+    enum_base = object
+Enum = EnumMeta('Enum', (enum_base, ), temp_enum_dict)
 del temp_enum_dict
 
 # Enum has now been created

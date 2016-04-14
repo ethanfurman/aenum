@@ -23,6 +23,15 @@ try:
 except NameError:
     unicode = str
 
+try:
+    from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum
+    import enum
+    if hasattr(enum, 'version'):
+        StdlibEnumMeta = StdlibEnum = None
+    del enum
+except ImportError:
+    StdlibEnumMeta = StdlibEnum = None
+
 def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite(aenum))
     tests.addTests(doctest.DocFileSuite(
@@ -1697,6 +1706,11 @@ class TestEnum(unittest.TestCase):
                 elementC = 'c'
                 elementD = 'd'
         self.assertIs(enumA.enumB, enumA.__dict__['enumB'])
+
+    if StdlibEnumMeta is not None:
+        def test_stdlib_inheritence(self):
+            self.assertTrue(isinstance(self.Season, StdlibEnumMeta))
+            self.assertTrue(issubclass(self.Season, StdlibEnum))
 
 
 class TestUnique(unittest.TestCase):

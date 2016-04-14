@@ -148,7 +148,7 @@ Enumeration members have human readable string representations::
 The *type* of an enumeration member is the enumeration it belongs to::
 
     >>> type(Color.red)
-    <enum 'Color'>
+    <aenum 'Color'>
     >>> isinstance(Color.green, Color)
     True
 
@@ -268,7 +268,7 @@ that none exist in a particular enumeration::
     ...   four = 3
     Traceback (most recent call last):
     ...
-    ValueError: duplicate names found in <enum 'Mistake'>: four -> three
+    ValueError: duplicate names found in <aenum 'Mistake'>: four -> three
 
 Iterating over the members of an enum does not provide the aliases::
 
@@ -443,7 +443,7 @@ The ``Enum`` class is callable, providing the following functional API::
 
     >>> Animal = Enum('Animal', 'ant bee cat dog')
     >>> Animal
-    <enum 'Animal'>
+    <aenum 'Animal'>
     >>> Animal.ant
     <Animal.ant: 1>
     >>> Animal.ant.value
@@ -730,7 +730,7 @@ found ``ValueError`` is raised with the details::
     ...    third = 'two'
     Traceback (most recent call last):
     ...
-    ValueError: duplicate names found in <enum 'NoDupes'>: third -> second
+    ValueError: duplicate names found in <aenum 'NoDupes'>: third -> second
 
 
 Interesting examples
@@ -941,6 +941,9 @@ A ``__new__`` method will only be used for the creation of the
 ``Enum`` members -- after that it is replaced.  This means if you wish to
 change how ``Enum`` members are looked up you either have to write a
 helper function or a ``classmethod``.
+
+If the stdlib ``enum`` is available (Python 3.4+ and it hasn't been shadowed
+by, for example, ``enum34``) then aenum will inherit from it.
 
 
 Creating NamedTuples
