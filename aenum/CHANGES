@@ -1,6 +1,8 @@
 1.4.0
 =====
 
+When possible aenum inherits from Python's own enum.
+
 Breaking change: enum members now default to evaluating as True to maintain
 compatibility with the stdlib.
 

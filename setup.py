@@ -24,7 +24,7 @@ names cannot be rebound.
 
 setup(
        name='aenum',
-       version='1.3.3',
+       version='1.4.0',
        url='https://bitbucket.org/stoneleaf/aenum',
        packages=['aenum'],
        package_data={
