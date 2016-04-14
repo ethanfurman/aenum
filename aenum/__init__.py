@@ -48,7 +48,6 @@ try:
 except NameError:
     NoneType = type(None)
 
-
 class _RouteClassAttributeToGetattr(object):
     """Route attribute access on a class to __getattr__.
 
@@ -984,14 +983,6 @@ def __hash__(self):
     return hash(self._name_)
 temp_enum_dict['__hash__'] = __hash__
 del __hash__
-
-def __bool__(self):
-    return bool(self._value_)
-if pyver < 3.0:
-    temp_enum_dict['__nonzero__'] = __bool__
-else:
-    temp_enum_dict['__bool__'] = __bool__
-    del __bool__
 
 def __reduce_ex__(self, proto):
     return self.__class__, (self._value_, )

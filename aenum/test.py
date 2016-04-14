@@ -319,6 +319,9 @@ class TestEnum(unittest.TestCase):
         class Logic(Enum):
             true = True
             false = False
+            def __bool__(self):
+                return bool(self.value)
+            __nonzero__ = __bool__
         self.assertTrue(Logic.true)
         self.assertFalse(Logic.false)
 
