@@ -1050,10 +1050,9 @@ def _reduce_ex_by_name(self, proto):
     return self.name
 
 if StdlibEnum is not None:
-    enum_base = StdlibEnum
+    Enum = EnumMeta('Enum', (StdlibEnum, ), temp_enum_dict)
 else:
-    enum_base = object
-Enum = EnumMeta('Enum', (enum_base, ), temp_enum_dict)
+    Enum = EnumMeta('Enum', (object, ), temp_enum_dict)
 del temp_enum_dict
 
 # Enum has now been created
