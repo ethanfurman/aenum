@@ -1755,6 +1755,19 @@ class TestUnique(unittest.TestCase):
         self.assertTrue('double -> single' in message)
         self.assertTrue('turkey -> triple' in message)
 
+    def test_unique_with_name(self):
+        @unique
+        class Silly(Enum):
+            one = 1
+            two = 'dos'
+            name = 3
+        @unique
+        class Sillier(IntEnum):
+            single = 1
+            name = 2
+            triple = 3
+            value = 4
+
 
 class TestNamedTuple(unittest.TestCase):
 

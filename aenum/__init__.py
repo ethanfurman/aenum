@@ -394,9 +394,6 @@ class EnumMeta(StdlibEnumMeta or type):
             raise ValueError('Invalid enum member name(s): %s' % (
                 ', '.join(invalid_names), ))
 
-        # save attributes from super classes so we know if we can take
-        # the shortcut of storing members in the class dict
-        base_attributes = set([a for b in bases for a in b.__dict__])
         # create our new Enum type
         enum_class = type.__new__(metacls, cls, bases, clsdict)
         enum_class._auto_init_ = _auto_init_ = init.replace(',',' ').split()
@@ -405,6 +402,9 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_class._member_names_ = []               # names in random order
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
+        # save attributes from super classes so we know if we can take
+        # the shortcut of storing members in the class dict
+        base_attributes = set([a for b in enum_class.mro() for a in b.__dict__])
 
         # Reverse value->name map for hashable values.
         enum_class._value2member_map_ = {}
