@@ -2,7 +2,7 @@ import aenum
 import doctest
 import sys
 import unittest
-from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip
+from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip, extend_enum
 from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant
 from collections import OrderedDict
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -1624,6 +1624,29 @@ class TestEnum(unittest.TestCase):
             yellow = 6
         self.assertEqual(MoreColor.magenta.hex(), '5 hexlified!')
 
+    def test_extend_enum_plain(self):
+        class Color(UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(len(Color), 4)
+
+    def test_extend_enum_shadow(self):
+        class Color(UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'value', 4)
+        self.assertEqual(Color.value.name, 'value')
+        self.assertEqual(Color.value.value, 4)
+        self.assertTrue(Color.value in Color)
+        self.assertEqual(len(Color), 4)
+        self.assertEqual(Color.red.value, 1)
+
     def test_no_duplicates(self):
         def bad_duplicates():
             class Color(UniqueEnum):
@@ -1636,6 +1659,17 @@ class TestEnum(unittest.TestCase):
                 blue = 3
                 grene = 2
         self.assertRaises(ValueError, bad_duplicates)
+
+    def test_no_duplicates_kinda(self):
+        class Silly(UniqueEnum):
+            one = 1
+            two = 'dos'
+            name = 3
+        class Sillier(IntEnum, UniqueEnum):
+            single = 1
+            name = 2
+            triple = 3
+            value = 4
 
     def test_init(self):
         class Planet(Enum):
