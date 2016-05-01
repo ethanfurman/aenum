@@ -1,6 +1,5 @@
 import setuptools
 from distutils.core import setup
-import os
 
 long_desc = '''\
 `aenum` includes the new Python stdlib enum module available in Python 3.4
@@ -22,7 +21,7 @@ into `sys.modules` where it will appear to be a module whose top-level
 names cannot be rebound.
 '''
 
-setup(
+data = dict(
        name='aenum',
        version='1.4.0',
        url='https://bitbucket.org/stoneleaf/aenum',
@@ -53,3 +52,6 @@ setup(
             'Programming Language :: Python :: 3.5',
             ],
     )
+
+if __name__ == '__main__':
+    setup(**data)
