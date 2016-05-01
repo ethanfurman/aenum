@@ -1163,6 +1163,7 @@ def extend_enum(enumeration, name, *args):
         _member_names_ = enumeration._member_names_
         _member_type_ = enumeration._member_type_
         _value2member_map_ = enumeration._value2member_map_
+        base_attributes = set([a for b in enumeration.mro() for a in b.__dict__])
     except AttributeError:
         raise TypeError('%r is not a supported Enum' % enumeration)
     _new = getattr(enumeration, '__new_member__', object.__new__)
@@ -1194,6 +1195,8 @@ def extend_enum(enumeration, name, *args):
             break
     else:
         _member_names_.append(name)
+    if name not in base_attributes:
+        setattr(enumeration, name, new_member)
     _member_map_[name] = new_member
     try:
         _value2member_map_[value] = new_member
