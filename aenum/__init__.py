@@ -1,7 +1,7 @@
 """Python Advanced Enumerations & NameTuples"""
 
 import sys as _sys
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 __all__ = [
         'NamedConstant', 'constant', 'skip'
@@ -125,8 +125,26 @@ def _make_class_unpicklable(cls):
     cls.__reduce_ex__ = _break_on_call_reduce
     cls.__module__ = '<unknown>'
 
+################
+# Constant stuff
+################
 
 # metaclass and class dict for NamedConstant
+
+class constant(object):
+    '''
+    Simple constant descriptor for NamedConstant and Enum use.
+    '''
+    def __init__(self, value, doc=None):
+        self.value = value
+        self.__doc__ = doc
+
+    def __get__(self, *args):
+        return self.value
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.value)
+
 
 NamedConstant = None
 
@@ -141,7 +159,7 @@ class _NamedConstantDict(dict):
         self._names = []
 
     def __setitem__(self, key, value):
-        """Changes anything not dundered or not a descriptor.
+        """Changes anything not dundered or not a constant descriptor.
 
         If an enum member name is used twice, an error is raised; duplicate
         values are not checked for.
@@ -158,7 +176,7 @@ class _NamedConstantDict(dict):
         elif key in self._names:
             # overwriting an existing constant?
             raise TypeError('Attempted to reuse name: %r' % key)
-        elif not _is_descriptor(value):
+        elif isinstance(value, constant) or not _is_descriptor(value):
             if key in self:
                 # overwriting a descriptor?
                 raise TypeError('%s already defined as: %r' % (key, self[key]))
@@ -203,10 +221,13 @@ class NamedConstantMeta(type):
 temp_constant_dict = {}
 temp_constant_dict['__doc__'] = "NamedConstants protection.\n\n    Derive from this class to lock NamedConstants.\n\n"
 
-def __new__(cls, name, value):
+def __new__(cls, name, value, doc=None):
     cur_obj = cls.__dict__.get(name)
     if isinstance(cur_obj, NamedConstant):
         raise AttributeError('Cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
+    elif isinstance(value, constant):
+        doc = doc or value.__doc__
+        value = value.value
     metacls = cls.__class__
     actual_type = type(value)
     value_type = cls._named_constant_cache_.get(actual_type)
@@ -216,9 +237,9 @@ def __new__(cls, name, value):
     obj = actual_type.__new__(value_type, value)
     obj._name_ = name
     obj._value_ = value
+    obj.__doc__ = doc
     metacls.__setattr__(cls, name, obj)
     return obj
-
 temp_constant_dict['__new__'] = __new__
 del __new__
 
@@ -232,16 +253,36 @@ NamedConstant = NamedConstantMeta('NamedConstant', (object, ), temp_constant_dic
 Constant = NamedConstant
 del temp_constant_dict
 
-class constant(object):
-    def __init__(self, value):
-        self.value = value
+# defined now for immediate use
 
-    def __get__(self, *args):
-        return self.value
+def export(collection, namespace):
+    """
+    Export the collection's members into the target namespace.
+    """
+    if issubclass(collection, NamedConstant):
+        for n, c in collection.__dict__.items():
+            if isinstance(c, NamedConstant):
+                namespace[n] = c
+    elif issubclass(collection, Enum):
+        data = collection.__members__.items()
+        for n, m in data:
+            namespace[n] = m
+    else:
+        raise TypeError('%r is not a supported collection' % enumeration)
 
-    def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.value)
+# Constants used in Enum
 
+class EnumConstants(NamedConstant):
+    Auto = constant('auto', 'values of members are autonumbered from START')
+    MultiValue = constant('multivalue', 'each member can have several values')
+    NoAlias = constant('noalias', 'duplicate valued members are distinct, not aliased')
+    Unique = constant('unique', 'duplicate valued members are not allowed')
+export(EnumConstants, globals())
+
+
+############
+# Enum stuff
+############
 
 # Dummy value for Enum as EnumMeta explicity checks for it, but of course until
 # EnumMeta finishes running the first time the Enum class doesn't exist.  This
@@ -272,11 +313,12 @@ class _EnumDict(dict):
     EnumMeta will use the names found in self._member_names as the
     enumeration member names.
     """
-    def __init__(self, locked=True, start=1):
+    def __init__(self, locked=True, start=1, multivalue=False):
         super(_EnumDict, self).__init__()
         self._member_names = []
         self._value = start - 1
         self._locked = locked
+        self._multivalue = multivalue
 
     def __getitem__(self, key):
         if self._locked or _is_dunder(key) or key in self:
@@ -315,7 +357,10 @@ class _EnumDict(dict):
                 # enum overwriting a descriptor?
                 raise TypeError('%s already defined as: %r' % (key, self[key]))
             self._member_names.append(key)
-            self._value = value
+            if self._multivalue and isinstance(value, tuple):
+                self._value = value[0]
+            else:
+                self._value = value
         else:
             # not a new member, turn off the autoassign magic
             self._locked = True
@@ -325,16 +370,48 @@ class _EnumDict(dict):
 class EnumMeta(StdlibEnumMeta or type):
     """Metaclass for Enum"""
     @classmethod
-    def __prepare__(metacls, cls, bases, auto=False, init=None, start=None):
-        auto = auto or (start is not None)
+    def __prepare__(metacls, cls, bases, init=None, start=None, settings=()):
+        # check for custom settings
+        if not isinstance(settings, tuple):
+            settings = settings,
+        if NoAlias in settings and Unique in settings:
+            raise TypeError('cannot specify both NoAlias and Unique')
+        elif MultiValue in settings and init is not None:
+            raise TypeError('cannot specify both MultiValue and INIT fields')
+        elif MultiValue in settings and NoAlias in settings:
+            raise TypeError('cannot specify both MultiValue and NoAlias')
+        allowed_settings = dict.fromkeys(['auto', 'noalias', 'unique', 'multivalue'])
+        for arg in settings:
+            if arg not in allowed_settings:
+                raise TypeError('unknown qualifier: %r' % arg)
+            allowed_settings[arg] = True
+        auto = allowed_settings['auto'] or (start is not None)
+        multivalue = allowed_settings['multivalue']
+        # inherit previous flags
+        member_type, first_enum = metacls._get_mixins_(bases)
+        if first_enum is not None:
+            auto = auto or first_enum._auto_
+            multivalue = multivalue or first_enum._multivalue_
         if start is None:
             start = 1
-        return _EnumDict(locked=not auto, start=start)
+        return _EnumDict(locked=not auto, start=start, multivalue=multivalue)
 
     def __init__(cls, *args , **kwds):
         super(EnumMeta, cls).__init__(*args)
 
-    def __new__(metacls, cls, bases, clsdict, auto=False, init='', start=None):
+    def __new__(metacls, cls, bases, clsdict, init='', start=None, settings=()):
+        # check for custom settings
+        if not isinstance(settings, tuple):
+            settings = settings,
+        allowed_settings = dict.fromkeys(['auto', 'noalias', 'unique', 'multivalue'])
+        for arg in settings:
+            if arg not in allowed_settings:
+                raise TypeError('unknown qualifier: %r' % arg)
+            allowed_settings[arg] = True
+        auto = allowed_settings['auto']
+        multivalue = allowed_settings['multivalue']
+        noalias = allowed_settings['noalias']
+        unique = allowed_settings['unique']
         # an Enum class is final once enumeration items have been defined; it
         # cannot be mixed with other types (int, float, etc.) if it has an
         # inherited __new__ unless a new __new__ is defined (or the resulting
@@ -352,8 +429,17 @@ class EnumMeta(StdlibEnumMeta or type):
             raise TypeError('cannot specify init and define an __init__ method')
 
         member_type, first_enum = metacls._get_mixins_(bases)
-        __new__, save_new, use_args = metacls._find_new_(clsdict, member_type,
-                                                        first_enum)
+        __new__, save_new, use_args = metacls._find_new_(
+                clsdict,
+                member_type,
+                first_enum,
+                )
+        if first_enum is not None:
+            # inherit previous flags
+            auto = auto or first_enum._auto_
+            multivalue = multivalue or first_enum._multivalue_
+            noalias = noalias or first_enum._noalias_
+            unique = unique or first_enum._unique_
         # save enum items into separate mapping so they don't get baked into
         # the new class
         members = dict((k, clsdict[k]) for k in clsdict._member_names)
@@ -382,6 +468,8 @@ class EnumMeta(StdlibEnumMeta or type):
             del clsdict['__order__']
             __order__ = __order__.replace(',', ' ').split()
             aliases = [name for name in members if name not in __order__]
+            if noalias and aliases:
+                raise ValueError('all members must be in __order__ if specified and using NoAlias')
             if pyver >= 3.0:
                 unique_members = [n for n in clsdict._member_names if n in __order__]
                 if __order__ != unique_members:
@@ -402,12 +490,18 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_class._member_names_ = []               # names in random order
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
+        # save current flags for subclasses
+        enum_class._auto_ = auto
+        enum_class._multivalue_ = multivalue
+        enum_class._noalias_ = noalias
+        enum_class._unique_ = unique
         # save attributes from super classes so we know if we can take
         # the shortcut of storing members in the class dict
         base_attributes = set([a for b in enum_class.mro() for a in b.__dict__])
 
         # Reverse value->name map for hashable values.
         enum_class._value2member_map_ = {}
+        enum_class._value2member_seq_ = ()
 
         # instantiate them, checking for duplicates as we go
         # we instantiate first instead of checking for duplicates first in case
@@ -418,6 +512,7 @@ class EnumMeta(StdlibEnumMeta or type):
         for member_name in __order__:
             value = members[member_name]
             kwds = {}
+            more_values = ()
             if isinstance(value, enum):
                 args = value.args
                 kwds = value.kwds
@@ -431,6 +526,8 @@ class EnumMeta(StdlibEnumMeta or type):
                     value = kwds.pop('value')
                 else:
                     value, args = args[0], args[1:]
+            elif multivalue:
+                value, more_values, args = args[0], args[1:], ()
             if member_type is tuple:   # special case for tuple enums
                 args = (args, )     # wrap it one more time
             if not use_args or not (args or kwds):
@@ -447,26 +544,55 @@ class EnumMeta(StdlibEnumMeta or type):
             enum_member.__init__(*args, **kwds)
             # If another member with the same value was already defined, the
             # new member becomes an alias to the existing one.
-            for name, canonical_member in enum_class._member_map_.items():
-                if canonical_member.value == enum_member._value_:
-                    enum_member = canonical_member
-                    break
-            else:
-                # Aliases don't appear in member names (only in __members__).
+            if noalias:
+                # unless NoAlias was specified
                 enum_class._member_names_.append(member_name)
+            else:
+                nonunique = defaultdict(list)
+                for name, canonical_member in enum_class._member_map_.items():
+                    if canonical_member.value == enum_member._value_:
+                        if unique:
+                            nonunique[name].append(member_name)
+                            continue
+                        enum_member = canonical_member
+                        break
+                else:
+                    # Aliases don't appear in member names (only in __members__).
+                    enum_class._member_names_.append(member_name)
+                if nonunique:
+                    # duplicates not allowed if Unique specified
+                    message = []
+                    for name, aliases in nonunique.items():
+                        bad_aliases = ','.join(aliases)
+                        message.append('%s --> %s' % (name, bad_aliases))
+                    raise ValueError(
+                            'duplicate names found in %r: %s' %
+                                (cls, ';  '.join(message))
+                            )
             # performance boost for any member that would not shadow
             # a DynamicClassAttribute (aka _RouteClassAttributeToGetattr)
             if member_name not in base_attributes:
                 setattr(enum_class, member_name, enum_member)
             # now add to _member_map_
             enum_class._member_map_[member_name] = enum_member
-            try:
-                # This may fail if value is not hashable. We can't add the value
-                # to the map, and by-value lookups for this value will be
-                # linear.
-                enum_class._value2member_map_[value] = enum_member
-            except TypeError:
-                pass
+            values = (value, ) + more_values
+            enum_member._values_ = values
+            for value in (value, ) + more_values:
+                # first check if value has already been used
+                if multivalue and (
+                        value in enum_class._value2member_map_
+                        or any(v == value for (v, m) in enum_class._value2member_seq_)
+                        ):
+                    raise ValueError('%r has already been used' % value)
+                try:
+                    # This may fail if value is not hashable. We can't add the value
+                    # to the map, and by-value lookups for this value will be
+                    # linear.
+                    if noalias:
+                        raise TypeError('cannot use dict to store value')
+                    enum_class._value2member_map_[value] = enum_member
+                except TypeError:
+                    enum_class._value2member_seq_ += ((value, enum_member), )
 
 
         # If a custom type is mixed into the Enum, and it does not know how
@@ -882,6 +1008,8 @@ def __new__(cls, value):
     # all enum instances are actually created during class construction
     # without calling this method; this method is called by the metaclass'
     # __call__ (i.e. Color(3) ), and by pickle
+    if cls._noalias_:
+        raise TypeError('NoAlias enumerations cannot be looked up by value')
     if type(value) is cls:
         # For lookups like Color(Color.red)
         value = value.value
@@ -893,8 +1021,8 @@ def __new__(cls, value):
             return cls._value2member_map_[value]
     except TypeError:
         # not there, now do long search -- O(n) behavior
-        for member in cls._member_map_.values():
-            if member.value == value:
+        for name, member in cls._value2member_seq_:
+            if name == value:
                 return member
     raise ValueError("%s is not a valid %s" % (value, cls.__name__))
 temp_enum_dict['__new__'] = __new__
@@ -1022,6 +1150,12 @@ def value(self):
 temp_enum_dict['value'] = value
 del value
 
+@_RouteClassAttributeToGetattr
+def values(self):
+    return self._values_
+temp_enum_dict['values'] = values
+del values
+
 @classmethod
 def _convert(cls, name, module, filter, source=None):
     """
@@ -1142,17 +1276,6 @@ def convert(enum, name, module, filter, source=None):
     enum.__reduce_ex__ = _reduce_ex_by_name
     module_globals.update(enum.__members__)
     module_globals[name] = enum
-
-def export(enumeration, namespace):
-    """
-    Export the enumeration's members into the target namespace.
-    """
-    try:
-        data = enumeration.__members__.items()
-    except AtttributeError:
-        raise TypeError('%r is not a supported Enum' % enumeration)
-    for n, m in data:
-        namespace[n] = m
 
 def extend_enum(enumeration, name, *args):
     """

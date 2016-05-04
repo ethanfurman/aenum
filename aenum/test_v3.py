@@ -1,6 +1,8 @@
-from aenum import Enum, IntEnum, NamedTuple, TupleSize
+from aenum import Enum, IntEnum, UniqueEnum, NamedTuple, TupleSize, Auto, NoAlias, Unique, MultiValue
+from aenum import AutoNumberEnum, OrderedEnum, unique, skip, extend_enum
+
 from collections import OrderedDict
-from unittest import TestCase
+from unittest import TestCase, main
 
 class TestEnumV3(TestCase):
 
@@ -71,7 +73,7 @@ class TestEnumV3(TestCase):
 
     def test_auto_turns_off(self):
         with self.assertRaises(NameError):
-            class Color(Enum, auto=True):
+            class Color(Enum, settings=Auto):
                 red
                 green
                 blue
@@ -79,7 +81,7 @@ class TestEnumV3(TestCase):
                     print('Hello!  My serial is %s.' % self.value)
                 rose
         with self.assertRaises(NameError):
-            class Color(Enum, auto=True):
+            class Color(Enum, settings=Auto):
                 red
                 green
                 blue
@@ -88,7 +90,7 @@ class TestEnumV3(TestCase):
                 rose
 
     def test_magic(self):
-        class Color(Enum, auto=True):
+        class Color(Enum, settings=Auto):
             red, green, blue
         self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
         self.assertEqual(Color.red.value, 1)
@@ -111,7 +113,7 @@ class TestEnumV3(TestCase):
         Season = self.Season
         self.assertEqual(
             set(dir(Season.WINTER)),
-            set(['__class__', '__doc__', '__module__', 'name', 'value']),
+            set(['__class__', '__doc__', '__module__', 'name', 'value', 'values']),
             )
 
     def test_dir_with_added_behavior(self):
@@ -126,7 +128,7 @@ class TestEnumV3(TestCase):
                 )
         self.assertEqual(
                 set(dir(Test.this)),
-                set(['__class__', '__doc__', '__module__', 'name', 'value', 'wowser']),
+                set(['__class__', '__doc__', '__module__', 'name', 'value', 'values', 'wowser']),
                 )
 
     def test_dir_on_sub_with_behavior_on_super(self):
@@ -138,7 +140,7 @@ class TestEnumV3(TestCase):
             sample = 5
         self.assertEqual(
                 set(dir(SubEnum.sample)),
-                set(['__class__', '__doc__', '__module__', 'name', 'value', 'invisible']),
+                set(['__class__', '__doc__', '__module__', 'name', 'value', 'values', 'invisible']),
                 )
 
     def test_members_are_always_ordered(self):
@@ -165,30 +167,115 @@ class TestEnumV3(TestCase):
             Season.SPRING < Part.CLIP
         self.assertRaises(TypeError, bad_compare)
 
-    def test_duplicate_name(self):
-        with self.assertRaises(TypeError):
-            class Color(Enum):
+    def test_duplicate_value_with_unique(self):
+        with self.assertRaises(ValueError):
+            class Color(Enum, settings=Unique):
                 red = 1
                 green = 2
                 blue = 3
-                red = 4
+                rojo = 1
 
-        with self.assertRaises(TypeError):
-            class Color(Enum):
-                red = 1
-                green = 2
-                blue = 3
-                def red(self):
-                    return 'red'
+    def test_duplicate_value_with_noalias(self):
+        class Color(Enum, settings=NoAlias):
+            red = 1
+            green = 2
+            blue = 3
+            rojo = 1
+        self.assertFalse(Color.red is Color.rojo)
+        self.assertEqual(Color.red.value, 1)
+        self.assertEqual(Color.rojo.value, 1)
+        self.assertEqual(len(Color), 4)
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue, Color.rojo])
 
+    def test_noalias_value_lookup(self):
+        class Color(Enum, settings=NoAlias):
+            red = 1
+            green = 2
+            blue = 3
+            rojo = 1
+        self.assertRaises(TypeError, Color, 2)
+
+    def test_multivalue(self):
+        class Color(Enum, settings=MultiValue):
+            red = 1, 'red'
+            green = 2, 'green'
+            blue = 3, 'blue'
+        self.assertEqual(Color.red.value, 1)
+        self.assertIs(Color('green'), Color.green)
+        self.assertEqual(Color.blue.values, (3, 'blue'))
+
+    def test_multivalue_with_duplicate_values(self):
+        with self.assertRaises(ValueError):
+            class Color(Enum, settings=MultiValue):
+                red = 1, 'red'
+                green = 2, 'green'
+                blue = 3, 'blue', 'red'
+
+    def test_multivalue_with_duplicate_values_and_noalias(self):
         with self.assertRaises(TypeError):
-            class Color(Enum):
-                @property
-                def red(self):
-                    return 'redder'
+            class Color(Enum, settings=(MultiValue, NoAlias)):
+                red = 1, 'red'
+                green = 2, 'green'
+                blue = 3, 'blue', 'red'
+
+    def test_multivalue_and_auto(self):
+        class Color(Enum, settings=(MultiValue, Auto)):
+            red
+            green = 3, 'green'
+            blue
+        self.assertEqual(Color.red.value, 1)
+        self.assertEqual(Color.green.value, 3)
+        self.assertEqual(Color.blue.value, 4)
+        self.assertIs(Color('green'), Color.green)
+        self.assertIs(Color['green'], Color.green)
+
+    def test_extend_enum_plain(self):
+        class Color(UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(len(Color), 4)
+
+    def test_extend_enum_shadow(self):
+        class Color(UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'value', 4)
+        self.assertEqual(Color.value.name, 'value')
+        self.assertEqual(Color.value.value, 4)
+        self.assertTrue(Color.value in Color)
+        self.assertEqual(len(Color), 4)
+        self.assertEqual(Color.red.value, 1)
+
+    def test_no_duplicates(self):
+        def bad_duplicates():
+            class Color(UniqueEnum):
                 red = 1
                 green = 2
                 blue = 3
+            class Color(UniqueEnum):
+                red = 1
+                green = 2
+                blue = 3
+                grene = 2
+        self.assertRaises(ValueError, bad_duplicates)
+
+    def test_no_duplicates_kinda(self):
+        class Silly(UniqueEnum):
+            one = 1
+            two = 'dos'
+            name = 3
+        class Sillier(IntEnum, UniqueEnum):
+            single = 1
+            name = 2
+            triple = 3
+            value = 4
+
 
 class TestNamedTupleV3(TestCase):
 
@@ -244,3 +331,7 @@ class TestNamedTupleV3(TestCase):
         self.assertRaises(AttributeError, getattr, b, 'genre')
         self.assertRaises(TypeError, Book, title='Teckla', genre='fantasy')
         self.assertRaises(TypeError, Book, author='Steven Brust')
+
+
+if __name__ == '__main__':
+    main()

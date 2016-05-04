@@ -3,7 +3,7 @@ import doctest
 import sys
 import unittest
 from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip, extend_enum
-from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant
+from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant, constant
 from collections import OrderedDict
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 
@@ -2224,6 +2224,18 @@ class TestNamedConstant(unittest.TestCase):
         stars = CardSuit('STARS', 5)
         self.assertIs(stars, CardSuit.STARS)
         self.assertEqual(CardSuit.STARS, 5)
+
+    def test_constant_with_docstring(self):
+        class Stuff(NamedConstant):
+            Artifact = constant(7, "lucky number!")
+            Bowling = 11
+            HillWomp = constant(29, 'blah blah')
+        self.assertEqual(Stuff.Artifact, 7)
+        self.assertEqual(Stuff.Artifact.__doc__, 'lucky number!')
+        self.assertEqual(Stuff.Bowling, 11)
+        self.assertEqual(Stuff.Bowling.__doc__, None)
+        self.assertEqual(Stuff.HillWomp, 29)
+        self.assertEqual(Stuff.HillWomp.__doc__, 'blah blah')
 
 
 class TestMe(unittest.TestCase):

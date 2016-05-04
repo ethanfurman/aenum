@@ -16,11 +16,11 @@ the enumeration itself can be iterated over.
 A ``NamedTuple`` is a class-based, fixed-length tuple with a name for each
 possible position accessible using attribute-access notation.
 
-A ``NamedConstant`` is a class whose members cannot be rebound;  it lacks all other
-``Enum`` capabilities, however; consequently, it can have duplicate values.
-There is also a ``module`` function that can insert the ``NamedConstant`` class
-into ``sys.modules`` where it will appear to be a module whose top-level
-names cannot be rebound.
+A ``NamedConstant`` is a class whose members cannot be rebound;  it lacks all
+other ``Enum`` capabilities, however; consequently, it can have duplicate
+values.  There is also a ``module`` function that can insert the
+``NamedConstant`` class into ``sys.modules`` where it will appear to be a
+module whose top-level names cannot be rebound.
 
 .. note::
     ``constant`` refers to names not being rebound; mutable objects can be
@@ -36,13 +36,35 @@ class, one ``NamedConstant`` class, and several helpers.
 
 ``NamedConstant``
 
-NamedConstant class for creating groups of constants.  These names cannot be rebound
-to other values.
+NamedConstant class for creating groups of constants.  These names cannot be
+rebound to other values.
 
 ``Enum``
 
 Base class for creating enumerated constants.  See section `Enum Functional API`_
 for an alternate construction syntax.
+
+``Auto``
+
+Flag to Enum constructor specifying auto numbering (starts with 1, py3 only).
+
+``MultiValue``
+
+Flag to Enum constructor specifying that each item of tuple value is a separate
+value for that member; the first tuple item is the canonical one (py3 only).
+
+``NoAlias``
+
+Flag to Enum Constructor specifying that duplicate valued members are distinct
+and not aliases; by-value lookups are disabled (py3 only).
+
+``Unique``
+
+Flag to Enum constructor specifying that duplicate valued members are not
+allowed (py3 only).
+
+.. note::
+    the flags are inherited by the enumeration's subclasses
 
 ``IntEnum``
 
@@ -66,8 +88,9 @@ Enum class decorator that ensures only one name is bound to any one value.
 
 .. note::
 
-    the ``UniqueEnum`` class and the ``unique`` decorator both do the same
-    thing, you do not need to use both of them at the same time.
+    the ``UniqueEnum`` class, the ``unique`` decorator, and the Unique
+    flag all do the same thing; you do not need to use more than one of
+    them at the same time.
 
 ``NamedTuple``
 
@@ -76,7 +99,8 @@ functional API.
 
 ``constant``
 
-Descriptor to add constant values to an ``Enum``
+Descriptor to add constant values to an ``Enum``, or advanced constants to
+``NamedConstant``.
 
 ``convert``
 
@@ -88,11 +112,12 @@ Helper for specifying keyword arguments when creating ``Enum`` members.
 
 ``export``
 
-Helper for inserting ``Enum`` members into a namespace (usually ``globals()``.
+Helper for inserting ``Enum`` members ``NamedConstant`` constants into a
+namespace (usually ``globals()``.
 
 ``extend_enum``
 
-Helper for adding new ``Enum`` members after creation.
+Helper for adding new ``Enum`` members or new constants after creation.
 
 ``module``
 
@@ -183,6 +208,44 @@ Enumeration members are hashable, so they can be used in dictionaries and sets::
     >>> apples == {Color.red: 'red delicious', Color.green: 'granny smith'}
     True
 
+In Python 3 the class syntax has a few extra advancements::
+
+    --> class Color(
+    ...         Enum,
+    ...         settings=(Auto, MultiValue, NoAlias, Unique),
+    ...         init='field_name1 field_name2 ...',
+    ...         start=7,
+    ...         )
+    ...
+
+``start`` is used to specify the starting value for ``Auto``, and also
+enables ``Auto``::
+
+    --> class Count(Enum, start=11):
+    ...     eleven
+    ...     twelve
+    ...
+    --> Count.twelve.value == 12
+    True
+
+``init`` specifies the attribute names to store creation values to::
+
+    --> class Planet(Enum, init='mass radius'):
+    ...     MERCURY = (3.303e+23, 2.4397e6)
+    ...     EARTH   = (5.976e+24, 6.37814e6)
+    ...
+    --> Planet.EARTH.value
+    (5.976e+24, 6378140.0)
+    --> Planet.EARTH.radius
+    2.4397e6
+
+The various settings enable special behavior:
+
+- ``Auto`` is the same as specifying ``start=1``
+- ``MultiValue`` allows multiple values per member instead of the usual 1
+- ``NoAlias`` allows different members to have the same value
+- ``Unique`` disallows different members to have the same value
+
 
 Programmatic access to enumeration members and their attributes
 ---------------------------------------------------------------
@@ -241,7 +304,7 @@ lookup of the value of A and B will return A.  By-name lookup of B will also
 return A::
 
     >>> class Shape(Enum):
-    ...   __order__ = 'square diamond circle alias_for_square'  # only needed in 2.x
+    ...   __order__ = 'square diamond circle alias_for_square'  # needed in 2.x
     ...   square = 2
     ...   diamond = 1
     ...   circle = 3
@@ -289,7 +352,7 @@ It includes all names defined in the enumeration, including the aliases::
 The ``__members__`` attribute can be used for detailed programmatic access to
 the enumeration members.  For example, finding all the aliases::
 
-    >>> [name for name, member in Shape.__members__.items() if member.name != name]
+    >>> [n for n, mbr in Shape.__members__.items() if mbr.name != n]
     ['alias_for_square']
 
 Comparisons
@@ -621,8 +684,14 @@ can use ``extend_enum`` to add new members after the initial creation::
     <Color.opacity: 4>
     >>> Color['opacity']
     <Color.opacity: 4>
-    >>> Color.__members__
-    OrderedDict([('red', <Color.red: 1>), ('green', <Color.green: 2>), ('blue', <Color.blue: 3>), ('opacity', <Color.opacity: 4>)])
+
+    --> Color.__members__
+    OrderedDict([
+        ('red', <Color.red: 1>),
+        ('green', <Color.green: 2>),
+        ('blue', <Color.blue: 3>),
+        ('opacity', <Color.opacity: 4>)
+        ])
 
 constant
 ^^^^^^^^
