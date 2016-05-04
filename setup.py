@@ -23,7 +23,7 @@ names cannot be rebound.
 
 data = dict(
        name='aenum',
-       version='1.4.0',
+       version='1.4.1',
        url='https://bitbucket.org/stoneleaf/aenum',
        packages=['aenum'],
        package_data={

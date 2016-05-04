@@ -1,3 +1,11 @@
+1.4.1
+=====
+
+Py3: added Enum creation flags: Auto, MultiValue, NoAlias, Unique
+
+fixed extend_enum to honor Enum flags
+
+
 1.4.0
 =====
 
