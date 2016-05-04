@@ -1,4 +1,4 @@
-from aenum import Enum, IntEnum, UniqueEnum, NamedTuple, TupleSize, Auto, NoAlias, Unique, MultiValue
+from aenum import Enum, IntEnum, UniqueEnum, NamedTuple, TupleSize, AutoNumber, NoAlias, Unique, MultiValue
 from aenum import AutoNumberEnum, OrderedEnum, unique, skip, extend_enum
 
 from collections import OrderedDict
@@ -73,7 +73,7 @@ class TestEnumV3(TestCase):
 
     def test_auto_turns_off(self):
         with self.assertRaises(NameError):
-            class Color(Enum, settings=Auto):
+            class Color(Enum, settings=AutoNumber):
                 red
                 green
                 blue
@@ -81,7 +81,7 @@ class TestEnumV3(TestCase):
                     print('Hello!  My serial is %s.' % self.value)
                 rose
         with self.assertRaises(NameError):
-            class Color(Enum, settings=Auto):
+            class Color(Enum, settings=AutoNumber):
                 red
                 green
                 blue
@@ -90,7 +90,7 @@ class TestEnumV3(TestCase):
                 rose
 
     def test_magic(self):
-        class Color(Enum, settings=Auto):
+        class Color(Enum, settings=AutoNumber):
             red, green, blue
         self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
         self.assertEqual(Color.red.value, 1)
@@ -219,7 +219,7 @@ class TestEnumV3(TestCase):
                 blue = 3, 'blue', 'red'
 
     def test_multivalue_and_auto(self):
-        class Color(Enum, settings=(MultiValue, Auto)):
+        class Color(Enum, settings=(MultiValue, AutoNumber)):
             red
             green = 3, 'green'
             blue
@@ -251,6 +251,32 @@ class TestEnumV3(TestCase):
         self.assertTrue(Color.value in Color)
         self.assertEqual(len(Color), 4)
         self.assertEqual(Color.red.value, 1)
+
+    def test_extend_enum_unique_with_duplicate(self):
+        with self.assertRaises(ValueError):
+            class Color(Enum, settings=Unique):
+                red = 1
+                green = 2
+                blue = 3
+            extend_enum(Color, 'value', 1)
+
+    def test_extend_enum_multivalue_with_duplicate(self):
+        with self.assertRaises(ValueError):
+            class Color(Enum, settings=MultiValue):
+                red = 1, 'rojo'
+                green = 2, 'verde'
+                blue = 3, 'azul'
+            extend_enum(Color, 'value', 2)
+
+    def test_extend_enum_noalias_with_duplicate(self):
+        class Color(Enum, settings=NoAlias):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'value', 3, )
+        self.assertRaises(TypeError, Color, 3)
+        self.assertFalse(Color.value is Color.blue)
+        self.assertTrue(Color.value.value, 3)
 
     def test_no_duplicates(self):
         def bad_duplicates():

@@ -44,7 +44,7 @@ rebound to other values.
 Base class for creating enumerated constants.  See section `Enum Functional API`_
 for an alternate construction syntax.
 
-``Auto``
+``AutoNumber``
 
 Flag to Enum constructor specifying auto numbering (starts with 1, py3 only).
 
@@ -117,7 +117,7 @@ namespace (usually ``globals()``.
 
 ``extend_enum``
 
-Helper for adding new ``Enum`` members or new constants after creation.
+Helper for adding new ``Enum`` members, both stdlib and aenum.
 
 ``module``
 
@@ -212,14 +212,14 @@ In Python 3 the class syntax has a few extra advancements::
 
     --> class Color(
     ...         Enum,
-    ...         settings=(Auto, MultiValue, NoAlias, Unique),
+    ...         settings=(AutoNumber, MultiValue, NoAlias, Unique),
     ...         init='field_name1 field_name2 ...',
     ...         start=7,
     ...         )
     ...
 
-``start`` is used to specify the starting value for ``Auto``, and also
-enables ``Auto``::
+``start`` is used to specify the starting value for ``AutoNumber``, and also
+enables ``AutoNumber``::
 
     --> class Count(Enum, start=11):
     ...     eleven
@@ -241,7 +241,7 @@ enables ``Auto``::
 
 The various settings enable special behavior:
 
-- ``Auto`` is the same as specifying ``start=1``
+- ``AutoNumber`` is the same as specifying ``start=1``
 - ``MultiValue`` allows multiple values per member instead of the usual 1
 - ``NoAlias`` allows different members to have the same value
 - ``Unique`` disallows different members to have the same value

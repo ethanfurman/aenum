@@ -5,7 +5,9 @@ from collections import OrderedDict, defaultdict
 
 __all__ = [
         'NamedConstant', 'constant', 'skip'
-        'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum', 'enum', 'extend_enum', 'unique',
+        'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
+        'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
+        'enum', 'extend_enum', 'unique',
         'NamedTuple',
         ]
 
@@ -273,7 +275,7 @@ def export(collection, namespace):
 # Constants used in Enum
 
 class EnumConstants(NamedConstant):
-    Auto = constant('auto', 'values of members are autonumbered from START')
+    AutoNumber = constant('autonumber', 'values of members are autonumbered from START')
     MultiValue = constant('multivalue', 'each member can have several values')
     NoAlias = constant('noalias', 'duplicate valued members are distinct, not aliased')
     Unique = constant('unique', 'duplicate valued members are not allowed')
@@ -380,21 +382,21 @@ class EnumMeta(StdlibEnumMeta or type):
             raise TypeError('cannot specify both MultiValue and INIT fields')
         elif MultiValue in settings and NoAlias in settings:
             raise TypeError('cannot specify both MultiValue and NoAlias')
-        allowed_settings = dict.fromkeys(['auto', 'noalias', 'unique', 'multivalue'])
+        allowed_settings = dict.fromkeys(['autonumber', 'noalias', 'unique', 'multivalue'])
         for arg in settings:
             if arg not in allowed_settings:
                 raise TypeError('unknown qualifier: %r' % arg)
             allowed_settings[arg] = True
-        auto = allowed_settings['auto'] or (start is not None)
+        autonumber = allowed_settings['autonumber'] or (start is not None)
         multivalue = allowed_settings['multivalue']
         # inherit previous flags
         member_type, first_enum = metacls._get_mixins_(bases)
         if first_enum is not None:
-            auto = auto or first_enum._auto_
-            multivalue = multivalue or first_enum._multivalue_
+            autonumber = autonumber or first_enum._auto_number_
+            multivalue = multivalue or first_enum._multi_value_
         if start is None:
             start = 1
-        return _EnumDict(locked=not auto, start=start, multivalue=multivalue)
+        return _EnumDict(locked=not autonumber, start=start, multivalue=multivalue)
 
     def __init__(cls, *args , **kwds):
         super(EnumMeta, cls).__init__(*args)
@@ -403,12 +405,12 @@ class EnumMeta(StdlibEnumMeta or type):
         # check for custom settings
         if not isinstance(settings, tuple):
             settings = settings,
-        allowed_settings = dict.fromkeys(['auto', 'noalias', 'unique', 'multivalue'])
+        allowed_settings = dict.fromkeys(['autonumber', 'noalias', 'unique', 'multivalue'])
         for arg in settings:
             if arg not in allowed_settings:
                 raise TypeError('unknown qualifier: %r' % arg)
             allowed_settings[arg] = True
-        auto = allowed_settings['auto']
+        autonumber = allowed_settings['autonumber']
         multivalue = allowed_settings['multivalue']
         noalias = allowed_settings['noalias']
         unique = allowed_settings['unique']
@@ -436,9 +438,9 @@ class EnumMeta(StdlibEnumMeta or type):
                 )
         if first_enum is not None:
             # inherit previous flags
-            auto = auto or first_enum._auto_
-            multivalue = multivalue or first_enum._multivalue_
-            noalias = noalias or first_enum._noalias_
+            autonumber = autonumber or first_enum._auto_number_
+            multivalue = multivalue or first_enum._multi_value_
+            noalias = noalias or first_enum._no_alias_
             unique = unique or first_enum._unique_
         # save enum items into separate mapping so they don't get baked into
         # the new class
@@ -491,10 +493,11 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
         # save current flags for subclasses
-        enum_class._auto_ = auto
-        enum_class._multivalue_ = multivalue
-        enum_class._noalias_ = noalias
+        enum_class._auto_number_ = autonumber
+        enum_class._multi_value_ = multivalue
+        enum_class._no_alias_ = noalias
         enum_class._unique_ = unique
+        enum_class._init_ = init
         # save attributes from super classes so we know if we can take
         # the shortcut of storing members in the class dict
         base_attributes = set([a for b in enum_class.mro() for a in b.__dict__])
@@ -1008,7 +1011,7 @@ def __new__(cls, value):
     # all enum instances are actually created during class construction
     # without calling this method; this method is called by the metaclass'
     # __call__ (i.e. Color(3) ), and by pickle
-    if cls._noalias_:
+    if cls._no_alias_:
         raise TypeError('NoAlias enumerations cannot be looked up by value')
     if type(value) is cls:
         # For lookups like Color(Color.red)
@@ -1289,6 +1292,21 @@ def extend_enum(enumeration, name, *args):
         base_attributes = set([a for b in enumeration.mro() for a in b.__dict__])
     except AttributeError:
         raise TypeError('%r is not a supported Enum' % enumeration)
+    try:
+        _value2member_seq_ = enumeration._value2member_seq_
+        _auto_number_ = enumeration._auto_number_
+        _multi_value_ = enumeration._multi_value_
+        _no_alias_ = enumeration._no_alias_
+        _unique_ = enumeration._unique_
+        _auto_init_ = enumeration._init_
+    except AttributeError:
+        # standard Enum
+        _value2member_seq_ = []
+        _auto_number_ = False
+        _multi_value_ = False
+        _no_alias_ = False
+        _unique_ = False
+        _auto_init_ = ''
     _new = getattr(enumeration, '__new_member__', object.__new__)
     if _new is object.__new__:
         use_args = False
@@ -1298,6 +1316,23 @@ def extend_enum(enumeration, name, *args):
         [value] = args
     else:
         value = args
+    more_values = ()
+    kwds = {}
+    if isinstance(value, enum):
+        args = value.args
+        kwds = value.kwds
+    if not isinstance(value, tuple):
+        args = (value, )
+    else:
+        args = value
+    # tease value out of auto-init if specified
+    if 'value' in _auto_init_:
+        if 'value' in kwds:
+            value = kwds.pop('value')
+        else:
+            value, args = args[0], args[1:]
+    elif _multi_value_:
+        value, more_values, args = args[0], args[1:], ()
     if _member_type_ is tuple:
         args = (args, )
     if not use_args:
@@ -1305,19 +1340,51 @@ def extend_enum(enumeration, name, *args):
         if not hasattr(new_member, '_value_'):
             new_member._value_ = value
     else:
-        new_member = _new(enumeration, *args)
+        new_member = _new(enumeration, *args, **kwds)
         if not hasattr(new_member, '_value_'):
             new_member._value_ = _member_type_(*args)
     value = new_member._value_
     new_member._name_ = name
     new_member.__objclass__ = enumeration.__class__
     new_member.__init__(*args)
-    for canonical_member in _member_map_.values():
-        if canonical_member._value_ == new_member._value_:
-            new_member = canonical_member
-            break
-    else:
+    # If another member with the same value was already defined, the
+    # new member becomes an alias to the existing one.
+    if _no_alias_:
+        # unless NoAlias was specified
         _member_names_.append(name)
+    else:
+        nonunique = []
+        for canonical_member in _member_map_.values():
+            if canonical_member.value == new_member._value_:
+                if unique:
+                    nonunique = canonical_member.name
+                    continue
+                new_member = canonical_member
+                break
+        else:
+            # Aliases don't appear in member names (only in __members__).
+            _member_names_.append(name)
+        if nonunique:
+            # duplicates not allowed if Unique specified
+            raise ValueError('%s is a duplicate of %s' % (name, nonunique))
+    values = (value, ) + more_values
+    new_member._values_ = values
+    for value in (value, ) + more_values:
+        # first check if value has already been used
+        if _multi_value_ and (
+                value in _value2member_map_
+                or any(v == value for (v, m) in _value2member_seq_)
+                ):
+            raise ValueError('%r has already been used' % value)
+        try:
+            # This may fail if value is not hashable. We can't add the value
+            # to the map, and by-value lookups for this value will be
+            # linear.
+            if _no_alias_:
+                raise TypeError('cannot use dict to store value')
+            _value2member_map_[value] = new_member
+        except TypeError:
+            _value2member_seq_ += ((value, new_member), )
     if name not in base_attributes:
         setattr(enumeration, name, new_member)
     _member_map_[name] = new_member
