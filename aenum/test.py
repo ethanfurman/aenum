@@ -3,7 +3,7 @@ import doctest
 import sys
 import unittest
 from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip, extend_enum
-from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant, constant
+from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant, constant, NoAlias
 from collections import OrderedDict
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 
@@ -1728,6 +1728,45 @@ class TestEnum(unittest.TestCase):
     def test_empty_with_functional_api(self):
         empty = aenum.IntEnum('Foo', {})
         self.assertEqual(len(empty), 0)
+
+    def test_auto_init(self):
+        class Planet(Enum):
+            _init_ = 'mass radius'
+            MERCURY = (3.303e+23, 2.4397e6)
+            VENUS   = (4.869e+24, 6.0518e6)
+            EARTH   = (5.976e+24, 6.37814e6)
+            MARS    = (6.421e+23, 3.3972e6)
+            JUPITER = (1.9e+27,   7.1492e7)
+            SATURN  = (5.688e+26, 6.0268e7)
+            URANUS  = (8.686e+25, 2.5559e7)
+            NEPTUNE = (1.024e+26, 2.4746e7)
+            @property
+            def surface_gravity(self):
+                # universal gravitational constant  (m3 kg-1 s-2)
+                G = 6.67300E-11
+                return G * self.mass / (self.radius * self.radius)
+        self.assertEqual(round(Planet.EARTH.surface_gravity, 2), 9.80)
+        self.assertEqual(Planet.EARTH.value, (5.976e+24, 6.37814e6))
+
+    def test_auto_init_with_value(self):
+        class Color(Enum):
+            _init_='value, rgb'
+            RED = 1, (1, 0, 0)
+            BLUE = 2, (0, 1, 0)
+            GREEN = 3, (0, 0, 1)
+        self.assertEqual(Color.RED.value, 1)
+        self.assertEqual(Color.BLUE.value, 2)
+        self.assertEqual(Color.GREEN.value, 3)
+        self.assertEqual(Color.RED.rgb, (1, 0, 0))
+        self.assertEqual(Color.BLUE.rgb, (0, 1, 0))
+        self.assertEqual(Color.GREEN.rgb, (0, 0, 1))
+
+    def test_settings(self):
+        class Settings(Enum):
+            _settings_ = NoAlias
+            red = 1
+            rojo = 1
+        self.assertFalse(Settings.red is Settings.rojo)
 
     def test_skip(self):
         class enumA(Enum):

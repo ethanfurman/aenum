@@ -346,7 +346,8 @@ class _EnumDict(dict):
                 leftover from 2.x
         """
         if _is_sunder(key):
-            raise ValueError('_names_ are reserved for future Enum use')
+            if key not in ('_init_', '_settings_'):
+                raise ValueError('_names_ are reserved for future Enum use')
         elif _is_dunder(key):
             # __order__, if present, should be first
             if _is_descriptor(value):
@@ -406,6 +407,17 @@ class EnumMeta(StdlibEnumMeta or type):
         if not isinstance(settings, tuple):
             settings = settings,
         allowed_settings = dict.fromkeys(['autonumber', 'noalias', 'unique', 'multivalue'])
+        cls_init = clsdict.get('_init_')
+        if cls_init and init:
+            raise TypeError('init specified in constructor and in class body')
+        init = cls_init or init
+        cls_settings = clsdict.get('_settings_')
+        if cls_settings and settings:
+            raise TypeError('settings specified in constructor and in class body')
+        else:
+            if cls_settings and not isinstance(cls_settings, tuple):
+                cls_settings = (cls_settings, )
+            settings = cls_settings or settings
         for arg in settings:
             if arg not in allowed_settings:
                 raise TypeError('unknown qualifier: %r' % arg)
@@ -497,7 +509,7 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_class._multi_value_ = multivalue
         enum_class._no_alias_ = noalias
         enum_class._unique_ = unique
-        enum_class._init_ = init
+        enum_class._init_ = _auto_init_
         # save attributes from super classes so we know if we can take
         # the shortcut of storing members in the class dict
         base_attributes = set([a for b in enum_class.mro() for a in b.__dict__])
