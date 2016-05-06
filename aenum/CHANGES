@@ -1,3 +1,10 @@
+1.4.2
+=====
+
+MultiValue, NoAlias, Unique, and init now work with Python 2
+support _ignore_ for dynamically creating class bodies
+
+
 1.4.1
 =====
 
