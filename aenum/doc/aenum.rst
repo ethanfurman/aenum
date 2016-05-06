@@ -51,20 +51,21 @@ Flag to Enum constructor specifying auto numbering (starts with 1, py3 only).
 ``MultiValue``
 
 Flag to Enum constructor specifying that each item of tuple value is a separate
-value for that member; the first tuple item is the canonical one (py3 only).
+value for that member; the first tuple item is the canonical one.
 
 ``NoAlias``
 
 Flag to Enum Constructor specifying that duplicate valued members are distinct
-and not aliases; by-value lookups are disabled (py3 only).
+and not aliases; by-value lookups are disabled.
 
 ``Unique``
 
 Flag to Enum constructor specifying that duplicate valued members are not
-allowed (py3 only).
+allowed.
 
 .. note::
-    the flags are inherited by the enumeration's subclasses
+    The flags are inherited by the enumeration's subclasses.  To use them in
+    Python 2 assign to ``_settings_`` in the class body.
 
 ``IntEnum``
 
@@ -1013,6 +1014,39 @@ helper function or a ``classmethod``.
 
 If the stdlib ``enum`` is available (Python 3.4+ and it hasn't been shadowed
 by, for example, ``enum34``) then aenum will inherit from it.
+
+To use the ``NoAlias``, ``Unique``, and ``MultiValue`` flags in Py2 or Py2/Py3
+codebases, use ``_settings_ = ...`` in the class body.
+
+To use ``init`` in Py2 or Py2/Py3 codebases use ``_init_`` in the class body.
+
+When creating class bodies dynamically, put any variables you need to use in to
+``_ignore_``::
+
+    >>> from datetime import timedelta
+    >>> from aenum import NoAlias
+    >>> class Period(timedelta, Enum):
+    ...     '''
+    ...     different lengths of time
+    ...     '''
+    ...     _init_ = 'value period'
+    ...     _settings_ = NoAlias
+    ...     _ignore_ = 'Period i'
+    ...     Period = vars()
+    ...     for i in range(31):
+    ...         Period['day_%d' % i] = i, 'day'
+    ...     for i in range(15):
+    ...         Period['week_%d' % i] = i*7, 'week'
+    ...
+    >>> hasattr(Period, '_ignore_')
+    False
+    >>> hasattr(Period, 'Period')
+    False
+    >>> hasattr(Period, 'i')
+    False
+
+The name listed in ``_ignore_``, as well as ``_ignore__`` itself, will not be
+present in the final enumeration as either attributes nor members.
 
 
 Creating NamedTuples

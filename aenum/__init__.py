@@ -11,7 +11,7 @@ __all__ = [
         'NamedTuple',
         ]
 
-version = 1, 4, 1
+version = 1, 4, 2
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
@@ -321,6 +321,7 @@ class _EnumDict(dict):
         self._value = start - 1
         self._locked = locked
         self._multivalue = multivalue
+        self._ignore = []
 
     def __getitem__(self, key):
         if self._locked or _is_dunder(key) or key in self:
@@ -346,7 +347,10 @@ class _EnumDict(dict):
                 leftover from 2.x
         """
         if _is_sunder(key):
-            if key not in ('_init_', '_settings_'):
+            if key == '_ignore_':
+                value = value.split()
+                self._ignore = value
+            elif key not in ('_init_', '_settings_'):
                 raise ValueError('_names_ are reserved for future Enum use')
         elif _is_dunder(key):
             # __order__, if present, should be first
@@ -355,6 +359,8 @@ class _EnumDict(dict):
         elif key in self._member_names:
             # descriptor overwriting an enum?
             raise TypeError('Attempted to reuse name: %r' % key)
+        elif key in self._ignore:
+            pass
         elif not _is_descriptor(value):
             if key in self:
                 # enum overwriting a descriptor?
@@ -437,6 +443,12 @@ class EnumMeta(StdlibEnumMeta or type):
                 clsdict[k] = v
         else:
             clsdict._locked = True
+
+        # remove any keys listed in _ignore_
+        clsdict.setdefault('_ignore_', []).append('_ignore_')
+        ignore = clsdict.get('_ignore_', ())
+        for key in ignore:
+            del clsdict[key]
 
         # check for clash between class and init
         if init and clsdict.get('__init__'):
@@ -527,6 +539,7 @@ class EnumMeta(StdlibEnumMeta or type):
         for member_name in __order__:
             value = members[member_name]
             kwds = {}
+            more_args = ()
             more_values = ()
             if isinstance(value, enum):
                 args = value.args
@@ -541,6 +554,7 @@ class EnumMeta(StdlibEnumMeta or type):
                     value = kwds.pop('value')
                 else:
                     value, args = args[0], args[1:]
+                args, more_args = (), args
             elif multivalue:
                 value, more_values, args = args[0], args[1:], ()
             if member_type is tuple:   # special case for tuple enums
@@ -556,7 +570,7 @@ class EnumMeta(StdlibEnumMeta or type):
             value = enum_member._value_
             enum_member._name_ = member_name
             enum_member.__objclass__ = enum_class
-            enum_member.__init__(*args, **kwds)
+            enum_member.__init__(*(args or more_args), **kwds)
             # If another member with the same value was already defined, the
             # new member becomes an alias to the existing one.
             if noalias:

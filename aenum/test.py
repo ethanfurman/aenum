@@ -5,6 +5,7 @@ import unittest
 from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip, extend_enum
 from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant, constant, NoAlias
 from collections import OrderedDict
+from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 
 pyver = float('%s.%s' % sys.version_info[:2])
@@ -1767,6 +1768,28 @@ class TestEnum(unittest.TestCase):
             red = 1
             rojo = 1
         self.assertFalse(Settings.red is Settings.rojo)
+
+    def test_timedelta(self):
+        class Period(timedelta, Enum):
+            '''
+            different lengths of time
+            '''
+            _init_ = 'value period'
+            _settings_ = NoAlias
+            _ignore_ = 'Period i'
+            Period = vars()
+            for i in range(31):
+                Period['day_%d' % i] = i, 'day'
+            for i in range(15):
+                Period['week_%d' % i] = i*7, 'week'
+            for i in range(12):
+                Period['month_%d' % i] = i*30, 'month'
+            OneDay = day_1
+            OneWeek = week_1
+        self.assertFalse(hasattr(Period, '_ignore_'))
+        self.assertFalse(hasattr(Period, 'Period'))
+        self.assertFalse(hasattr(Period, 'i'))
+        self.assertTrue(isinstance(Period.day_1, timedelta))
 
     def test_skip(self):
         class enumA(Enum):
