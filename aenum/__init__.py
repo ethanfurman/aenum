@@ -347,18 +347,16 @@ class _EnumDict(dict):
         values are not checked for.
 
         Single underscore (sunder) names are reserved.
-
-        Note:   in 3.x __order__ is simply discarded as a not necessary piece
-                leftover from 2.x
         """
         if _is_sunder(key):
             if key == '_ignore_':
                 value = value.split()
                 self._ignore = value
-            elif key not in ('_init_', '_settings_'):
+            elif key not in ('_init_', '_settings_', '_order_'):
                 raise ValueError('_names_ are reserved for future Enum use')
         elif _is_dunder(key):
-            # __order__, if present, should be first
+            if key == '__order__':
+                key = '_order_'
             if _is_descriptor(value):
                 self._locked = True
         elif key in self._member_names:
@@ -485,27 +483,27 @@ class EnumMeta(StdlibEnumMeta or type):
                 obj.name = name
 
         # py2 support for definition order
-        __order__ = clsdict.get('__order__')
-        if __order__ is None:
+        _order_ = clsdict.get('_order_')
+        if _order_ is None:
             if pyver < 3.0:
                 try:
-                    __order__ = [name for (name, value) in sorted(members.items(), key=lambda item: item[1])]
+                    _order_ = [name for (name, value) in sorted(members.items(), key=lambda item: item[1])]
                 except TypeError:
-                    __order__ = [name for name in sorted(members.keys())]
+                    _order_ = [name for name in sorted(members.keys())]
             else:
-                __order__ = clsdict._member_names
+                _order_ = clsdict._member_names
 
         else:
-            del clsdict['__order__']
-            __order__ = __order__.replace(',', ' ').split()
-            aliases = [name for name in members if name not in __order__]
+            del clsdict['_order_']
+            _order_ = _order_.replace(',', ' ').split()
+            aliases = [name for name in members if name not in _order_]
             if noalias and aliases:
-                raise ValueError('all members must be in __order__ if specified and using NoAlias')
+                raise ValueError('all members must be in _order_ if specified and using NoAlias')
             if pyver >= 3.0:
-                unique_members = [n for n in clsdict._member_names if n in __order__]
-                if __order__ != unique_members:
-                    raise TypeError('member order does not match __order__')
-            __order__ += aliases
+                unique_members = [n for n in clsdict._member_names if n in _order_]
+                if _order_ != unique_members:
+                    raise TypeError('member order does not match _order_')
+            _order_ += aliases
 
         # check for illegal enum names (any others?)
         invalid_names = set(members) & set(['mro'])
@@ -541,7 +539,7 @@ class EnumMeta(StdlibEnumMeta or type):
         # auto-numbering ;)
         if __new__ is None:
             __new__ = enum_class.__new__
-        for member_name in __order__:
+        for member_name in _order_:
             value = members[member_name]
             kwds = {}
             more_args = ()
@@ -813,7 +811,7 @@ class EnumMeta(StdlibEnumMeta or type):
         else:
             bases = (type, cls)
         clsdict = metacls.__prepare__(class_name, bases)
-        __order__ = []
+        _order_ = []
 
         # special processing needed for names?
         if isinstance(names, basestring):
@@ -829,10 +827,10 @@ class EnumMeta(StdlibEnumMeta or type):
             else:
                 member_name, member_value = item
             clsdict[member_name] = member_value
-            __order__.append(member_name)
-        # only set __order__ in clsdict if name/value was not from a mapping
+            _order_.append(member_name)
+        # only set _order_ in clsdict if name/value was not from a mapping
         if not isinstance(item, basestring):
-            clsdict['__order__'] = ' '.join(__order__)
+            clsdict['_order_'] = ' '.join(_order_)
         enum_class = metacls.__new__(metacls, class_name, bases, clsdict)
 
         # TODO: replace the frame hack if a blessed way to know the calling
