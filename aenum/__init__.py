@@ -15,6 +15,8 @@ version = 1, 4, 3
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
+module = globals()
+
 try:
     any
 except NameError:
@@ -257,11 +259,18 @@ del temp_constant_dict
 
 # defined now for immediate use
 
-def export(collection, namespace):
+def export(collection, namespace=None):
     """
-    Export the collection's members into the target namespace.
+    export([collection,] namespace) -> Export members to target namespace.
+
+    If collection is not given, act as a decorator.
     """
-    if issubclass(collection, NamedConstant):
+    if namespace is None:
+        namespace = collection
+        def export_decorator(collection):
+            export(collection, namespace)
+        return export_decorator
+    elif issubclass(collection, NamedConstant):
         for n, c in collection.__dict__.items():
             if isinstance(c, NamedConstant):
                 namespace[n] = c
@@ -274,12 +283,12 @@ def export(collection, namespace):
 
 # Constants used in Enum
 
+@export(module)
 class EnumConstants(NamedConstant):
     AutoNumber = constant('autonumber', 'values of members are autonumbered from START')
     MultiValue = constant('multivalue', 'each member can have several values')
     NoAlias = constant('noalias', 'duplicate valued members are distinct, not aliased')
     Unique = constant('unique', 'duplicate valued members are not allowed')
-export(EnumConstants, globals())
 
 
 ############
