@@ -11,11 +11,9 @@ __all__ = [
         'NamedTuple',
         ]
 
-version = 1, 4, 3
+version = 1, 4, 3, 2
 
 pyver = float('%s.%s' % _sys.version_info[:2])
-
-module = globals()
 
 try:
     any
@@ -268,7 +266,7 @@ def export(collection, namespace=None):
     if namespace is None:
         namespace = collection
         def export_decorator(collection):
-            export(collection, namespace)
+            return export(collection, namespace)
         return export_decorator
     elif issubclass(collection, NamedConstant):
         for n, c in collection.__dict__.items():
@@ -280,10 +278,11 @@ def export(collection, namespace=None):
             namespace[n] = m
     else:
         raise TypeError('%r is not a supported collection' % enumeration)
+    return collection
 
 # Constants used in Enum
 
-@export(module)
+@export(globals())
 class EnumConstants(NamedConstant):
     AutoNumber = constant('autonumber', 'values of members are autonumbered from START')
     MultiValue = constant('multivalue', 'each member can have several values')
