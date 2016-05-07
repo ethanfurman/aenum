@@ -151,10 +151,10 @@ class constant(object):
 NamedConstant = None
 
 class _NamedConstantDict(dict):
-    """Track enum member order and ensure member names are not reused.
+    """Track constant order and ensure names are not reused.
 
     NamedConstantMeta will use the names found in self._names as the
-    enumeration member names.
+    Constant names.
     """
     def __init__(self):
         super(_NamedConstantDict, self).__init__()
@@ -163,13 +163,10 @@ class _NamedConstantDict(dict):
     def __setitem__(self, key, value):
         """Changes anything not dundered or not a constant descriptor.
 
-        If an enum member name is used twice, an error is raised; duplicate
+        If an constant name is used twice, an error is raised; duplicate
         values are not checked for.
 
         Single underscore (sunder) names are reserved.
-
-        Note:   in 3.x __order__ is simply discarded as a not necessary piece
-                leftover from 2.x
         """
         if _is_sunder(key):
             raise ValueError('_names_ are reserved for future NamedConstant use')
