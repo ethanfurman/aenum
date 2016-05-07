@@ -1457,17 +1457,13 @@ class _NamedTupleDict(OrderedDict):
         If a field name is used twice, an error is raised.
 
         Single underscore (sunder) names are reserved.
-
-        Note:   in 3.x __order__ is simply discarded as a not necessary piece
-                leftover from 2.x
         """
-        if pyver >= 3.0 and key == '__order__':
-                return
         if _is_sunder(key):
-            if key != '_size_':
+            if key not in ('_size_', '_order_'):
                 raise ValueError('_names_ are reserved for future NamedTuple use')
         elif _is_dunder(key):
-            pass
+            if key == '__order__':
+                key = '_order_'
         elif key in self._field_names:
             # overwriting a field?
             raise TypeError('Attempted to reuse field name: %r' % key)
@@ -1555,9 +1551,9 @@ class NamedTupleMeta(type):
         clsdict.setdefault('_size_', size or TupleSize.fixed)
         unnumbered = OrderedDict()
         numbered = OrderedDict()
-        __order__ = original_dict.pop('__order__', [])
-        if __order__ :
-            __order__ = __order__.replace(',',' ').split()
+        _order_ = original_dict.pop('_order_', [])
+        if _order_ :
+            _order_ = _order_.replace(',',' ').split()
             add_order = False
         # and process this class
         for k, v in original_dict.items():
@@ -1602,14 +1598,14 @@ class NamedTupleMeta(type):
                     raise ValueError('not sure what to do with %s=%r (should be OFFSET [, DOC [, DEFAULT]])' % (k, v))
                 target[k] = v
         # all index values have been normalized
-        # deal with __order__ (or lack thereof)
+        # deal with _order_ (or lack thereof)
         fields = []
         aliases = []
         seen = set()
         max_len = 0
-        if not __order__:
+        if not _order_:
             if unnumbered:
-                raise ValueError("__order__ not specified and OFFSETs not declared for %r" % unnumbered.keys())
+                raise ValueError("_order_ not specified and OFFSETs not declared for %r" % unnumbered.keys())
             for name, (index, doc, default) in sorted(numbered.items(), key=lambda nv: (nv[1][0], nv[0])):
                 if index in seen:
                     aliases.append(name)
@@ -1619,18 +1615,18 @@ class NamedTupleMeta(type):
                     max_len = max(max_len, index + 1)
             offsets = numbered
         else:
-            # check if any unnumbered not in __order__
-            missing = set(unnumbered) - set(__order__)
+            # check if any unnumbered not in _order_
+            missing = set(unnumbered) - set(_order_)
             if missing:
-                raise ValueError("unable to order fields: %s (use __order__ or specify OFFSET" % missing)
+                raise ValueError("unable to order fields: %s (use _order_ or specify OFFSET" % missing)
             offsets = OrderedDict()
-            # if any unnumbered, number them from their position in __order__
+            # if any unnumbered, number them from their position in _order_
             i = 0
-            for k in __order__:
+            for k in _order_:
                 try:
                     index, doc, default = unnumbered.pop(k, None) or numbered.pop(k)
                 except IndexError:
-                    raise ValueError('%s (from __order__) not found in %s' % (k, cls))
+                    raise ValueError('%s (from _order_) not found in %s' % (k, cls))
                 if index is not undefined:
                     i = index
                 if i in seen:
