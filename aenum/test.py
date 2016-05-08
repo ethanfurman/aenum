@@ -3,7 +3,7 @@ import doctest
 import sys
 import unittest
 from aenum import Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, unique, skip, extend_enum
-from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant, constant, NoAlias
+from aenum import EnumMeta, NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, Unique, AutoNumber
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -1722,9 +1722,9 @@ class TestEnum(unittest.TestCase):
             unprocessed = (1, "Unprocessed")
             payment_complete = (2, "Payment Complete")
 
-        self.assertEqual(list(LabelledList), [LabelledList.unprocessed, LabelledList.payment_complete])
         self.assertEqual(LabelledList.unprocessed, 1)
         self.assertEqual(LabelledList(1), LabelledList.unprocessed)
+        self.assertEqual(list(LabelledList), [LabelledList.unprocessed, LabelledList.payment_complete])
 
     def test_empty_with_functional_api(self):
         empty = aenum.IntEnum('Foo', {})
@@ -1768,6 +1768,59 @@ class TestEnum(unittest.TestCase):
             red = 1
             rojo = 1
         self.assertFalse(Settings.red is Settings.rojo)
+
+    def test_auto_and_init(self):
+        class Field(IntEnum):
+            _order_ = 'TYPE START'
+            _settings_ = AutoNumber
+            _init_ = '__doc__'
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+        self.assertEqual(Field.TYPE, 1)
+        self.assertEqual(Field.START, 2)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+
+    def test_auto_and_start(self):
+        class Field(IntEnum):
+            _order_ = 'TYPE START'
+            _start_ = 0
+            _init_ = '__doc__'
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+        self.assertEqual(Field.TYPE, 0)
+        self.assertEqual(Field.START, 1)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+
+    def test_auto_and_init_and_some_values(self):
+        class Field(IntEnum):
+            _order_ = 'TYPE START'
+            _settings_ = AutoNumber
+            _init_ = '__doc__'
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+            BLAH = 5, "test blah"
+            BELCH = 'test belch'
+        self.assertEqual(Field.TYPE, 1)
+        self.assertEqual(Field.START, 2)
+        self.assertEqual(Field.BLAH, 5)
+        self.assertEqual(Field.BELCH, 6)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+        self.assertEqual(Field.BLAH.__doc__, 'test blah')
+        self.assertEqual(Field.BELCH.__doc__, 'test belch')
+
+    def test_combine_new_settings_with_old_settings(self):
+        class Auto(Enum):
+            _settings_ = Unique
+        with self.assertRaises(ValueError):
+            class AutoUnique(Auto):
+                _settings_ = AutoNumber
+                BLAH = ()
+                BLUH = ()
+                ICK = 1
+            print(list(AutoUnique))
 
     def test_timedelta(self):
         class Period(timedelta, Enum):

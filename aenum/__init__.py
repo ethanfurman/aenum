@@ -11,7 +11,7 @@ __all__ = [
         'NamedTuple',
         ]
 
-version = 1, 4, 3, 2
+version = 1, 4, 3, 3
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
@@ -254,6 +254,29 @@ del temp_constant_dict
 
 # defined now for immediate use
 
+def enumsort(things):
+    """
+    sorts things by value if all same type; otherwise by name
+    """
+    if not things:
+        return things
+    sort_type = type(things[0])
+    if not issubclass(sort_type, tuple):
+        # direct sort or type error
+        if not all((type(v) is sort_type) for v in things[1:]):
+            raise TypeError('Cannot sort items of different types')
+        return sorted(things)
+    else:
+        # expecting list of (name, value) tuples
+        sort_type = type(things[0][1])
+        try:
+            if all((type(v[1]) is sort_type) for v in things[1:]):
+                return sorted(things, key=lambda i: i[1])
+            else:
+                raise TypeError('try name sort instead')
+        except TypeError:
+            return sorted(things, key=lambda i: i[0])
+
 def export(collection, namespace=None):
     """
     export([collection,] namespace) -> Export members to target namespace.
@@ -309,7 +332,7 @@ class enum(object):
         args = ', '.join(['%r' % a for a in self.args])
         if args:
             final.append(args)
-        kwds = ', '.join([('%s=%r') % (k, v) for k, v in sorted(self.kwds.items())])
+        kwds = ', '.join([('%s=%r') % (k, v) for k, v in enumsort(list(self.kwds.items()))])
         if kwds:
             final.append(kwds)
         return 'enum(%s)' % ', '.join(final)
@@ -322,11 +345,18 @@ class _EnumDict(dict):
     """
     def __init__(self, locked=True, start=1, multivalue=False):
         super(_EnumDict, self).__init__()
+        # list of enum members
         self._member_names = []
+        # starting value for AutoNumber
         self._value = start - 1
+        # when the magic turns off
         self._locked = locked
+        # if multiple values are allowed
         self._multivalue = multivalue
+        # list of temporary names
         self._ignore = []
+        # if _sunder_ values can be changed via the class body
+        self._init = True
 
     def __getitem__(self, key):
         if self._locked or _is_dunder(key) or key in self:
@@ -341,7 +371,7 @@ class _EnumDict(dict):
             raise KeyError('%s not found' % key)
 
     def __setitem__(self, key, value):
-        """Changes anything not dundered or not a descriptor.
+        """Changes anything not sundured, dundered, nor a descriptor.
 
         If an enum member name is used twice, an error is raised; duplicate
         values are not checked for.
@@ -349,11 +379,35 @@ class _EnumDict(dict):
         Single underscore (sunder) names are reserved.
         """
         if _is_sunder(key):
-            if key == '_ignore_':
+            if key not in ('_init_', '_settings_', '_order_', '_ignore_', '_start_'):
+                raise ValueError('_names_ are reserved for future Enum use')
+            elif not self._init:
+                raise ValueError('cannot set %r after init phase' % key)
+            elif key == '_ignore_':
                 value = value.split()
                 self._ignore = value
-            elif key not in ('_init_', '_settings_', '_order_'):
-                raise ValueError('_names_ are reserved for future Enum use')
+                already = set(value) & set(self._member_names)
+                if already:
+                    raise ValueError('_ignore_ cannot specify already set names: %r' % (already, ))
+            elif key == '_start_':
+                self._value = value - 1
+                self._locked = False
+            elif key == '_settings_':
+                if not isinstance(value, tuple):
+                    value = value,
+                if NoAlias in value and Unique in value:
+                    raise TypeError('cannot specify both NoAlias and Unique')
+                # elif MultiValue in value and self._init is not None:
+                #     raise TypeError('cannot specify both MultiValue and _init_ fields')
+                elif MultiValue in value and NoAlias in value:
+                    raise TypeError('cannot specify both MultiValue and NoAlias')
+                allowed_settings = dict.fromkeys(['autonumber', 'noalias', 'unique', 'multivalue'])
+                for arg in value:
+                    if arg not in allowed_settings:
+                        raise TypeError('unknown qualifier: %r' % arg)
+                    allowed_settings[arg] = True
+                self._locked = not allowed_settings['autonumber']
+                self._multivalue = allowed_settings['multivalue']
         elif _is_dunder(key):
             if key == '__order__':
                 key = '_order_'
@@ -365,17 +419,30 @@ class _EnumDict(dict):
         elif key in self._ignore:
             pass
         elif not _is_descriptor(value):
+            self._init = False
             if key in self:
                 # enum overwriting a descriptor?
                 raise TypeError('%s already defined as: %r' % (key, self[key]))
             self._member_names.append(key)
             if self._multivalue and isinstance(value, tuple):
                 self._value = value[0]
-            else:
-                self._value = value
+            elif not self._locked:
+                if isinstance(value, int):
+                    self._value = value
+                elif isinstance(value, tuple):
+                    if not value or not isinstance(value[0], int):
+                        value = self._value + 1
+                        self._value = value
+                    else:
+                        self._value = value[0]
+                else:
+                    count = self._value + 1
+                    self._value = count
+                    value = count, value
         else:
             # not a new member, turn off the autoassign magic
             self._locked = True
+            self._init = False
         super(_EnumDict, self).__setitem__(key, value)
 
 
@@ -412,15 +479,33 @@ class EnumMeta(StdlibEnumMeta or type):
         super(EnumMeta, cls).__init__(*args)
 
     def __new__(metacls, cls, bases, clsdict, init='', start=None, settings=()):
+        member_type, first_enum = metacls._get_mixins_(bases)
+        # inherit previous flags
+        autonumber = multivalue = noalias = unique = False
+        if first_enum is not None:
+            autonumber = first_enum._auto_number_
+            multivalue = first_enum._multi_value_
+            noalias = first_enum._no_alias_
+            unique = first_enum._unique_
         # check for custom settings
         if not isinstance(settings, tuple):
-            settings = settings,
-        allowed_settings = dict.fromkeys(['autonumber', 'noalias', 'unique', 'multivalue'])
-        cls_init = clsdict.get('_init_')
+            settings = (settings, )
+        allowed_settings = dict(
+                autonumber=autonumber,
+                noalias=noalias,
+                unique=unique,
+                multivalue=multivalue,
+                )
+        cls_init = clsdict.pop('_init_', None)
         if cls_init and init:
             raise TypeError('init specified in constructor and in class body')
         init = cls_init or init
-        cls_settings = clsdict.get('_settings_')
+        cls_start = clsdict.pop('_start_', None)
+        if cls_start is not None and start is not None:
+            raise TypeError('start specified in constructor and in class body')
+        if cls_start is not None:
+            start = cls_start
+        cls_settings = clsdict.pop('_settings_', None)
         if cls_settings and settings:
             raise TypeError('settings specified in constructor and in class body')
         else:
@@ -430,20 +515,65 @@ class EnumMeta(StdlibEnumMeta or type):
         for arg in settings:
             if arg not in allowed_settings:
                 raise TypeError('unknown qualifier: %r' % arg)
-            allowed_settings[arg] = True
-        autonumber = allowed_settings['autonumber']
+            allowed_settings[arg] = allowed_settings[arg] or True
+        autonumber = allowed_settings['autonumber'] or (start is not None)
         multivalue = allowed_settings['multivalue']
         noalias = allowed_settings['noalias']
         unique = allowed_settings['unique']
+        cls_settings = []
+        if autonumber:
+            cls_settings.append(AutoNumber)
+        if multivalue:
+            cls_settings.append(MultiValue)
+        if noalias:
+            cls_settings.append(NoAlias)
+        if unique:
+            cls_settings.append(Unique)
+        cls_settings = tuple(cls_settings)
+        # at this point allowed_settings, cls_settings, and the same-named variables, are current
+        # with both inherited settings and directly specified settings
+        if autonumber and init and not (init == 'value' or init.startswith('value ')):
+            init = 'value, ' + init
+        if start is None:
+            start = 1
         # an Enum class is final once enumeration items have been defined; it
         # cannot be mixed with other types (int, float, etc.) if it has an
         # inherited __new__ unless a new __new__ is defined (or the resulting
         # class will fail).
         if type(clsdict) is dict:
+            # py2 support for _sunder_ configuration
+            _order_ = clsdict.get('_order_')
+            if _order_ is not None:
+                del clsdict['_order_']
+            else:
+                _order_ = clsdict.get('__order__')
+                if _order_ is not None:
+                    del clsdict['__order__']
+            members = dict([
+                    (k, v) for (k, v) in clsdict.items()
+                    if not (_is_sunder(k) or _is_dunder(k) or _is_descriptor(k))
+                    ])
+            if _order_ is None:
+                _order_ = [name for (name, value) in enumsort(list(members.items()))]
+            else:
+                _order_ = _order_.replace(',', ' ').split()
+                aliases = [name for name in members if name not in _order_]
+                if noalias and aliases:
+                    raise ValueError('all members must be in _order_ if specified and using NoAlias')
+                _order_ += aliases
             original_dict = clsdict
-            clsdict = _EnumDict()
-            for k, v in original_dict.items():
+            clsdict = _EnumDict(locked=not autonumber, start=start, multivalue=multivalue)
+            # add sunders first
+            clsdict['_init_'] = cls_init
+            clsdict['_settings_'] = cls_settings
+            clsdict['_ignore_'] = original_dict.pop('_ignore_', '')
+            for k in _order_:
+                v = original_dict[k]
                 clsdict[k] = v
+            for k, v in original_dict.items():
+                if k not in _order_:
+                    clsdict[k] = v
+            del _order_
         else:
             clsdict._locked = True
 
@@ -457,18 +587,11 @@ class EnumMeta(StdlibEnumMeta or type):
         if init and clsdict.get('__init__'):
             raise TypeError('cannot specify init and define an __init__ method')
 
-        member_type, first_enum = metacls._get_mixins_(bases)
         __new__, save_new, use_args = metacls._find_new_(
                 clsdict,
                 member_type,
                 first_enum,
                 )
-        if first_enum is not None:
-            # inherit previous flags
-            autonumber = autonumber or first_enum._auto_number_
-            multivalue = multivalue or first_enum._multi_value_
-            noalias = noalias or first_enum._no_alias_
-            unique = unique or first_enum._unique_
         # save enum items into separate mapping so they don't get baked into
         # the new class
         members = dict((k, clsdict[k]) for k in clsdict._member_names)
@@ -482,27 +605,19 @@ class EnumMeta(StdlibEnumMeta or type):
             elif isinstance(obj, _RouteClassAttributeToGetattr):
                 obj.name = name
 
-        # py2 support for definition order
+        # py3 support for definition order
         _order_ = clsdict.get('_order_')
         if _order_ is None:
-            if pyver < 3.0:
-                try:
-                    _order_ = [name for (name, value) in sorted(members.items(), key=lambda item: item[1])]
-                except TypeError:
-                    _order_ = [name for name in sorted(members.keys())]
-            else:
-                _order_ = clsdict._member_names
-
+            _order_ = clsdict._member_names
         else:
             del clsdict['_order_']
             _order_ = _order_.replace(',', ' ').split()
             aliases = [name for name in members if name not in _order_]
             if noalias and aliases:
                 raise ValueError('all members must be in _order_ if specified and using NoAlias')
-            if pyver >= 3.0:
-                unique_members = [n for n in clsdict._member_names if n in _order_]
-                if _order_ != unique_members:
-                    raise TypeError('member order does not match _order_')
+            unique_members = [n for n in clsdict._member_names if n in _order_]
+            if _order_ != unique_members:
+                raise TypeError('member order does not match _order_')
             _order_ += aliases
 
         # check for illegal enum names (any others?)
@@ -557,9 +672,11 @@ class EnumMeta(StdlibEnumMeta or type):
                     value = kwds.pop('value')
                 else:
                     value, args = args[0], args[1:]
-                args, more_args = (), args
+                # args, more_args = (), args
+                args, more_args = (value, ), args
             elif multivalue:
-                value, more_values, args = args[0], args[1:], ()
+                args, more_values = args[0:1], args[1:]
+                value = args[0]
             if member_type is tuple:   # special case for tuple enums
                 args = (args, )     # wrap it one more time
             if not use_args or not (args or kwds):
@@ -573,7 +690,7 @@ class EnumMeta(StdlibEnumMeta or type):
             value = enum_member._value_
             enum_member._name_ = member_name
             enum_member.__objclass__ = enum_class
-            enum_member.__init__(*(args or more_args), **kwds)
+            enum_member.__init__(*(more_args or args), **kwds)
             # If another member with the same value was already defined, the
             # new member becomes an alias to the existing one.
             if noalias:
@@ -810,7 +927,7 @@ class EnumMeta(StdlibEnumMeta or type):
             bases = (cls, )
         else:
             bases = (type, cls)
-        clsdict = metacls.__prepare__(class_name, bases)
+        clsdict = {}
         _order_ = []
 
         # special processing needed for names?
@@ -1232,26 +1349,21 @@ class AutoNumberEnum(Enum):
     Automatically assign increasing values to members.
 
     Py3: numbers match creation order
-    Py2: numbers are randomly assigned
+    Py2: numbers are assigned alphabetically by member name
     """
-    def __new__(cls):
-        value = len(cls.__members__) + 1
-        obj = object.__new__(cls)
-        obj._value_ = value
-        return obj
+    _settings_ = AutoNumber
 
-class UniqueEnum(Enum):
+class MultiValueEnum(Enum):
     """
-    Ensure no duplicate values exist.
+    Multiple values can map to each member.
     """
-    def __init__(self, *args):
-        cls = self.__class__
-        if any(self.value == e.value for e in cls):
-            a = self.name
-            e = cls(self.value).name
-            raise ValueError(
-                    "aliases not allowed in UniqueEnum:  %r --> %r"
-                    % (a, e))
+    _settings_ = MultiValue
+
+class NoAliasEnum(Enum):
+    """
+    Duplicate value members are distinct, and cannot be looked up by value.
+    """
+    _settings_ = NoAlias
 
 class OrderedEnum(Enum):
     """
@@ -1281,6 +1393,12 @@ class SqliteEnum(Enum):
     def __conform__(self, protocol):
         if protocol is sqlite3.PrepareProtocol:
             return self.name
+
+class UniqueEnum(Enum):
+    """
+    Ensure no duplicate values exist.
+    """
+    _settings_ = Unique
 
 
 def convert(enum, name, module, filter, source=None):
