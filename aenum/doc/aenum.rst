@@ -46,7 +46,7 @@ for an alternate construction syntax.
 
 ``AutoNumber``
 
-Flag to Enum constructor specifying auto numbering (starts with 1, py3 only).
+Flag to Enum constructor specifying auto numbering.
 
 ``MultiValue``
 
@@ -180,10 +180,11 @@ The *type* of an enumeration member is the enumeration it belongs to::
 
 Enumerations support iteration.  In Python 3.x definition order is used; in
 Python 2.x the definition order is not available, but class attribute
-``__order__`` is supported;  otherwise, value order is used::
+``_order_`` is supported;  otherwise, value order is used if posible,
+otherwise alphabetical name order is used::
 
     >>> class Shake(Enum):
-    ...   __order__ = 'vanilla chocolate cookies mint'  # only needed in 2.x
+    ...   _order_ = 'vanilla chocolate cookies mint'  # only needed in 2.x
     ...   vanilla = 7
     ...   chocolate = 4
     ...   cookies = 9
@@ -197,9 +198,14 @@ Python 2.x the definition order is not available, but class attribute
     Shake.cookies
     Shake.mint
 
-The ``__order__`` attribute is always removed, but in 3.x it is used to verify
-that definition order is the same (useful for py2&3 code bases); however, in
-the stdlib version it will be ignored and not removed.
+The ``_order_`` attribute is always removed, but in 3.x it is also used to
+verify that definition order is the same (useful for py2&3 code bases);
+however, in the stdlib version it will be ignored and not removed.
+
+.. note::
+
+    To maintain compatibility with Python 3.4 and 3.5, use __order__
+    instead (double leading and trailing underscores).
 
 Enumeration members are hashable, so they can be used in dictionaries and sets::
 
@@ -246,6 +252,11 @@ The various settings enable special behavior:
 - ``MultiValue`` allows multiple values per member instead of the usual 1
 - ``NoAlias`` allows different members to have the same value
 - ``Unique`` disallows different members to have the same value
+
+.. note::
+
+    To use these features in Python 2 use the _sundered_ versions of
+    the names in the class body:  ``_start_``, ``_init_``, ``_settings_``.
 
 
 Programmatic access to enumeration members and their attributes
@@ -305,7 +316,7 @@ lookup of the value of A and B will return A.  By-name lookup of B will also
 return A::
 
     >>> class Shape(Enum):
-    ...   __order__ = 'square diamond circle alias_for_square'  # needed in 2.x
+    ...   _order_ = 'square diamond circle alias_for_square'  # needed in 2.x
     ...   square = 2
     ...   diamond = 1
     ...   circle = 3
@@ -325,7 +336,7 @@ that none exist in a particular enumeration::
     >>> from aenum import unique
     >>> @unique
     ... class Mistake(Enum):
-    ...   __order__ = 'one two three four'  # only needed in 2.x
+    ...   _order_ = 'one two three four'  # only needed in 2.x
     ...   one = 1
     ...   two = 2
     ...   three = 3
@@ -825,7 +836,7 @@ Avoids having to specify the value for each enumeration member::
     ...         return obj
     ...
     >>> class Color(AutoNumber):
-    ...     __order__ = "red green blue"  # only needed in 2.x
+    ...     _order_ = "red green blue"  # only needed in 2.x
     ...     red = ()
     ...     green = ()
     ...     blue = ()
@@ -859,7 +870,7 @@ alias::
     ...                     % (a, e))
     ...
     >>> class Color(UniqueEnum):
-    ...     __order__ = 'red green blue'
+    ...     _order_ = 'red green blue'
     ...     red = 1
     ...     green = 2
     ...     blue = 3
@@ -993,9 +1004,9 @@ The ``__members__`` attribute is only available on the class.
 
 
 ``__members__`` is always an ``OrderedDict``, with the order being the
-definition order in Python 3.x or the order in ``__order__`` in Python 2.7;
-if no ``__order__`` was specified in Python 2.7 then the order of
-``__members__`` is meaningless.
+definition order in Python 3.x or the order in ``_order_`` in Python 2.7;
+if no ``_order_`` was specified in Python 2.7 then the order of
+``__members__`` is either increasing value or alphabetically by name.
 
 If you give your ``Enum`` subclass extra methods, like the `Planet`_
 class above, those methods will show up in a `dir` of the member,
@@ -1015,12 +1026,14 @@ helper function or a ``classmethod``.
 If the stdlib ``enum`` is available (Python 3.4+ and it hasn't been shadowed
 by, for example, ``enum34``) then aenum will inherit from it.
 
-To use the ``NoAlias``, ``Unique``, and ``MultiValue`` flags in Py2 or Py2/Py3
-codebases, use ``_settings_ = ...`` in the class body.
+To use the ``AutoNumber``, ``MultiValue``, ``NoAlias``, and ``Unique`` flags
+in Py2 or Py2/Py3 codebases, use ``_settings_ = ...`` in the class body.
 
 To use ``init`` in Py2 or Py2/Py3 codebases use ``_init_`` in the class body.
 
-When creating class bodies dynamically, put any variables you need to use in to
+To use ``start`` in Py2 or Py2/Py3 codebases use ``_start_`` in the class body.
+
+When creating class bodies dynamically, put any variables you need to use into
 ``_ignore_``::
 
     >>> from datetime import timedelta
@@ -1045,8 +1058,13 @@ When creating class bodies dynamically, put any variables you need to use in to
     >>> hasattr(Period, 'i')
     False
 
-The name listed in ``_ignore_``, as well as ``_ignore__`` itself, will not be
-present in the final enumeration as either attributes nor members.
+The name listed in ``_ignore_``, as well as ``_ignore_`` itself, will not be
+present in the final enumeration as neither attributes nor members.
+
+.. note::
+
+    except for __dunder__ attributes/methods, all _sunder_ attributes must
+    be before any thing else in the class body
 
 
 Creating NamedTuples
