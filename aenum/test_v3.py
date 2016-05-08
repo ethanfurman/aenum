@@ -2,6 +2,7 @@ from aenum import Enum, IntEnum, UniqueEnum, NamedTuple, TupleSize, AutoNumber, 
 from aenum import AutoNumberEnum, OrderedEnum, unique, skip, extend_enum
 
 from collections import OrderedDict
+from datetime import timedelta
 from unittest import TestCase, main
 
 class TestEnumV3(TestCase):
@@ -228,6 +229,72 @@ class TestEnumV3(TestCase):
         self.assertEqual(Color.blue.value, 4)
         self.assertIs(Color('green'), Color.green)
         self.assertIs(Color['green'], Color.green)
+
+    def test_auto_and_init(self):
+        class Field(IntEnum, settings=AutoNumber, init='__doc__'):
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+        self.assertEqual(Field.TYPE, 1)
+        self.assertEqual(Field.START, 2)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+        self.assertFalse(hasattr(Field, '_order_'))
+
+    def test_auto_and_start(self):
+        class Field(IntEnum, init='__doc__', start=0):
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+        self.assertEqual(Field.TYPE, 0)
+        self.assertEqual(Field.START, 1)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+
+    def test_auto_and_init_and_some_values(self):
+        class Field(IntEnum, init='__doc__', settings=AutoNumber):
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+            BLAH = 5, "test blah"
+            BELCH = 'test belch'
+        self.assertEqual(Field.TYPE, 1)
+        self.assertEqual(Field.START, 2)
+        self.assertEqual(Field.BLAH, 5)
+        self.assertEqual(Field.BELCH, 6)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+        self.assertEqual(Field.BLAH.__doc__, 'test blah')
+        self.assertEqual(Field.BELCH.__doc__, 'test belch')
+
+    def test_combine_new_settings_with_old_settings(self):
+        class Auto(Enum, settings=Unique):
+            pass
+        with self.assertRaises(ValueError):
+            class AutoUnique(Auto, settings=AutoNumber):
+                BLAH = ()
+                BLUH = ()
+                ICK = 1
+            print(list(AutoUnique))
+
+    def test_timedelta(self):
+        class Period(timedelta, Enum):
+            '''
+            different lengths of time
+            '''
+            _init_ = 'value period'
+            _settings_ = NoAlias
+            _ignore_ = 'Period i'
+            Period = vars()
+            for i in range(31):
+                Period['day_%d' % i] = i, 'day'
+            for i in range(15):
+                Period['week_%d' % i] = i*7, 'week'
+            for i in range(12):
+                Period['month_%d' % i] = i*30, 'month'
+            OneDay = day_1
+            OneWeek = week_1
+        self.assertFalse(hasattr(Period, '_ignore_'))
+        self.assertFalse(hasattr(Period, 'Period'))
+        self.assertFalse(hasattr(Period, 'i'))
+        self.assertTrue(isinstance(Period.day_1, timedelta))
 
     def test_extend_enum_plain(self):
         class Color(UniqueEnum):
