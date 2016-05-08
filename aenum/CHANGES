@@ -1,3 +1,11 @@
+1.4.4
+=====
+
+enabled export as a decorator
+enabled _order_ to replace __order__
+enabled python2 support for settings, init, and start
+
+
 1.4.3
 =====
 
