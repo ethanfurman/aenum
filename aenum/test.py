@@ -1811,6 +1811,25 @@ class TestEnum(unittest.TestCase):
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
+    def test_auto_and_init_inherited(self):
+        class AutoEnum(IntEnum):
+            _start_ = 0
+            _init_ = '__doc__'
+        class Field(AutoEnum):
+            _order_ = 'TYPE START BLAH BELCH'
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+            BLAH = 5, "test blah"
+            BELCH = 'test belch'
+        self.assertEqual(Field.TYPE, 0)
+        self.assertEqual(Field.START, 1)
+        self.assertEqual(Field.BLAH, 5)
+        self.assertEqual(Field.BELCH, 6)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+        self.assertEqual(Field.BLAH.__doc__, 'test blah')
+        self.assertEqual(Field.BELCH.__doc__, 'test belch')
+
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum):
             _settings_ = Unique

@@ -1,4 +1,7 @@
-import setuptools
+try:
+    import setuptools
+except ImportError:
+    pass
 from distutils.core import setup
 
 long_desc = '''\

@@ -471,6 +471,8 @@ class EnumMeta(StdlibEnumMeta or type):
         if first_enum is not None:
             autonumber = autonumber or first_enum._auto_number_
             multivalue = multivalue or first_enum._multi_value_
+            if start is None:
+                start = first_enum._start_
         if start is None:
             start = 1
         return _EnumDict(locked=not autonumber, start=start, multivalue=multivalue)
@@ -482,7 +484,11 @@ class EnumMeta(StdlibEnumMeta or type):
         member_type, first_enum = metacls._get_mixins_(bases)
         # inherit previous flags
         autonumber = multivalue = noalias = unique = False
+        inh_init = []
+        inh_start = None
         if first_enum is not None:
+            inh_start = first_enum._start_
+            inh_init = first_enum._init_
             autonumber = first_enum._auto_number_
             multivalue = first_enum._multi_value_
             noalias = first_enum._no_alias_
@@ -496,15 +502,23 @@ class EnumMeta(StdlibEnumMeta or type):
                 unique=unique,
                 multivalue=multivalue,
                 )
+        org_init = init
+        org_start = start
         cls_init = clsdict.pop('_init_', None)
         if cls_init and init:
             raise TypeError('init specified in constructor and in class body')
-        init = cls_init or init
+        init = cls_init or init or inh_init
+        if isinstance(init, basestring):
+            init = init.replace(',',' ').split()
         cls_start = clsdict.pop('_start_', None)
         if cls_start is not None and start is not None:
             raise TypeError('start specified in constructor and in class body')
         if cls_start is not None:
             start = cls_start
+        elif start is not None:
+            pass
+        elif inh_start is not None:
+            start = inh_start
         cls_settings = clsdict.pop('_settings_', None)
         if cls_settings and settings:
             raise TypeError('settings specified in constructor and in class body')
@@ -532,8 +546,8 @@ class EnumMeta(StdlibEnumMeta or type):
         cls_settings = tuple(cls_settings)
         # at this point allowed_settings, cls_settings, and the same-named variables, are current
         # with both inherited settings and directly specified settings
-        if autonumber and init and not (init == 'value' or init.startswith('value ')):
-            init = 'value, ' + init
+        if autonumber and init and 'value' not in  init:
+            init.insert(0, 'value')
         if start is None:
             start = 1
         # an Enum class is final once enumeration items have been defined; it
@@ -564,6 +578,8 @@ class EnumMeta(StdlibEnumMeta or type):
             original_dict = clsdict
             clsdict = _EnumDict(locked=not autonumber, start=start, multivalue=multivalue)
             # add sunders first
+            if cls_start is not None:
+                clsdict['_start_'] = start
             clsdict['_init_'] = cls_init
             clsdict['_settings_'] = cls_settings
             clsdict['_ignore_'] = original_dict.pop('_ignore_', '')
@@ -628,7 +644,7 @@ class EnumMeta(StdlibEnumMeta or type):
 
         # create our new Enum type
         enum_class = type.__new__(metacls, cls, bases, clsdict)
-        enum_class._auto_init_ = _auto_init_ = init.replace(',',' ').split()
+        enum_class._auto_init_ = _auto_init_ = init
         if 'value' in _auto_init_ and _auto_init_[0] != 'value':
             raise TypeError("'value', if specified, must be the first item in 'init'")
         enum_class._member_names_ = []               # names in random order
@@ -640,6 +656,7 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_class._no_alias_ = noalias
         enum_class._unique_ = unique
         enum_class._init_ = _auto_init_
+        enum_class._start_ = start if autonumber else None
         # save attributes from super classes so we know if we can take
         # the shortcut of storing members in the class dict
         base_attributes = set([a for b in enum_class.mro() for a in b.__dict__])
@@ -672,7 +689,6 @@ class EnumMeta(StdlibEnumMeta or type):
                     value = kwds.pop('value')
                 else:
                     value, args = args[0], args[1:]
-                # args, more_args = (), args
                 args, more_args = (value, ), args
             elif multivalue:
                 args, more_values = args[0:1], args[1:]
