@@ -3,6 +3,7 @@ try:
 except ImportError:
     pass
 from distutils.core import setup
+import sys
 
 long_desc = '''\
 Advanced Enumerations (compatible with Python's stdlib Enum), NamedTuples, and NamedConstants
@@ -66,6 +67,9 @@ data = dict(
 
 py2_only = ()
 py3_only = ('aenum/test_v3.py', )
+make = [
+        'rst2pdf aenum/doc/aenum.rst --output=aenum/doc/aenum.pdf',
+        ]
 
 if __name__ == '__main__':
     if 'install' in sys.argv:
