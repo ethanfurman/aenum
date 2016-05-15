@@ -6,5 +6,6 @@ include aenum/test.py
 include aenum/test_v3.py
 include aenum/LICENSE
 include aenum/CHANGES
+include aenum/README
 include aenum/doc/aenum.pdf
 include aenum/doc/aenum.rst
