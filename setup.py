@@ -44,6 +44,7 @@ data = dict(
                'doc/aenum.pdf',
                ]
            },
+       include_package_data=True,
        license='BSD License',
        description="Advanced Enumerations (compatible with Python's stdlib Enum), NamedTuples, and NamedConstants",
        long_description=long_desc,
@@ -63,5 +64,22 @@ data = dict(
             ],
     )
 
+py2_only = ()
+py3_only = ('aenum/test_v3.py', )
+
 if __name__ == '__main__':
+    if 'install' in sys.argv:
+        import os, sys, shutil
+        if sys.version_info[0] != 2:
+            for file in py2_only:
+                try:
+                    os.unlink(file)
+                except OSError:
+                    pass
+        if sys.version_info[0] != 3:
+            for file in py3_only:
+                try:
+                    os.unlink(file)
+                except OSError:
+                    pass
     setup(**data)
