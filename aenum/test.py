@@ -1772,8 +1772,8 @@ class TestEnum(unittest.TestCase):
     def test_auto_and_init(self):
         class Field(IntEnum):
             _order_ = 'TYPE START'
-            _settings_ = AutoNumber
             _init_ = '__doc__'
+            _settings_ = AutoNumber
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
         self.assertEqual(Field.TYPE, 1)
@@ -1796,8 +1796,8 @@ class TestEnum(unittest.TestCase):
     def test_auto_and_init_and_some_values(self):
         class Field(IntEnum):
             _order_ = 'TYPE START'
-            _settings_ = AutoNumber
             _init_ = '__doc__'
+            _settings_ = AutoNumber
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
             BLAH = 5, "test blah"
@@ -1830,6 +1830,34 @@ class TestEnum(unittest.TestCase):
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
+    def test_AutoNumberEnum_and_property(self):
+        class Color(aenum.AutoNumberEnum):
+            red = ()
+            green = ()
+            blue = ()
+            @property
+            def cap_name(self):
+                return self.name.title()
+        self.assertEqual(Color.blue.cap_name, 'Blue')
+
+    def test_AutoNumberEnum(self):
+        class Color(aenum.AutoNumberEnum):
+            red = ()
+            green = ()
+            blue = ()
+        # In py2 the order should blue, green, red
+        # In py3 the order should be red, green, blue
+        if pyver < 3.0:
+            self.assertEqual(list(Color), [Color.blue, Color.green, Color.red])
+            self.assertEqual(Color.blue.value, 1)
+            self.assertEqual(Color.green.value, 2)
+            self.assertEqual(Color.red.value, 3)
+        else:
+            self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+            self.assertEqual(Color.red.value, 1)
+            self.assertEqual(Color.green.value, 2)
+            self.assertEqual(Color.blue.value, 3)
+
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum):
             _settings_ = Unique
@@ -1839,7 +1867,6 @@ class TestEnum(unittest.TestCase):
                 BLAH = ()
                 BLUH = ()
                 ICK = 1
-            print(list(AutoUnique))
 
     def test_timedelta(self):
         class Period(timedelta, Enum):

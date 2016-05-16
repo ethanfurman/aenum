@@ -5,6 +5,9 @@ from collections import OrderedDict
 from datetime import timedelta
 from unittest import TestCase, main
 
+class MagicAutoNumberEnum(Enum, settings=AutoNumber):
+    pass
+
 class TestEnumV3(TestCase):
 
     def setUp(self):
@@ -264,6 +267,56 @@ class TestEnumV3(TestCase):
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
+    def test_auto_and_tuple(self):
+        class Color(MagicAutoNumberEnum):
+            red = ()
+            green = ()
+            blue = ()
+        self.assertEqual(Color.blue.value, 3)
+
+    def test_auto_and_property(self):
+        with self.assertRaises(TypeError):
+            class Color(MagicAutoNumberEnum):
+                _ignore_ = ()
+                red = ()
+                green = ()
+                blue = ()
+                @property
+                def cap_name(self) -> str:
+                    return self.name.title()
+
+    def test_auto_and_default_ignore(self):
+        class Color(MagicAutoNumberEnum):
+            red
+            green
+            blue
+            @property
+            def cap_name(self) -> str:
+                return self.name.title()
+        self.assertEqual(Color.blue.cap_name, 'Blue')
+
+    def test_auto_and_overridden_ignore(self):
+        with self.assertRaises(TypeError):
+            class Color(MagicAutoNumberEnum):
+                _ignore_ = 'staticmethod'
+                red
+                green
+                blue
+                @property
+                def cap_name(self) -> str:
+                    return self.name.title()
+
+    def test_auto_and_multiple_assignment(self):
+        class Color(MagicAutoNumberEnum):
+            _ignore_ = 'property'
+            red
+            green
+            blue = cyan
+            @property
+            def cap_name(self) -> str:
+                return self.name.title()
+        self.assertEqual(Color.blue.cap_name, 'Cyan')
+
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum, settings=Unique):
             pass
@@ -272,7 +325,6 @@ class TestEnumV3(TestCase):
                 BLAH = ()
                 BLUH = ()
                 ICK = 1
-            print(list(AutoUnique))
 
     def test_timedelta(self):
         class Period(timedelta, Enum):

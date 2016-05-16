@@ -48,6 +48,13 @@ for an alternate construction syntax.
 
 Flag to Enum constructor specifying auto numbering.
 
+.. note::
+
+    In Python 3 this turns on auto-attribute creation; use _ignore_ to
+    shield objects outside the Enum that you want access to during creation
+    (property, classmethod, and staticmethod are shielded by default, but
+    only if a custom _ignore_ is not specified).
+
 ``MultiValue``
 
 Flag to Enum constructor specifying that each item of tuple value is a separate

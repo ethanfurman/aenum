@@ -359,7 +359,13 @@ class _EnumDict(dict):
         self._init = True
 
     def __getitem__(self, key):
-        if self._locked or _is_dunder(key) or key in self:
+        if (
+                self._locked
+                or key in self
+                or key in self._ignore
+                or _is_sunder(key)
+                or _is_dunder(key)
+                ):
             return super(_EnumDict, self).__getitem__(key)
         try:
             # try to generate the next value
@@ -384,7 +390,10 @@ class _EnumDict(dict):
             elif not self._init:
                 raise ValueError('cannot set %r after init phase' % key)
             elif key == '_ignore_':
-                value = value.split()
+                if isinstance(value, basestring):
+                    value = value.split()
+                else:
+                    value = list(value)
                 self._ignore = value
                 already = set(value) & set(self._member_names)
                 if already:
@@ -475,7 +484,10 @@ class EnumMeta(StdlibEnumMeta or type):
                 start = first_enum._start_
         if start is None:
             start = 1
-        return _EnumDict(locked=not autonumber, start=start, multivalue=multivalue)
+        enum_dict = _EnumDict(locked=not autonumber, start=start, multivalue=multivalue)
+        if autonumber:
+            enum_dict['_ignore_'] = ['property', 'classmethod', 'staticmethod']
+        return enum_dict
 
     def __init__(cls, *args , **kwds):
         super(EnumMeta, cls).__init__(*args)
@@ -513,12 +525,13 @@ class EnumMeta(StdlibEnumMeta or type):
         cls_start = clsdict.pop('_start_', None)
         if cls_start is not None and start is not None:
             raise TypeError('start specified in constructor and in class body')
-        if cls_start is not None:
+        elif cls_start is not None:
             start = cls_start
         elif start is not None:
             pass
         elif inh_start is not None:
             start = inh_start
+
         cls_settings = clsdict.pop('_settings_', None)
         if cls_settings and settings:
             raise TypeError('settings specified in constructor and in class body')
@@ -582,7 +595,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 clsdict['_start_'] = start
             clsdict['_init_'] = cls_init
             clsdict['_settings_'] = cls_settings
-            clsdict['_ignore_'] = original_dict.pop('_ignore_', '')
+            clsdict['_ignore_'] = original_dict.pop('_ignore_', [])
             for k in _order_:
                 v = original_dict[k]
                 clsdict[k] = v
@@ -595,9 +608,9 @@ class EnumMeta(StdlibEnumMeta or type):
 
         # remove any keys listed in _ignore_
         clsdict.setdefault('_ignore_', []).append('_ignore_')
-        ignore = clsdict.get('_ignore_', ())
+        ignore = clsdict['_ignore_']
         for key in ignore:
-            del clsdict[key]
+            clsdict.pop(key, None)
 
         # check for clash between class and init
         if init and clsdict.get('__init__'):
