@@ -1,3 +1,11 @@
+1.4.5
+=====
+
+revert AutoNumberEnum to custom __new__ instead of AutoNumber
+use _ignore_ to shield against AutoNumber magic
+inherit start and init settings from base Enums
+
+
 1.4.4
 =====
 
