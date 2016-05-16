@@ -1380,7 +1380,11 @@ class AutoNumberEnum(Enum):
     Py3: numbers match creation order
     Py2: numbers are assigned alphabetically by member name
     """
-    _settings_ = AutoNumber
+    def __new__(cls, *args, **kwds):
+        value = len(cls.__members__) + 1
+        obj = object.__new__(cls)
+        obj._value_ = value
+        return obj
 
 class MultiValueEnum(Enum):
     """
