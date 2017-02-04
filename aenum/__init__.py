@@ -2,14 +2,20 @@
 
 import sys as _sys
 from collections import OrderedDict, defaultdict
+try:
+    import sqlite3
+except ImportError:
+    sqlite3 = None
 
 __all__ = [
         'NamedConstant', 'constant', 'skip'
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
         'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
         'enum', 'extend_enum', 'unique',
-        'NamedTuple',
+        'NamedTuple', 'SqliteEnum',
         ]
+if sqlite3 is None:
+    __all__.remove('SqliteEnum')
 
 version = 1, 4, 5
 
@@ -52,10 +58,11 @@ except NameError:
 
 try:
     # derive from stdlib enum if possible
-    from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum
     import enum
     if hasattr(enum, 'version'):
         StdlibEnumMeta = StdlibEnum = None
+    else:
+        from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum
     del enum
 except ImportError:
     StdlibEnumMeta = StdlibEnum = None
@@ -1422,10 +1429,11 @@ class OrderedEnum(Enum):
             return self._value_ < other._value_
         return NotImplemented
 
-class SqliteEnum(Enum):
-    def __conform__(self, protocol):
-        if protocol is sqlite3.PrepareProtocol:
-            return self.name
+if sqlite3:
+    class SqliteEnum(Enum):
+        def __conform__(self, protocol):
+            if protocol is sqlite3.PrepareProtocol:
+                return self.name
 
 class UniqueEnum(Enum):
     """
