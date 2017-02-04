@@ -304,7 +304,7 @@ def export(collection, namespace=None):
         for n, m in data:
             namespace[n] = m
     else:
-        raise TypeError('%r is not a supported collection' % (enumeration,) )
+        raise TypeError('%r is not a supported collection' % (collection,) )
     return collection
 
 # Constants used in Enum
@@ -1908,7 +1908,7 @@ class NamedTupleMeta(type):
             if isinstance(names, NamedTupleMeta):
                 names.__name__ = class_name
                 if type is not None and type not in names.__bases__:
-                    names.__bases__ = (type, ) + bases
+                    names.__bases__ = (type, ) + names.__bases__
                 return names
 
             metacls = cls.__class__
