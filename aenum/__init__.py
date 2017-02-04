@@ -297,7 +297,7 @@ def export(collection, namespace=None):
         for n, m in data:
             namespace[n] = m
     else:
-        raise TypeError('%r is not a supported collection' % enumeration)
+        raise TypeError('%r is not a supported collection' % (enumeration,) )
     return collection
 
 # Constants used in Enum
@@ -329,7 +329,7 @@ class enum(object):
 
     def __repr__(self):
         final = []
-        args = ', '.join(['%r' % a for a in self.args])
+        args = ', '.join(['%r' % (a, ) for a in self.args])
         if args:
             final.append(args)
         kwds = ', '.join([('%s=%r') % (k, v) for k, v in enumsort(list(self.kwds.items()))])
@@ -374,7 +374,7 @@ class _EnumDict(dict):
             return value
         except:
             # couldn't work the magic, report error
-            raise KeyError('%s not found' % key)
+            raise KeyError('%s not found' % (key,))
 
     def __setitem__(self, key, value):
         """Changes anything not sundured, dundered, nor a descriptor.
@@ -388,7 +388,7 @@ class _EnumDict(dict):
             if key not in ('_init_', '_settings_', '_order_', '_ignore_', '_start_'):
                 raise ValueError('_names_ are reserved for future Enum use')
             elif not self._init:
-                raise ValueError('cannot set %r after init phase' % key)
+                raise ValueError('cannot set %r after init phase' % (key,))
             elif key == '_ignore_':
                 if isinstance(value, basestring):
                     value = value.split()
@@ -413,7 +413,7 @@ class _EnumDict(dict):
                 allowed_settings = dict.fromkeys(['autonumber', 'noalias', 'unique', 'multivalue'])
                 for arg in value:
                     if arg not in allowed_settings:
-                        raise TypeError('unknown qualifier: %r' % arg)
+                        raise TypeError('unknown qualifier: %r' % (arg,))
                     allowed_settings[arg] = True
                 self._locked = not allowed_settings['autonumber']
                 self._multivalue = allowed_settings['multivalue']
@@ -471,7 +471,7 @@ class EnumMeta(StdlibEnumMeta or type):
         allowed_settings = dict.fromkeys(['autonumber', 'noalias', 'unique', 'multivalue'])
         for arg in settings:
             if arg not in allowed_settings:
-                raise TypeError('unknown qualifier: %r' % arg)
+                raise TypeError('unknown qualifier: %r' % (arg,))
             allowed_settings[arg] = True
         autonumber = allowed_settings['autonumber'] or (start is not None)
         multivalue = allowed_settings['multivalue']
@@ -541,7 +541,7 @@ class EnumMeta(StdlibEnumMeta or type):
             settings = cls_settings or settings
         for arg in settings:
             if arg not in allowed_settings:
-                raise TypeError('unknown qualifier: %r' % arg)
+                raise TypeError('unknown qualifier: %r' % (arg,))
             allowed_settings[arg] = allowed_settings[arg] or True
         autonumber = allowed_settings['autonumber'] or (start is not None)
         multivalue = allowed_settings['multivalue']
@@ -761,7 +761,7 @@ class EnumMeta(StdlibEnumMeta or type):
                         value in enum_class._value2member_map_
                         or any(v == value for (v, m) in enum_class._value2member_seq_)
                         ):
-                    raise ValueError('%r has already been used' % value)
+                    raise ValueError('%r has already been used' % (value,))
                 try:
                     # This may fail if value is not hashable. We can't add the value
                     # to the map, and by-value lookups for this value will be
@@ -930,7 +930,7 @@ class EnumMeta(StdlibEnumMeta or type):
             raise AttributeError('Cannot rebind %s.' % name)
         cur_obj = cls.__dict__.get(name)
         if isinstance(cur_obj, constant):
-            raise AttributeError('Cannot rebind %r' % cur_obj)
+            raise AttributeError('Cannot rebind %r' % (cur_obj,))
         super(EnumMeta, cls).__setattr__(name, value)
 
     def _create_(cls, class_name, names=None, module=None, type=None, start=1):
@@ -1471,7 +1471,7 @@ def extend_enum(enumeration, name, *args):
         _value2member_map_ = enumeration._value2member_map_
         base_attributes = set([a for b in enumeration.mro() for a in b.__dict__])
     except AttributeError:
-        raise TypeError('%r is not a supported Enum' % enumeration)
+        raise TypeError('%r is not a supported Enum' % (enumeration,))
     try:
         _value2member_seq_ = enumeration._value2member_seq_
         _auto_number_ = enumeration._auto_number_
@@ -1555,7 +1555,7 @@ def extend_enum(enumeration, name, *args):
                 value in _value2member_map_
                 or any(v == value for (v, m) in _value2member_seq_)
                 ):
-            raise ValueError('%r has already been used' % value)
+            raise ValueError('%r has already been used' % (value,))
         try:
             # This may fail if value is not hashable. We can't add the value
             # to the map, and by-value lookups for this value will be
@@ -2019,7 +2019,7 @@ del __repr__
 
 def __str__(self):
     return "%s(%s)" % (
-            self.__class__.__name__, ', '.join(['%r' % (getattr(self, f)) for f in self._fields_])
+            self.__class__.__name__, ', '.join(['%r' % (getattr(self, f), ) for f in self._fields_])
             )
 temp_namedtuple_dict['__str__'] = __str__
 del __str__
