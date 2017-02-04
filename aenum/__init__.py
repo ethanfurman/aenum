@@ -67,6 +67,9 @@ try:
 except ImportError:
     StdlibEnumMeta = StdlibEnum = None
 
+# will be exported later
+AutoNumber = MultiValue = NoAlias = Unique = None
+
 class _RouteClassAttributeToGetattr(object):
     """Route attribute access on a class to __getattr__.
 
@@ -521,8 +524,8 @@ class EnumMeta(StdlibEnumMeta or type):
                 unique=unique,
                 multivalue=multivalue,
                 )
-        org_init = init
-        org_start = start
+        # org_init = init
+        # org_start = start
         cls_init = clsdict.pop('_init_', None)
         if cls_init and init:
             raise TypeError('init specified in constructor and in class body')
@@ -804,7 +807,7 @@ class EnumMeta(StdlibEnumMeta or type):
         # things break (such as pickle)
         for name in ('__repr__', '__str__', '__format__', '__reduce_ex__'):
             class_method = getattr(enum_class, name)
-            obj_method = getattr(member_type, name, None)
+            # obj_method = getattr(member_type, name, None)
             enum_method = getattr(first_enum, name, None)
             if name not in clsdict and class_method is not enum_method:
                 if name == '__reduce_ex__' and unpicklable:
@@ -1482,18 +1485,18 @@ def extend_enum(enumeration, name, *args):
         raise TypeError('%r is not a supported Enum' % (enumeration,))
     try:
         _value2member_seq_ = enumeration._value2member_seq_
-        _auto_number_ = enumeration._auto_number_
+        # _auto_number_ = enumeration._auto_number_
         _multi_value_ = enumeration._multi_value_
         _no_alias_ = enumeration._no_alias_
-        _unique_ = enumeration._unique_
+        # _unique_ = enumeration._unique_
         _auto_init_ = enumeration._init_
     except AttributeError:
         # standard Enum
         _value2member_seq_ = []
-        _auto_number_ = False
+        # _auto_number_ = False
         _multi_value_ = False
         _no_alias_ = False
-        _unique_ = False
+        # _unique_ = False
         _auto_init_ = ''
     _new = getattr(enumeration, '__new_member__', object.__new__)
     if _new is object.__new__:
