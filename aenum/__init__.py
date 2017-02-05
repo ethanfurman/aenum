@@ -17,7 +17,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 1, 4, 6
+version = 1, 4, 7
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
