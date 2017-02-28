@@ -323,7 +323,7 @@ lookup of the value of A and B will return A.  By-name lookup of B will also
 return A::
 
     >>> class Shape(Enum):
-    ...   _order_ = 'square diamond circle alias_for_square'  # needed in 2.x
+    ...   _order_ = 'square diamond circle'  # needed in 2.x
     ...   square = 2
     ...   diamond = 1
     ...   circle = 3
@@ -343,7 +343,7 @@ that none exist in a particular enumeration::
     >>> from aenum import unique
     >>> @unique
     ... class Mistake(Enum):
-    ...   _order_ = 'one two three four'  # only needed in 2.x
+    ...   _order_ = 'one two three'  # only needed in 2.x
     ...   one = 1
     ...   two = 2
     ...   three = 3
@@ -614,6 +614,121 @@ unrelated enumerations).  It should be used only in special cases where
 there's no other choice; for example, when integer constants are
 replaced with enumerations and backwards compatibility is required with code
 that still expects integers.
+
+
+IntFlag
+^^^^^^^
+
+The next variation of ``Enum`` provided, ``IntFlag``, is also based
+on ``int``.  The difference being ``IntFlag`` members can be combined
+using the bitwise operators (&, \|, ^, ~) and the result is still an
+``IntFlag`` member.  However, as the name implies, ``IntFlag``
+members also subclass ``int`` and can be used wherever an ``int`` is
+used.  Any operation on an ``IntFlag`` member besides the bit-wise
+operations will lose the ``IntFlag`` membership.
+
+Sample ``IntFlag`` class::
+
+    >>> from aenum import IntFlag
+    >>> class Perm(IntFlag):
+    ...     R = 4
+    ...     W = 2
+    ...     X = 1
+    ...
+    >>> Perm.R | Perm.W
+    <Perm.R|W: 6>
+    >>> Perm.R + Perm.W
+    6
+    >>> RW = Perm.R | Perm.W
+    >>> Perm.R in RW
+    True
+
+It is also possible to name the combinations::
+
+    >>> class Perm(IntFlag):
+    ...     R = 4
+    ...     W = 2
+    ...     X = 1
+    ...     RWX = 7
+    >>> Perm.RWX
+    <Perm.RWX: 7>
+    >>> ~Perm.RWX
+    <Perm.-8: -8>
+
+Another important difference between ``IntFlag`` and ``Enum`` is that
+if no flags are set (the value is 0), its boolean evaluation is ``False``::
+
+    >>> Perm.R & Perm.X
+    <Perm.0: 0>
+    >>> bool(Perm.R & Perm.X)
+    False
+
+Because ``IntFlag`` members are also subclasses of ``int`` they can
+be combined with them::
+
+    >>> Perm.X | 8
+    <Perm.8|X: 9>
+
+
+Flag
+^^^^
+
+The last variation is ``Flag``.  Like ``IntFlag``, ``Flag``
+members can be combined using the bitwise operators (&, \|, ^, ~).  Unlike
+``IntFlag``, they cannot be combined with, nor compared against, any
+other ``Flag`` enumeration, nor ``int``.  While it is possible to
+specify the values directly it is recommended to use ``auto`` as the
+value and let ``Flag`` select an appropriate value.
+
+Like ``IntFlag``, if a combination of ``Flag`` members results in no
+flags being set, the boolean evaluation is ``False``::
+
+    >>> from aenum import Flag, auto
+    >>> class Color(Flag):
+    ...     RED = auto()
+    ...     BLUE = auto()
+    ...     GREEN = auto()
+    ...
+    >>> Color.RED & Color.GREEN
+    <Color.0: 0>
+    >>> bool(Color.RED & Color.GREEN)
+    False
+
+Individual flags should have values that are powers of two (1, 2, 4, 8, ...),
+while combinations of flags won't::
+
+    --> class Color(Flag):
+    ...     RED = auto()
+    ...     BLUE = auto()
+    ...     GREEN = auto()
+    ...     WHITE = RED | BLUE | GREEN
+    ...
+    --> Color.WHITE
+    <Color.WHITE: 7>
+
+Giving a name to the "no flags set" condition does not change its boolean
+value::
+
+    >>> class Color(Flag):
+    ...     BLACK = 0
+    ...     RED = auto()
+    ...     BLUE = auto()
+    ...     GREEN = auto()
+    ...
+    >>> Color.BLACK
+    <Color.BLACK: 0>
+    >>> bool(Color.BLACK)
+    False
+
+.. note::
+
+    For the majority of new code, ``Enum`` and ``Flag`` are strongly
+    recommended, since ``IntEnum`` and ``IntFlag`` break some
+    semantic promises of an enumeration (by being comparable to integers, and
+    thus by transitivity to other unrelated enumerations).  ``IntEnum``
+    and ``IntFlag`` should be used only in cases where ``Enum`` and
+    ``Flag`` will not do; for example, when integer constants are replaced
+    with enumerations, or for interoperability with other systems.
 
 
 Others

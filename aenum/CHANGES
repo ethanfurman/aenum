@@ -1,3 +1,23 @@
+2.0.0
+=====
+
+Flag and IntFlag added.
+
+
+1.4.7
+=====
+
+fix %-interpolation bug
+defined SqlLiteEnum only if sqlite exists
+support pyflakes
+
+
+1.4.6
+=====
+
+version numbering error
+
+
 1.4.5
 =====
 
