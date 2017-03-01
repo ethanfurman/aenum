@@ -34,7 +34,7 @@ Utility functions include:
 
 data = dict(
        name='aenum',
-       version='1.4.7',
+       version='2.0.0',
        url='https://bitbucket.org/stoneleaf/aenum',
        packages=['aenum'],
        package_data={
