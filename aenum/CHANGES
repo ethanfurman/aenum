@@ -1,3 +1,10 @@
+2.0.1
+=====
+
+auto() now works with other data types
+AutoNumber supports legacy Enums (fixed regression)
+
+
 2.0.0
 =====
 

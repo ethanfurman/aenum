@@ -15,7 +15,14 @@ except ImportError:
 
 if pyver >= 3:
     from functools import reduce
+
 from operator import or_ as _or_, and_ as _and_, xor as _xor_, inv as _inv_
+from operator import abs as _abs_, add as _add_, floordiv as _floordiv_
+from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
+from operator import mul as _mul_, neg as _neg_, pos as _pos_, pow as _pow_
+from operator import truediv as _truediv_, sub as _sub_
+if pyver < 3:
+    from operator import div as _div_
 
 __all__ = [
         'NamedConstant', 'constant', 'skip'
@@ -27,7 +34,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 0
+version = 2, 0, 1, 2
 
 try:
     any
@@ -365,11 +372,15 @@ class auto(object):
     _operations = []
 
     def __and__(self, other):
-        if not isinstance(other, self.__class__):
-            raise NotImplemented
         new_auto = self.__class__()
         new_auto._operations = self._operations[:]
         new_auto._operations.append((_and_, (self, other)))
+        return new_auto
+
+    def __rand__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_and_, (other, self)))
         return new_auto
 
     def __invert__(self):
@@ -379,20 +390,169 @@ class auto(object):
         return new_auto
 
     def __or__(self, other):
-        if not isinstance(other, self.__class__):
-            raise NotImplemented
         new_auto = self.__class__()
         new_auto._operations = self._operations[:]
         new_auto._operations.append((_or_, (self, other)))
         return new_auto
 
+    def __ror__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_or_, (other, self)))
+        return new_auto
+
     def __xor__(self, other):
-        if not isinstance(other, self.__class__):
-            raise NotImplemented
         new_auto = self.__class__()
         new_auto._operations = self._operations[:]
         new_auto._operations.append((_xor_, (self, other)))
         return new_auto
+
+    def __rxor__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_xor_, (other, self)))
+        return new_auto
+
+    def __abs__(self):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_abs_, (self, )))
+        return new_auto
+
+    def __add__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_add_, (self, other)))
+        return new_auto
+
+    def __radd__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_add_, (other, self)))
+        return new_auto
+
+    def __neg__(self):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_neg_, (self, )))
+        return new_auto
+
+    def __pos__(self):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_pos_, (self, )))
+        return new_auto
+
+    if pyver < 3:
+        def __div__(self, other):
+            new_auto = self.__class__()
+            new_auto._operations = self._operations[:]
+            new_auto._operations.append((_div_, (self, other)))
+            return new_auto
+
+    def __rdiv__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_div_, (other, self)))
+        return new_auto
+
+    def __floordiv__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_floordiv_, (self, other)))
+        return new_auto
+
+    def __rfloordiv__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_floordiv_, (other, self)))
+        return new_auto
+
+    def __truediv__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_truediv_, (self, other)))
+        return new_auto
+
+    def __rtruediv__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_truediv_, (other, self)))
+        return new_auto
+
+    def __lshift__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_lshift_, (self, other)))
+        return new_auto
+
+    def __rlshift__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_lshift_, (other, self)))
+        return new_auto
+
+    def __rshift__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_rshift_, (self, other)))
+        return new_auto
+
+    def __rrshift__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_rshift_, (other, self)))
+        return new_auto
+
+    def __mod__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_mod_, (self, other)))
+        return new_auto
+
+    def __rmod__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_mod_, (other, self)))
+        return new_auto
+
+    def __mul__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_mul_, (self, other)))
+        return new_auto
+
+    def __rmul__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_mul_, (other, self)))
+        return new_auto
+
+    def __pow__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_pow_, (self, other)))
+        return new_auto
+
+    def __rpow__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_pow_, (other, self)))
+        return new_auto
+
+    def __sub__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_sub_, (self, other)))
+        return new_auto
+
+    def __rsub__(self, other):
+        new_auto = self.__class__()
+        new_auto._operations = self._operations[:]
+        new_auto._operations.append((_sub_, (other, self)))
+        return new_auto
+
+
 
     @property
     def value(self):
@@ -403,11 +563,18 @@ class auto(object):
         elif self._value is not _auto_null:
             return self._value
         else:
+            cls = self.__class__
             for op, params in self._operations:
+                values = []
                 for param in params:
-                    if param.value is _auto_null:
-                        raise ValueError('unable to complete pending operations')
-                value = op(*[p._value for p in params])
+                    if isinstance(param, cls):
+                        if param.value is _auto_null:
+                            raise ValueError('unable to complete pending operations')
+                        else:
+                            values.append(param.value)
+                    else:
+                        values.append(param)
+                value = op(*values)
             self._operations[:] = []
             self._value = value
             return value
@@ -550,8 +717,6 @@ class _EnumDict(dict):
                 self._locked = not (self._autonumber or self._autovalue)
                 if self._autonumber and self._value is None:
                     self._value = 0
-                if self._autonumber and self._init is None:
-                    self._init = []
             elif key == '_init_':
                 if self._constructor_init:
                     raise TypeError('init specified in constructor and in class body')
@@ -587,8 +752,6 @@ class _EnumDict(dict):
             elif self._autovalue:
                 pass
             elif self._autonumber and not self._locked:
-                if self._init is None:
-                    raise TypeError('AutoNumber requires init')
                 # convert any auto instances to integers
                 if isinstance(value, auto):
                     value = self._value + 1
@@ -609,7 +772,15 @@ class _EnumDict(dict):
                 if isinstance(value, int):
                     self._value = value
                 elif isinstance(value, tuple):
-                    if len(value) == len(self._init):
+                    if self._init is None:
+                        # old behavior -> if first item is int, use it as value
+                        #                 otherwise, generate a value and prepend it
+                        if value and isinstance(value[0], baseinteger):
+                            self._value = value[0]
+                        else:
+                            self._value += 1
+                            value = (self._value, ) + value
+                    elif len(value) == len(self._init):
                         # provide actual value for member
                         self._value += 1
                         value = (self._value, ) + value
@@ -624,7 +795,7 @@ class _EnumDict(dict):
                         # mismatch
                         raise TypeError('%s: number of fields provided do not match init' % key)
                 else:
-                    if len(self._init) != 1 or 'value' in self._init:
+                    if self._init is not None and (len(self._init) != 1 or 'value' in self._init):
                         raise TypeError('%s: number of fields provided do not match init' % key)
                     count = self._value + 1
                     value = count, value
@@ -690,8 +861,6 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_dict = _EnumDict(settings=settings, start=start, constructor_init=constructor_init, constructor_start=constructor_start)
         if settings & set([AutoValue, AutoNumber]) or start is not None:
             enum_dict['_ignore_'] = ['property', 'classmethod', 'staticmethod']
-            if (AutoNumber in settings or start is not None) and init is None:
-                init = []
         if generate:
             enum_dict['_generate_next_value_'] = generate
         if init is not None:
@@ -752,7 +921,9 @@ class EnumMeta(StdlibEnumMeta or type):
         if start is not None:
             start += 1
         creating_init = []
-        if init is not None:
+        if init is None and (AutoNumber in settings or start is not None):
+                creating_init = ['value']
+        elif init is not None:
             if (AutoNumber in settings or start is not None) and 'value' not in  init:
                 creating_init = ['value'] + init
             else:

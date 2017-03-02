@@ -1,19 +1,33 @@
+from __future__ import division
+import sys
+pyver = float('%s.%s' % sys.version_info[:2])
 import aenum
 import doctest
-import sys
 import unittest
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, Unique
-from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, _auto_null
+from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
+from operator import or_ as _or_, and_ as _and_, xor as _xor_, inv as _inv_
+from operator import abs as _abs_, add as _add_, floordiv as _floordiv_
+from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
+from operator import mul as _mul_, neg as _neg_, pos as _pos_, pow as _pow_
+from operator import truediv as _truediv_, sub as _sub_
+if pyver < 3:
+    from operator import div as _div_
 try:
     import threading
 except ImportError:
     threading = None
 
-pyver = float('%s.%s' % sys.version_info[:2])
+try:
+    basestring
+except NameError:
+    # In Python 2 basestring is the ancestor of both str and unicode
+    # in Python 3 it's just str, but was missing in 3.1
+    basestring = str
 
 try:
     any
@@ -214,57 +228,58 @@ class TestHelpers(TestCase):
                 '__', '___', '____', '_____',):
             self.assertFalse(aenum._is_dunder(s))
 
-    def test_auto_or(self):
-        one, two, four = auto(), auto(), auto()
-        three = one | two
-        seven = three | four
-        with self.assertRaisesRegex(ValueError, 'operations pending'):
-            three.value = 3
-        with self.assertRaisesRegex(ValueError, 'unable to complete'):
-            three.value
-        with self.assertRaisesRegex(ValueError, 'operations pending'):
-            seven.value = 7
-        with self.assertRaisesRegex(ValueError, 'unable to complete'):
-            seven.value
-        one.value = 1
-        two.value = 2
-        four.value = 4
-        self.assertEqual(seven._value, _auto_null)
-        self.assertEqual(seven.value, 7)
-        self.assertEqual(three._value, 3)
-        self.assertEqual(three.value, 3)
-
-    def test_auto_and(self):
-        three, six = auto(), auto()
-        two = three & six
-        with self.assertRaisesRegex(ValueError, 'operations pending'):
-            two.value = 9
-        with self.assertRaisesRegex(ValueError, 'unable to complete'):
-            two.value
-        three.value = 3
-        six.value = 6
-        self.assertEqual(two.value, 2)
-
-    def test_auto_xor(self):
-        one, two = auto(), auto()
-        three = one ^ two
-        with self.assertRaisesRegex(ValueError, 'operations pending'):
-            three.value = -3
-        with self.assertRaisesRegex(ValueError, 'unable to complete'):
-            three.value
-        one.value = 1
-        two.value = 2
-        self.assertEqual(three.value, 3)
-
-    def test_auto_invert(self):
-        one = auto()
-        one_inv = ~one
-        with self.assertRaisesRegex(ValueError, 'operations pending'):
-            one_inv.value = 1
-        with self.assertRaisesRegex(ValueError, 'unable to complete'):
-            one_inv.value
-        one.value = 1
-        self.assertEqual(one_inv.value, -2)
+    def test_auto(self):
+        def tester(first, op, final, second=None):
+            if second is None:
+                left = auto()
+                value = op(left)
+                left.value = first
+                self.assertEqual(value.value, final,
+                        "%s %r -> %r != %r" % (op.__name__, first, value, final))
+            else:
+                left = first
+                right = auto()
+                value = op(left, right)
+                right.value = second
+                self.assertEqual(value.value, final,
+                        "forward: %r %s %r -> %r != %r" % (first, op.__name__, second, value.value, final))
+                left = auto()
+                right = second
+                value = op(left, right)
+                left.value = first
+                self.assertEqual(value.value, final,
+                        "reversed: %r %s %r -> %r != %r" % (second, op.__name__, first, value.value, final))
+        for args in (
+                (1, _abs_, abs(1)),
+                (-3, _abs_, abs(-3)),
+                (1, _add_, 1+2, 2),
+                (25, _floordiv_, 25 // 5, 5),
+                (49, _truediv_, 49 / 9, 9),
+                (6, _mod_, 6 % 9, 9),
+                (5, _lshift_, 5 << 2, 2),
+                (5, _rshift_, 5 >> 2, 2),
+                (3, _mul_, 3 * 6, 6),
+                (5, _neg_, -5),
+                (-4, _pos_, +(-4)),
+                (2, _pow_, 2**5, 5),
+                (7, _sub_, 7 - 10, 10),
+                (1, _or_, 1 | 2, 2),
+                (3, _xor_, 3 ^ 6, 6),
+                (3, _and_, 3 & 6, 6),
+                (7, _inv_, ~7),
+                ('a', _add_, 'a'+'b', 'b'),
+                ('a', _mul_, 'a' * 3, 3),
+                ):
+            tester(*args)
+        # operator.div is gone in 3
+        if pyver < 3:
+            tester(12, _div_, 12 // 5, 5)
+        # strigs are a pain
+        left = auto()
+        right = 'eggs'
+        value = _mod_(left, right)
+        left.value = 'I see 17 %s!'
+        self.assertEqual(value.value, 'I see 17 %s!' % 'eggs')
 
 
 class TestEnum(TestCase):
@@ -1721,6 +1736,35 @@ class TestEnum(TestCase):
         @skip
         def test_init_and_autonumber_and_value(self):
             pass
+
+    def test_no_init_and_autonumber(self):
+        class DocEnum(str, Enum):
+            """
+            compares equal to all cased versions of its name
+            accepts a docstring for each member
+            """
+            _settings_ = AutoNumber
+            def __init__(self, value, doc=None):
+                # first, fix _value_
+                self._value_ = self._name_.lower()
+                self.__doc__ = doc
+            def __eq__(self, other):
+                if isinstance(other, basestring):
+                    return self._value_ == other.lower()
+                elif isinstance(other, self.__class__):
+                    return self is other
+                else:
+                    return False
+            def __ne__(self, other):
+                return not self == other
+            REQUIRED = "required value"
+            OPTION = "single value per name"
+            MULTI = "multiple values per name (list form, no whitespace)"
+            FLAG = "boolean/trivalent value per name"
+            KEYWORD = 'unknown options'
+        self.assertEqual(DocEnum.REQUIRED, 'required')
+        self.assertEqual(DocEnum.REQUIRED, 'Required')
+        self.assertEqual(DocEnum.REQUIRED, 'REQUIRED')
 
     def test_nonhash_value(self):
         class AutoNumberInAList(Enum):
