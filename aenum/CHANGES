@@ -1,3 +1,9 @@
+2.0.2
+=====
+
+both EnumMeta.__getattr__ and Enum.__new__ fall back to _missing_
+
+
 2.0.1
 =====
 
