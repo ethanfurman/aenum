@@ -1633,6 +1633,32 @@ class TestEnum(TestCase):
         self.assertTrue(Grade.D < Grade.A)
         self.assertTrue(Grade.B >= Grade.B)
 
+    def test_missing(self):
+        class Label(Enum):
+            RedApple = 1
+            GreenApple = 2
+            @classmethod
+            def _missing_(cls, name):
+                for member in cls:
+                    if member.name.lower() == name.lower():
+                        return member
+
+        Label.redapple
+        Label('redapple')
+
+    def test_missing_bad_return(self):
+        class Label(Enum):
+            RedApple = 1
+            GreenApple = 2
+            @classmethod
+            def _missing_(cls, name):
+                return None
+
+        with self.assertRaises(AttributeError):
+            Label.redapple
+        with self.assertRaises(ValueError):
+            Label('redapple')
+
     def test_extending2(self):
         def bad_extension():
             class Shade(Enum):
@@ -1683,6 +1709,23 @@ class TestEnum(TestCase):
         self.assertTrue(Color.value in Color)
         self.assertEqual(len(Color), 4)
         self.assertEqual(Color.red.value, 1)
+
+    def test_extend_intenum(self):
+        class Index(Enum):
+            DeviceType    = 0x1000
+            ErrorRegister = 0x1001
+
+        for name, value in (
+                ('ControlWord', 0x6040),
+                ('StatusWord', 0x6041),
+                ('OperationMode', 0x6060),
+                ):
+            extend_enum(Index, name, value)
+
+        self.assertEqual(len(Index), 5)
+        self.assertEqual(list(Index), [Index.DeviceType, Index.ErrorRegister, Index.ControlWord, Index.StatusWord, Index.OperationMode])
+        self.assertEqual(Index.DeviceType.value, 0x1000)
+        self.assertEqual(Index.StatusWord.value, 0x6041)
 
     def test_no_duplicates(self):
         def bad_duplicates():
@@ -3225,6 +3268,10 @@ CONVERT_TEST_NAME_B = 5
 CONVERT_TEST_NAME_A = 5  # This one should sort first.
 CONVERT_TEST_NAME_E = 5
 CONVERT_TEST_NAME_F = 5
+CONVERT_TEST_SIGABRT = 4 # and this one
+CONVERT_TEST_SIGIOT = 4
+CONVERT_TEST_EIO = 7
+CONVERT_TEST_EBUS = 7    # and this one
 
 class TestIntEnumConvert(TestCase):
     def test_convert_value_lookup_priority(self):
@@ -3236,6 +3283,16 @@ class TestIntEnumConvert(TestCase):
         # multiple possible names for a given value.  It should always
         # report the first lexigraphical name in that case.
         self.assertEqual(test_type(5).name, 'CONVERT_TEST_NAME_A')
+        self.assertEqual(test_type(4).name, 'CONVERT_TEST_SIGABRT')
+        self.assertEqual(test_type(7).name, 'CONVERT_TEST_EBUS')
+        self.assertEqual(
+                list(test_type),
+                [
+                    test_type.CONVERT_TEST_SIGABRT,
+                    test_type.CONVERT_TEST_NAME_A,
+                    test_type.CONVERT_TEST_EBUS,
+                    ],
+                )
 
     def test_convert(self):
         test_type = IntEnum._convert(

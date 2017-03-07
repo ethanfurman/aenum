@@ -34,7 +34,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 1
+version = 2, 0, 2, 2
 
 try:
     any
@@ -1207,6 +1207,12 @@ class EnumMeta(StdlibEnumMeta or type):
         try:
             return cls._member_map_[name]
         except KeyError:
+            pass
+        # couldn't find it, try _missing_
+        result = cls._missing_(name)
+        if result in cls:
+            return result
+        else:
             raise AttributeError(name)
 
     def __getitem__(cls, name):
@@ -1517,7 +1523,9 @@ def __new__(cls, value):
             if name == value:
                 return member
     # still not found -- try _missing_ hook
-    return cls._missing_(value)
+    result = cls._missing_(value)
+    if result not in cls:
+        raise ValueError("%r is not a valid %s" % (value, cls.__name__))
 temp_enum_dict['__new__'] = __new__
 del __new__
 
@@ -1535,7 +1543,7 @@ del _generate_next_value_
 
 @classmethod
 def _missing_(cls, value):
-    raise ValueError("%s is not a valid %s" % (value, cls.__name__))
+    raise ValueError("%r is not a valid %s" % (value, cls.__name__))
 temp_enum_dict['_missing_'] = _missing_
 del _missing_
 
