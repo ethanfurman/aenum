@@ -1210,7 +1210,7 @@ class EnumMeta(StdlibEnumMeta or type):
             pass
         # couldn't find it, try _missing_
         result = cls._missing_(name)
-        if result in cls:
+        if isinstance(result, cls):
             return result
         else:
             raise AttributeError(name)
@@ -1524,7 +1524,9 @@ def __new__(cls, value):
                 return member
     # still not found -- try _missing_ hook
     result = cls._missing_(value)
-    if result not in cls:
+    if isinstance(result, cls):
+        return result
+    else:
         raise ValueError("%r is not a valid %s" % (value, cls.__name__))
 temp_enum_dict['__new__'] = __new__
 del __new__
@@ -1543,7 +1545,7 @@ del _generate_next_value_
 
 @classmethod
 def _missing_(cls, value):
-    raise ValueError("%r is not a valid %s" % (value, cls.__name__))
+    return None
 temp_enum_dict['_missing_'] = _missing_
 del _missing_
 
