@@ -350,8 +350,30 @@ class enum(object):
     Helper class to track args, kwds.
     """
     def __init__(self, *args, **kwds):
-        self.args = args
-        self.kwds = kwds
+        self._args = args
+        self._kwds = kwds.items()
+        self._hash = hash(args)
+
+    @property
+    def args(self):
+        return self._args
+
+    @property
+    def kwds(self):
+        return dict([(k, v) for k, v in self._kwds])
+
+    def __hash__(self):
+        return self._hash
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return self.args == other.args and self.kwds == other.kwds
+
+    def __ne__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return self.args != other.args or self.kwds != other.kwds
 
     def __repr__(self):
         final = []

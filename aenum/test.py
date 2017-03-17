@@ -6,7 +6,7 @@ import doctest
 import unittest
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, Unique
-from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto
+from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -45,10 +45,10 @@ except NameError:
 
 try:
     from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum
-    import enum
-    if hasattr(enum, 'version'):
+    import enum as enum_module
+    if hasattr(enum_module, 'version'):
         StdlibEnumMeta = StdlibEnum = None
-    del enum
+    del enum_module
 except ImportError:
     StdlibEnumMeta = StdlibEnum = None
 
@@ -367,6 +367,14 @@ class TestEnum(TestCase):
                     repr(e),
                     '<Season.%s: %s>' % (season, i),
                     )
+    def test_enum_helper(self):
+        e1 = enum(1, 2, three=9)
+        e2 = enum(1, 2, three=9)
+        e3 = enum(1, 2, 9)
+        self.assertTrue(e1 is not e2)
+        self.assertEqual(e1, e2)
+        self.assertNotEqual(e1, e3)
+        self.assertNotEqual(e2, e3)
 
     def test_value_name(self):
         Season = self.Season
