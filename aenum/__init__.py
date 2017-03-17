@@ -34,7 +34,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 2
+version = 2, 0, 3, 1
 
 try:
     any
@@ -667,10 +667,13 @@ class _EnumDict(dict):
         if _is_sunder(key):
             if key not in (
                     '_init_', '_settings_', '_order_', '_ignore_', '_start_',
-                    '_create_pseudo_member_', '_generate_next_value_', '_missing_',
+                    '_create_pseudo_member_', '_generate_next_value_',
+                    '_missing_', '_missing_value_', '_missing_name_',
                     ):
                 raise ValueError('_names_ are reserved for  Enum use')
-            elif not self._allow_init and key not in ('create_pseudo_member_', '_missing_'):
+            elif not self._allow_init and key not in (
+                    'create_pseudo_member_', '_missing_', '_missing_value_', '_missing_name_',
+                ):
                 # sunder is used during creation, must be specified first
                 raise ValueError('cannot set %r after init phase' % (key,))
             elif key == '_ignore_':
@@ -884,6 +887,8 @@ class EnumMeta(StdlibEnumMeta or type):
             _create_pseudo_member_ = clsdict.pop('_create_pseudo_member_', None)
             _generate_next_value_ = clsdict.pop('_generate_next_value_', None)
             _missing_ = clsdict.pop('_missing_', None)
+            _missing_value_ = clsdict.pop('_missing_value_', None)
+            _missing_name_ = clsdict.pop('_missing_name_', None)
             enum_members = dict([
                     (k, v) for (k, v) in clsdict.items()
                     if not (_is_sunder(k) or _is_dunder(k) or _is_descriptor(v))
@@ -898,7 +903,10 @@ class EnumMeta(StdlibEnumMeta or type):
                 calced_order = _order_
             original_dict = clsdict
             clsdict = metacls.__prepare__(cls, bases, init=init, start=start, settings=settings)
-            for name in ('_ignore_', '_create_pseudo_member_', '_generate_next_value_', '_missing_', '_order_'):
+            for name in (
+                    '_ignore_', '_create_pseudo_member_', '_generate_next_value_', '_order_'
+                    , '_missing_', '_missing_value_', '_missing_name_',
+                ):
                 attr = locals()[name]
                 if attr is not None:
                     clsdict[name] = attr
@@ -908,7 +916,8 @@ class EnumMeta(StdlibEnumMeta or type):
             for k, v in original_dict.items():
                 if k not in calced_order:
                     clsdict[k] = v
-            del _order_, _ignore_, _create_pseudo_member_, _generate_next_value_, _missing_
+            del _order_, _ignore_, _create_pseudo_member_, _generate_next_value_
+            del _missing_, _missing_value_, _missing_name_
         # resume normal path
         clsdict._locked = True
         member_type, first_enum = metacls._get_mixins_(bases)
@@ -1207,16 +1216,18 @@ class EnumMeta(StdlibEnumMeta or type):
         try:
             return cls._member_map_[name]
         except KeyError:
-            pass
-        # couldn't find it, try _missing_
-        result = cls._missing_(name)
+            raise AttributeError
+
+    def __getitem__(cls, name):
+        try:
+            return cls._member_map_[name]
+        except KeyError:
+            exc = _sys.exc_info()[1]
+        result = cls._missing_name_(name)
         if isinstance(result, cls):
             return result
         else:
-            raise AttributeError(name)
-
-    def __getitem__(cls, name):
-        return cls._member_map_[name]
+            raise exc
 
     def __iter__(cls):
         return (cls._member_map_[name] for name in cls._member_names_)
@@ -1523,7 +1534,7 @@ def __new__(cls, value):
             if name == value:
                 return member
     # still not found -- try _missing_ hook
-    result = cls._missing_(value)
+    result = cls._missing_value_(value)
     if isinstance(result, cls):
         return result
     else:
@@ -1545,9 +1556,24 @@ del _generate_next_value_
 
 @classmethod
 def _missing_(cls, value):
+    "deprecated, use _missing_value_ instead"
     return None
 temp_enum_dict['_missing_'] = _missing_
 del _missing_
+
+@classmethod
+def _missing_value_(cls, value):
+    "used for failed value access"
+    return cls._missing_(value)
+temp_enum_dict['_missing_value_'] = _missing_value_
+del _missing_value_
+
+@classmethod
+def _missing_name_(cls, name):
+    "used for failed item access"
+    return None
+temp_enum_dict['_missing_name_'] = _missing_name_
+del _missing_name_
 
 def __repr__(self):
     return "<%s.%s: %r>" % (

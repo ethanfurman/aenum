@@ -1633,31 +1633,66 @@ class TestEnum(TestCase):
         self.assertTrue(Grade.D < Grade.A)
         self.assertTrue(Grade.B >= Grade.B)
 
-    def test_missing(self):
+    def test_missing_deprecated(self):
         class Label(Enum):
+            AnyApple = 0
             RedApple = 1
             GreenApple = 2
             @classmethod
             def _missing_(cls, name):
+                return cls.AnyApple
+
+        self.assertEqual(Label.AnyApple, Label(4))
+        with self.assertRaises(AttributeError):
+            Label.redapple
+        with self.assertRaises(KeyError):
+            Label['redapple']
+
+    def test_missing(self):
+        class Label(Enum):
+            AnyApple = 0
+            RedApple = 1
+            GreenApple = 2
+            @classmethod
+            def _missing_value_(cls, name):
+                return cls.AnyApple
+
+        self.assertEqual(Label.AnyApple, Label(4))
+        with self.assertRaises(AttributeError):
+            Label.redapple
+        with self.assertRaises(KeyError):
+            Label['redapple']
+
+    def test_missing_name(self):
+        class Label(Enum):
+            RedApple = 1
+            GreenApple = 2
+            @classmethod
+            def _missing_name_(cls, name):
                 for member in cls:
                     if member.name.lower() == name.lower():
                         return member
 
-        Label.redapple
-        Label('redapple')
+        Label['redapple']
+        with self.assertRaises(AttributeError):
+            Label.redapple
+        with self.assertRaises(ValueError):
+            Label('redapple')
 
-    def test_missing_bad_return(self):
+    def test_missing_name_bad_return(self):
         class Label(Enum):
             RedApple = 1
             GreenApple = 2
             @classmethod
-            def _missing_(cls, name):
+            def _missing_name_(cls, name):
                 return None
 
         with self.assertRaises(AttributeError):
             Label.redapple
         with self.assertRaises(ValueError):
             Label('redapple')
+        with self.assertRaises(KeyError):
+            Label['redapple']
 
     def test_extending2(self):
         def bad_extension():
