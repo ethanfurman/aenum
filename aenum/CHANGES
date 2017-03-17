@@ -1,3 +1,10 @@
+2.0.3
+=====
+
+add _missing_value_ and _missing_name_ methods, deprecate _missing_
+make enum instances comparable
+
+
 2.0.2
 =====
 
