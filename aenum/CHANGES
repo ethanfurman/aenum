@@ -1,3 +1,11 @@
+2.0.4
+=====
+
+_init_ and AutoValue (and _generate_next_value_) can now work together to
+supply missing values even when some of the required values per member are
+absent
+
+
 2.0.3
 =====
 
