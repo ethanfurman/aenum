@@ -24,6 +24,8 @@ from operator import truediv as _truediv_, sub as _sub_
 if pyver < 3:
     from operator import div as _div_
 
+import inspect
+
 __all__ = [
         'NamedConstant', 'constant', 'skip'
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
@@ -34,7 +36,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 3
+version = 2, 0, 4, 1
 
 try:
     any
@@ -151,6 +153,15 @@ def _make_class_unpicklable(cls):
         raise TypeError('%r cannot be pickled' % self)
     cls.__reduce_ex__ = _break_on_call_reduce
     cls.__module__ = '<unknown>'
+
+def _check_auto_args(method):
+    """check if new generate method supports *args and **kwds"""
+    if isinstance(method, staticmethod):
+        method = method.__get__(type)
+    method = getattr(method, 'im_func', method)
+    args, varargs, keywords, defaults = inspect.getargspec(method)
+    return varargs is not None and keywords is not None
+
 
 ################
 # Constant stuff
@@ -386,7 +397,7 @@ class enum(object):
         return 'enum(%s)' % ', '.join(final)
 
 _auto_null = object()
-class auto(object):
+class auto(enum):
     """
     Instances are replaced with an appropriate value in Enum class suites.
     """
@@ -753,6 +764,7 @@ class _EnumDict(dict):
                 self._init = _init_
             elif key == '_generate_next_value_':
                 setattr(self, '_generate_next_value', value)
+                self._auto_args = _check_auto_args(value)
         elif _is_dunder(key):
             if key == '__order__':
                 key = '_order_'
@@ -774,8 +786,29 @@ class _EnumDict(dict):
             if self._multivalue and isinstance(value, tuple):
                 if self._autonumber:
                     self._value = value[0]
-            elif self._autovalue:
-                pass
+            elif self._autovalue and self._init and not isinstance(value, auto):
+                # call generate iff init is specified and calls for more values than are present
+                target_values = len(self._init)
+                if not isinstance(value, tuple):
+                    value = (value, )
+                source_values = len(value)
+                if target_values != source_values:
+                    if self._auto_args:
+                        value = self._generate_next_value(
+                                key, 1,
+                                len(self._member_names),
+                                self._last_values[:],
+                                *value
+                                )
+                    else:
+                        value = self._generate_next_value(
+                                key,
+                                1,
+                                len(self._member_names),
+                                self._last_values[:],
+                                )
+
+
             elif self._autonumber and not self._locked:
                 # convert any auto instances to integers
                 if isinstance(value, auto):
@@ -832,7 +865,22 @@ class _EnumDict(dict):
                     self._value = value
                 else:
                     if value.value == _auto_null:
-                        value.value = self._generate_next_value(key, 1, len(self._member_names), self._last_values[:])
+                        if self._auto_args:
+                            value.value = self._generate_next_value(
+                                    key,
+                                    1,
+                                    len(self._member_names),
+                                    self._last_values[:],
+                                    *value.args,
+                                    **value.kwds
+                                    )
+                        else:
+                            value.value = self._generate_next_value(
+                                    key,
+                                    1,
+                                    len(self._member_names),
+                                    self._last_values[:],
+                                    )
                     value = value.value
             else:
                 pass
@@ -1565,7 +1613,7 @@ temp_enum_dict['__new__'] = __new__
 del __new__
 
 @staticmethod
-def _generate_next_value_(name, start, count, last_values):
+def _generate_next_value_(name, start, count, last_values, *args, **kwds):
     for last_value in reversed(last_values):
         try:
             return last_value + 1

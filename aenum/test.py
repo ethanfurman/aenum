@@ -5,7 +5,7 @@ import aenum
 import doctest
 import unittest
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
-from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, Unique
+from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum
 from collections import OrderedDict
 from datetime import timedelta
@@ -1952,6 +1952,66 @@ class TestEnum(TestCase):
             second = auto()
             third = auto()
         self.assertEqual([Dupes.first, Dupes.second, Dupes.third], list(Dupes))
+
+    def test_auto_value_with_auto(self):
+
+        class SelectionEnum(Enum):
+            _init_ = 'db user'
+            def __new__(cls, *args, **kwds):
+                count = len(cls.__members__)
+                obj = object.__new__(cls)
+                obj._count = count
+                obj._value_ = args
+                obj.db, obj.user = args
+                return obj
+            @staticmethod
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return (name, ) + args
+
+        class Test(SelectionEnum):
+            _order_ = 'this that'
+            this = auto('these')
+            that = auto('those')
+
+        self.assertEqual(list(Test), [Test.this, Test.that])
+        self.assertEqual(Test.this.name, 'this')
+        self.assertEqual(Test.this.value, ('this', 'these'))
+        self.assertEqual(Test.this.db, 'this')
+        self.assertEqual(Test.this.user, 'these')
+        self.assertEqual(Test.that.name, 'that')
+        self.assertEqual(Test.that.value, ('that', 'those'))
+        self.assertEqual(Test.that.db, 'that')
+        self.assertEqual(Test.that.user, 'those')
+
+    def test_auto_value_with_autovalue(self):
+
+        class SelectionEnum(Enum):
+            _init_ = 'db user'
+            _settings_ = AutoValue
+            def __new__(cls, *args, **kwds):
+                count = len(cls.__members__)
+                obj = object.__new__(cls)
+                obj._count = count
+                obj._value_ = args
+                return obj
+            @staticmethod
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return (name, ) + args
+
+        class Test(SelectionEnum):
+            _order_ = 'this that'
+            this = 'these'
+            that = 'those'
+
+        self.assertEqual(list(Test), [Test.this, Test.that])
+        self.assertEqual(Test.this.name, 'this')
+        self.assertEqual(Test.this.value, ('this', 'these'))
+        self.assertEqual(Test.this.db, 'this')
+        self.assertEqual(Test.this.user, 'these')
+        self.assertEqual(Test.that.name, 'that')
+        self.assertEqual(Test.that.value, ('that', 'those'))
+        self.assertEqual(Test.that.db, 'that')
+        self.assertEqual(Test.that.user, 'those')
 
     def test_empty_with_functional_api(self):
         empty = aenum.IntEnum('Foo', {})
