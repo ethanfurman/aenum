@@ -256,6 +256,8 @@ enables ``AutoNumber``::
 The various settings enable special behavior:
 
 - ``AutoNumber`` is the same as specifying ``start=1``
+- ``AutoValue`` calls a user supplied ``_generate_next_value_`` to provide
+  missing/auto() values
 - ``MultiValue`` allows multiple values per member instead of the usual 1
 - ``NoAlias`` allows different members to have the same value
 - ``Unique`` disallows different members to have the same value
@@ -878,8 +880,8 @@ member, use ``skip``::
     >>> Color.opacity
     0.77
 
-start (py3 only)
-^^^^^^^^^^^^^^^^
+start
+^^^^^
 
 When using Python 3 you have the option of turning on auto-numbering
 (useful for when you don't care which numbers are assigned as long as
@@ -891,10 +893,21 @@ they are consistent and in order)::
     >>> Color.blue
     <Color.blue: 3>
 
+This can also be done in Python 2, albeit not as elegantly::
+
+    >>> class Color(Enum):                         # doctest: +SKIP
+    ...     _start_ = 1
+    ...     red = auto()
+    ...     green = auto()
+    ...     blue = auto()
+    ...
+    >>> Color.blue
+    <Color.blue: 3>
+
 .. note:: auto-numbering turns off when a non-member is defined
 
-init (py3 only)
-^^^^^^^^^^^^^^^
+init
+^^^^
 
 If you need an ``__init__`` method that does nothing besides save its
 arguments, ``init`` is for you::
@@ -914,6 +927,40 @@ arguments, ``init`` is for you::
     (1.9e+27, 71492000.0)
     >>> Planet.JUPITER.mass
     1.9e+27
+
+combining init and AutoValue
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When a member will have multiple values, and some of them have an easy to
+calculate default value, ``init`` and ``AutoValue`` can be combined.  Here
+is the Python 2 version::
+
+    >>> from aenum import AutoValue
+    >>> class SelectionEnum(Enum):
+    ...     _init_ = 'db user'
+    ...     _settings_ = AutoValue
+    ...     def __new__(cls, *args, **kwds):
+    ...         count = len(cls.__members__)
+    ...         obj = object.__new__(cls)
+    ...         obj._count = count
+    ...         obj._value_ = args
+    ...         return obj
+    ...     @staticmethod
+    ...     def _generate_next_value_(name, start, count, values, *args, **kwds):
+    ...         return (name, ) + args
+    ...
+    >>> class NotificationType(SelectionEnum):
+    ...     # usually, name is the same as db
+    ...     # but not for blanks
+    ...     blank = '', ''
+    ...     C = 'Catalog'
+    ...     S = 'Sheet'
+    ...     B = 'Both'
+    ...
+    >>> NotificationType.blank
+    <NotificationType.blank: ('', '')>
+    >>> NotificationType.B
+    <NotificationType.B: ('B', 'Both')>
 
 
 Decorators
