@@ -36,7 +36,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 4
+version = 2, 0, 5, 1
 
 try:
     any
@@ -736,8 +736,6 @@ class _EnumDict(dict):
                 self._settings |= set(value)
                 if NoAlias in value and Unique in value:
                     raise TypeError('cannot specify both NoAlias and Unique')
-                elif MultiValue in value and self._init:
-                    raise TypeError('cannot specify both MultiValue and _init_ fields')
                 elif MultiValue in value and NoAlias in value:
                     raise TypeError('cannot specify both MultiValue and NoAlias')
                 elif AutoValue in value and AutoNumber in value:
@@ -756,8 +754,6 @@ class _EnumDict(dict):
             elif key == '_init_':
                 if self._constructor_init:
                     raise TypeError('init specified in constructor and in class body')
-                if value and self._multivalue:
-                    raise TypeError('cannot specify both MultiValue and _init_ fields')
                 _init_ = value
                 if isinstance(_init_, basestring):
                     _init_ = _init_.replace(',',' ').split()
@@ -920,8 +916,6 @@ class EnumMeta(StdlibEnumMeta or type):
         # check for custom settings
         if NoAlias in settings and Unique in settings:
             raise TypeError('cannot specify both NoAlias and Unique')
-        elif MultiValue in settings and init is not None:
-            raise TypeError('cannot specify both MultiValue and INIT fields')
         elif MultiValue in settings and NoAlias in settings:
             raise TypeError('cannot specify both MultiValue and NoAlias')
         elif AutoValue in settings and AutoNumber in settings:
@@ -1086,7 +1080,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 else:
                     value, args = args[0], args[1:]
                 args, more_args = (value, ), args
-            elif multivalue:
+            elif multivalue and not creating_init:
                 args, more_values = args[0:1], args[1:]
                 value = args[0]
             if member_type is tuple:   # special case for tuple enums
@@ -1136,9 +1130,12 @@ class EnumMeta(StdlibEnumMeta or type):
                 setattr(enum_class, member_name, enum_member)
             # now add to _member_map_
             enum_class._member_map_[member_name] = enum_member
-            values = (value, ) + more_values
+            if multivalue and creating_init:
+                values = args
+            else:
+                values = (value, ) + more_values
             enum_member._values_ = values
-            for value in (value, ) + more_values:
+            for value in values:
                 # first check if value has already been used
                 if multivalue and (
                         value in enum_class._value2member_map_

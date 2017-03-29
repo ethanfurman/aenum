@@ -6,7 +6,7 @@ import doctest
 import unittest
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
-from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum
+from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -2159,6 +2159,23 @@ class TestEnum(TestCase):
         self.assertEqual(Color.red.value, 1)
         self.assertEqual(Color.green.value, 2)
         self.assertEqual(Color.blue.value, 3)
+
+    def test_MultiValue_with_init(self):
+        class Color(Enum):
+            _init_ = 'color r g b'
+            _settings_ = MultiValue
+            red = 'red', 1, 2, 3
+            green = 'green', 4, 5, 6
+            blue = 'blue', 7, 8, 9
+        self.assertEqual(Color.red.r, 1)
+        self.assertEqual(Color.red.g, 2)
+        self.assertEqual(Color.red.b, 3)
+        self.assertEqual(Color.green.r, 4)
+        self.assertEqual(Color.green.g, 5)
+        self.assertEqual(Color.green.b, 6)
+        self.assertEqual(Color.blue.r, 7)
+        self.assertEqual(Color.blue.g, 8)
+        self.assertEqual(Color.blue.b, 9)
 
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum):
