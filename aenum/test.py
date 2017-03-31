@@ -274,12 +274,74 @@ class TestHelpers(TestCase):
         # operator.div is gone in 3
         if pyver < 3:
             tester(12, _div_, 12 // 5, 5)
-        # strigs are a pain
+        # strings are a pain
         left = auto()
         right = 'eggs'
         value = _mod_(left, right)
         left.value = 'I see 17 %s!'
         self.assertEqual(value.value, 'I see 17 %s!' % 'eggs')
+
+    def test_constant(self):
+        errors = []
+        def tester(first, op, final, second=None):
+            if second is None:
+                primary = constant(first)
+                secondary = constant(op(primary))
+                if secondary.value != final:
+                    errors.append(
+                        "%s %r -> %r != %r" % (op.__name__, first, secondary.value, final),
+                        )
+            else:
+                left = constant(first)
+                right = second
+                value = op(left, right)
+                if value != final:
+                    errors.append(
+                        "forward: %r %s %r -> %r != %r" % (first, op.__name__, second, value, final),
+                        )
+                left = first
+                right = constant(second)
+                value = op(left, right)
+                if value != final:
+                    errors.append(
+                        "reversed: %r %s %r -> %r != %r" % (second, op.__name__, first, value, final),
+                        )
+        for args in (
+                (1, _abs_, abs(1)),
+                (-3, _abs_, abs(-3)),
+                (1, _add_, 1+2, 2),
+                (25, _floordiv_, 25 // 5, 5),
+                (49, _truediv_, 49 / 9, 9),
+                (6, _mod_, 6 % 9, 9),
+                (5, _lshift_, 5 << 2, 2),
+                (5, _rshift_, 5 >> 2, 2),
+                (3, _mul_, 3 * 6, 6),
+                (5, _neg_, -5),
+                (-4, _pos_, +(-4)),
+                (2, _pow_, 2**5, 5),
+                (7, _sub_, 7 - 10, 10),
+                (1, _or_, 1 | 2, 2),
+                (3, _xor_, 3 ^ 6, 6),
+                (3, _and_, 3 & 6, 6),
+                (7, _inv_, ~7),
+                ('a', _add_, 'a'+'b', 'b'),
+                ('a', _mul_, 'a' * 3, 3),
+                ):
+            tester(*args)
+        # operator.div is gone in 3
+        if pyver < 3:
+            tester(12, _div_, 12 // 5, 5)
+        # strings are a pain
+        left = constant('I see 17 %s!')
+        right = 'eggs'
+        value = _mod_(left, right)
+        if value != 'I see 17 %s!' % 'eggs':
+            errors.append("'I see 17 eggs!' != %r" % value)
+        if errors:
+            print()
+            for error in errors:
+                print(error)
+            self.assertTrue(False)
 
 
 class TestEnum(TestCase):
@@ -2221,13 +2283,20 @@ class TestEnum(TestCase):
                 elementD = 'd'
         self.assertIs(enumA.enumB, enumA.__dict__['enumB'])
 
-    def test_constantness_in_enum(self):
+    def test_constantness_of_constants(self):
         class Universe(Enum):
             PI = constant(3.141596)
             G = constant(6.67300E-11)
         self.assertEqual(Universe.PI, 3.141596)
         self.assertRaisesRegex(AttributeError, 'cannot rebind constant', setattr, Universe, 'PI', 9)
         self.assertRaisesRegex(AttributeError, 'cannot delete constant', delattr, Universe, 'PI')
+
+    def test_math_and_stuff_with_constants(self):
+        class Universe(Enum):
+            PI = constant(3.141596)
+            TAU = constant(2 * PI)
+        self.assertEqual(Universe.PI, 3.141596)
+        self.assertEqual(Universe.TAU, 2 * Universe.PI)
 
     if StdlibEnumMeta is not None:
         def test_stdlib_inheritence(self):

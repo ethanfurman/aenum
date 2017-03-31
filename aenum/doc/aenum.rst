@@ -859,7 +859,7 @@ use ``constant``::
     >>> Planet.G = 9
     Traceback (most recent call last):
     ...
-    AttributeError: Cannot rebind constant(6.673e-11)
+    AttributeError: Planet: cannot rebind constant 'G'
 
 skip
 ^^^^

@@ -169,6 +169,11 @@ def _get_attr_from_chain(cls, attr):
         if obj is not sentinel:
             return obj
 
+def _value(obj):
+    if isinstance(obj, (auto, constant)):
+        return obj.value
+    else:
+        return obj
 
 ################
 # Constant stuff
@@ -189,6 +194,98 @@ class constant(object):
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.value)
+
+    def __and__(self, other):
+        return _and_(self.value, _value(other))
+
+    def __rand__(self, other):
+        return _and_(_value(other), self.value)
+
+    def __invert__(self):
+        return _inv_(self.value)
+
+    def __or__(self, other):
+        return _or_(self.value, _value(other))
+
+    def __ror__(self, other):
+        return _or_(_value(other), self.value)
+
+    def __xor__(self, other):
+        return _xor_(self.value, _value(other))
+
+    def __rxor__(self, other):
+        return _xor_(_value(other), self.value)
+
+    def __abs__(self):
+        return _abs_(self.value)
+
+    def __add__(self, other):
+        return _add_(self.value, _value(other))
+
+    def __radd__(self, other):
+        return _add_(_value(other), self.value)
+
+    def __neg__(self):
+        return _neg_(self.value)
+
+    def __pos__(self):
+        return _pos_(self.value)
+
+    if pyver < 3:
+        def __div__(self, other):
+            return _div_(self.value, _value(other))
+
+    def __rdiv__(self, other):
+        return _div_(_value(other), (self.value))
+
+    def __floordiv__(self, other):
+        return _floordiv_(self.value, _value(other))
+
+    def __rfloordiv__(self, other):
+        return _floordiv_(_value(other), self.value)
+
+    def __truediv__(self, other):
+        return _truediv_(self.value, _value(other))
+
+    def __rtruediv__(self, other):
+        return _truediv_(_value(other), self.value)
+
+    def __lshift__(self, other):
+        return _lshift_(self.value, _value(other))
+
+    def __rlshift__(self, other):
+        return _lshift_(_value(other), self.value)
+
+    def __rshift__(self, other):
+        return _rshift_(self.value, _value(other))
+
+    def __rrshift__(self, other):
+        return _rshift_(_value(other), self.value)
+
+    def __mod__(self, other):
+        return _mod_(self.value, _value(other))
+
+    def __rmod__(self, other):
+        return _mod_(_value(other), self.value)
+
+    def __mul__(self, other):
+        return _mul_(self.value, _value(other))
+
+    def __rmul__(self, other):
+        return _mul_(_value(other), self.value)
+
+    def __pow__(self, other):
+        return _pow_(self.value, _value(other))
+
+    def __rpow__(self, other):
+        return _pow_(_value(other), self.value)
+
+    def __sub__(self, other):
+        return _sub_(self.value, _value(other))
+
+    def __rsub__(self, other):
+        return _sub_(_value(other), self.value)
+
 
 
 NamedConstant = None
@@ -1261,8 +1358,8 @@ class EnumMeta(StdlibEnumMeta or type):
         # (see issue19025).
         if attr in cls._member_map_:
             raise AttributeError(
-                    "%s: cannot delete Enum member %r." % (cls.__name__,
-                    ))
+                    "%s: cannot delete Enum member %r." % (cls.__name__, attr),
+                    )
         if isinstance(_get_attr_from_chain(cls, attr), constant):
             raise AttributeError(
                     "%s: cannot delete constant %r" % (cls.__name__, attr),
