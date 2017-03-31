@@ -1,3 +1,10 @@
+2.0.6
+=====
+
+constants cannot be deleted (they already couldn't be changed)
+constants can be used to define other constants
+
+
 2.0.5
 =====
 
