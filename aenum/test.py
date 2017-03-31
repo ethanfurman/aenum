@@ -2221,6 +2221,14 @@ class TestEnum(TestCase):
                 elementD = 'd'
         self.assertIs(enumA.enumB, enumA.__dict__['enumB'])
 
+    def test_constantness_in_enum(self):
+        class Universe(Enum):
+            PI = constant(3.141596)
+            G = constant(6.67300E-11)
+        self.assertEqual(Universe.PI, 3.141596)
+        self.assertRaisesRegex(AttributeError, 'cannot rebind constant', setattr, Universe, 'PI', 9)
+        self.assertRaisesRegex(AttributeError, 'cannot delete constant', delattr, Universe, 'PI')
+
     if StdlibEnumMeta is not None:
         def test_stdlib_inheritence(self):
             self.assertTrue(isinstance(self.Season, StdlibEnumMeta))

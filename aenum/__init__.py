@@ -36,7 +36,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 5
+version = 2, 0, 6, 1
 
 try:
     any
@@ -161,6 +161,13 @@ def _check_auto_args(method):
     method = getattr(method, 'im_func', method)
     args, varargs, keywords, defaults = inspect.getargspec(method)
     return varargs is not None and keywords is not None
+
+def _get_attr_from_chain(cls, attr):
+    sentinel = object()
+    for basecls in cls.mro():
+        obj = basecls.__dict__.get(attr, sentinel)
+        if obj is not sentinel:
+            return obj
 
 
 ################
@@ -1254,7 +1261,12 @@ class EnumMeta(StdlibEnumMeta or type):
         # (see issue19025).
         if attr in cls._member_map_:
             raise AttributeError(
-                    "%s: cannot delete Enum member." % cls.__name__)
+                    "%s: cannot delete Enum member %r." % (cls.__name__,
+                    ))
+        if isinstance(_get_attr_from_chain(cls, attr), constant):
+            raise AttributeError(
+                    "%s: cannot delete constant %r" % (cls.__name__, attr),
+                    )
         super(EnumMeta, cls).__delattr__(attr)
 
     def __dir__(self):
@@ -1319,10 +1331,14 @@ class EnumMeta(StdlibEnumMeta or type):
         """
         member_map = cls.__dict__.get('_member_map_', {})
         if name in member_map:
-            raise AttributeError('Cannot rebind %s.' % name)
+            raise AttributeError(
+                    '%s: cannot rebind member %r.' % (cls.__name__, name),
+                    )
         cur_obj = cls.__dict__.get(name)
         if isinstance(cur_obj, constant):
-            raise AttributeError('Cannot rebind %r' % (cur_obj,))
+            raise AttributeError(
+                    '%s: cannot rebind constant %r' % (cls.__name__, name),
+                    )
         super(EnumMeta, cls).__setattr__(name, value)
 
     def _create_(cls, class_name, names=None, module=None, type=None, start=1):
