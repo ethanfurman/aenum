@@ -349,12 +349,18 @@ class NamedConstantMeta(type):
             newcls.__new__(newcls, name, obj)
         return newcls
 
+    def __delattr__(cls, attr):
+        cur_obj = cls.__dict__.get(attr)
+        if NamedConstant is not None and isinstance(cur_obj, NamedConstant):
+            raise AttributeError('cannot delete constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
+        super(NamedConstantMeta, cls).__delattr__(attr)
+
     def __setattr__(cls, name, value):
         """Block attempts to reassign NamedConstants.
         """
         cur_obj = cls.__dict__.get(name)
         if NamedConstant is not None and isinstance(cur_obj, NamedConstant):
-            raise AttributeError('Cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
+            raise AttributeError('cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
         super(NamedConstantMeta, cls).__setattr__(name, value)
 
 temp_constant_dict = {}
@@ -363,7 +369,7 @@ temp_constant_dict['__doc__'] = "NamedConstants protection.\n\n    Derive from t
 def __new__(cls, name, value, doc=None):
     cur_obj = cls.__dict__.get(name)
     if isinstance(cur_obj, NamedConstant):
-        raise AttributeError('Cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
+        raise AttributeError('cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
     elif isinstance(value, constant):
         doc = doc or value.__doc__
         value = value.value
@@ -404,7 +410,7 @@ def enumsort(things):
     if not issubclass(sort_type, tuple):
         # direct sort or type error
         if not all((type(v) is sort_type) for v in things[1:]):
-            raise TypeError('Cannot sort items of different types')
+            raise TypeError('cannot sort items of different types')
         return sorted(things)
     else:
         # expecting list of (name, value) tuples
@@ -1526,7 +1532,7 @@ class EnumMeta(StdlibEnumMeta or type):
             if  (base is not Enum and base is not StdlibEnum and
                     issubclass(base, Enum) and
                     base._member_names_):
-                raise TypeError("Cannot extend enumerations via subclassing.")
+                raise TypeError("cannot extend enumerations via subclassing.")
         # base is now the last base in bases
         if not issubclass(base, Enum):
             raise TypeError("new enumerations must be created as "
