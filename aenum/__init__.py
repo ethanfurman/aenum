@@ -36,7 +36,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 6
+version = 2, 0, 7, 1
 
 try:
     any
@@ -835,9 +835,11 @@ class _EnumDict(dict):
                     self._locked = False
                     self._autonumber = True
             elif key == '_settings_':
-                if not isinstance(value, tuple):
-                    value = value,
-                self._settings |= set(value)
+                if not isinstance(value, (set, tuple)):
+                    value = (value, )
+                if not isinstance(value, set):
+                    value = set(value)
+                self._settings |= value
                 if NoAlias in value and Unique in value:
                     raise TypeError('cannot specify both NoAlias and Unique')
                 elif MultiValue in value and NoAlias in value:
@@ -847,7 +849,7 @@ class _EnumDict(dict):
                 allowed_settings = dict.fromkeys(['autovalue', 'autonumber', 'noalias', 'unique', 'multivalue'])
                 for arg in value:
                     if arg not in allowed_settings:
-                        raise TypeError('unknown qualifier: %r' % (arg,))
+                        raise TypeError('unknown qualifier: %r' % (arg, ))
                     allowed_settings[arg] = True
                 self._multivalue = allowed_settings['multivalue']
                 self._autovalue = allowed_settings['autovalue']
@@ -855,6 +857,7 @@ class _EnumDict(dict):
                 self._locked = not (self._autonumber or self._autovalue)
                 if self._autonumber and self._value is None:
                     self._value = 0
+                value = tuple(self._settings)
             elif key == '_init_':
                 if self._constructor_init:
                     raise TypeError('init specified in constructor and in class body')
