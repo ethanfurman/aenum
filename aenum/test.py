@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 import sys
 pyver = float('%s.%s' % sys.version_info[:2])
@@ -2222,22 +2224,110 @@ class TestEnum(TestCase):
         self.assertEqual(Color.green.value, 2)
         self.assertEqual(Color.blue.value, 3)
 
-    def test_MultiValue_with_init(self):
+    def test_MultiValue_with_init_wo_value(self):
         class Color(Enum):
             _init_ = 'color r g b'
             _settings_ = MultiValue
             red = 'red', 1, 2, 3
             green = 'green', 4, 5, 6
             blue = 'blue', 7, 8, 9
+        self.assertEqual(Color.red.value, 'red')
+        self.assertEqual(Color.red.color, 'red')
         self.assertEqual(Color.red.r, 1)
         self.assertEqual(Color.red.g, 2)
         self.assertEqual(Color.red.b, 3)
+        self.assertEqual(Color.green.value, 'green')
+        self.assertEqual(Color.green.color, 'green')
         self.assertEqual(Color.green.r, 4)
         self.assertEqual(Color.green.g, 5)
         self.assertEqual(Color.green.b, 6)
+        self.assertEqual(Color.blue.value, 'blue')
+        self.assertEqual(Color.blue.color, 'blue')
         self.assertEqual(Color.blue.r, 7)
         self.assertEqual(Color.blue.g, 8)
         self.assertEqual(Color.blue.b, 9)
+        self.assertIs(Color('red'), Color.red)
+        self.assertIs(Color(1), Color.red)
+        self.assertIs(Color(2), Color.red)
+        self.assertIs(Color(3), Color.red)
+        self.assertIs(Color('green'), Color.green)
+        self.assertIs(Color(4), Color.green)
+        self.assertIs(Color(5), Color.green)
+        self.assertIs(Color(6), Color.green)
+        self.assertIs(Color('blue'), Color.blue)
+        self.assertIs(Color(7), Color.blue)
+        self.assertIs(Color(8), Color.blue)
+        self.assertIs(Color(9), Color.blue)
+
+    def test_MultiValue_with_init_w_value(self):
+        class Color(Enum):
+            _init_ = 'value r g b'
+            _settings_ = MultiValue
+            red = 'red', 1, 2, 3
+            green = 'green', 4, 5, 6
+            blue = 'blue', 7, 8, 9
+        self.assertEqual(Color.red.value, 'red')
+        self.assertEqual(Color.red.r, 1)
+        self.assertEqual(Color.red.g, 2)
+        self.assertEqual(Color.red.b, 3)
+        self.assertEqual(Color.green.value, 'green')
+        self.assertEqual(Color.green.r, 4)
+        self.assertEqual(Color.green.g, 5)
+        self.assertEqual(Color.green.b, 6)
+        self.assertEqual(Color.blue.value, 'blue')
+        self.assertEqual(Color.blue.r, 7)
+        self.assertEqual(Color.blue.g, 8)
+        self.assertEqual(Color.blue.b, 9)
+        self.assertIs(Color('red'), Color.red)
+        self.assertIs(Color(1), Color.red)
+        self.assertIs(Color(2), Color.red)
+        self.assertIs(Color(3), Color.red)
+        self.assertIs(Color('green'), Color.green)
+        self.assertIs(Color(4), Color.green)
+        self.assertIs(Color(5), Color.green)
+        self.assertIs(Color(6), Color.green)
+        self.assertIs(Color('blue'), Color.blue)
+        self.assertIs(Color(7), Color.blue)
+        self.assertIs(Color(8), Color.blue)
+        self.assertIs(Color(9), Color.blue)
+
+    def test_MultiValue_with_init_wo_value_w_autonumber(self):
+        class Color(Enum):
+            _init_ = 'color r g b'
+            _settings_ = MultiValue, AutoNumber
+            red = 'red', 10, 20, 30
+            green = 'green', 40, 50, 60
+            blue = 'blue', 70, 80, 90
+        self.assertEqual(Color.red.value, 1)
+        self.assertEqual(Color.red.color, 'red')
+        self.assertEqual(Color.red.r, 10)
+        self.assertEqual(Color.red.g, 20)
+        self.assertEqual(Color.red.b, 30)
+        self.assertEqual(Color.green.value, 2)
+        self.assertEqual(Color.green.color, 'green')
+        self.assertEqual(Color.green.r, 40)
+        self.assertEqual(Color.green.g, 50)
+        self.assertEqual(Color.green.b, 60)
+        self.assertEqual(Color.blue.value, 3)
+        self.assertEqual(Color.blue.color, 'blue')
+        self.assertEqual(Color.blue.r, 70)
+        self.assertEqual(Color.blue.g, 80)
+        self.assertEqual(Color.blue.b, 90)
+        self.assertIs(Color(1), Color.red)
+        self.assertIs(Color('red'), Color.red)
+        self.assertIs(Color(10), Color.red)
+        self.assertIs(Color(20), Color.red)
+        self.assertIs(Color(30), Color.red)
+        self.assertIs(Color(2), Color.green)
+        self.assertIs(Color('green'), Color.green)
+        self.assertIs(Color(40), Color.green)
+        self.assertIs(Color(50), Color.green)
+        self.assertIs(Color(60), Color.green)
+        self.assertIs(Color(3), Color.blue)
+        self.assertIs(Color('blue'), Color.blue)
+        self.assertIs(Color(70), Color.blue)
+        self.assertIs(Color(80), Color.blue)
+        self.assertIs(Color(90), Color.blue)
 
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum):
@@ -3511,3 +3601,4 @@ class TestIntEnumConvert(TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
