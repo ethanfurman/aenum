@@ -2324,6 +2324,7 @@ class TestEnum(TestCase):
     def test_MultiValue_with_init_wo_value(self):
         class Color(Enum):
             _init_ = 'color r g b'
+            _order_ = 'red green blue'
             _settings_ = MultiValue
             red = 'red', 1, 2, 3
             green = 'green', 4, 5, 6
@@ -2359,6 +2360,7 @@ class TestEnum(TestCase):
     def test_MultiValue_with_init_w_value(self):
         class Color(Enum):
             _init_ = 'value r g b'
+            _order_ = 'red green blue'
             _settings_ = MultiValue
             red = 'red', 1, 2, 3
             green = 'green', 4, 5, 6
@@ -2391,6 +2393,7 @@ class TestEnum(TestCase):
     def test_MultiValue_with_init_wo_value_w_autonumber(self):
         class Color(Enum):
             _init_ = 'color r g b'
+            _order_ = 'red green blue'
             _settings_ = MultiValue, AutoNumber
             red = 'red', 10, 20, 30
             green = 'green', 40, 50, 60
