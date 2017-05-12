@@ -480,7 +480,7 @@ any members.  So this is forbidden::
     ...   pink = 17
     Traceback (most recent call last):
     ...
-    TypeError: Cannot extend enumerations via subclassing.
+    TypeError: cannot extend enumerations via subclassing.
 
 But this is allowed::
 
@@ -1462,4 +1462,4 @@ A ``NamedConstant`` class is created much like an ``Enum``::
     >>> Konstant.PI = 'apple'
     Traceback (most recent call last):
     ...
-    AttributeError: Cannot rebind constant <Konstant.PI>
+    AttributeError: cannot rebind constant <Konstant.PI>

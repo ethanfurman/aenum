@@ -3676,7 +3676,10 @@ class TestNamedConstant(TestCase):
             TAU = 2 * PI
         self.assertEqual(K.PI, 3.141596)
         self.assertEqual(K.TAU, 2 * K.PI)
-        self.assertRaises(AttributeError, setattr, K, 'PI', 9)
+        with self.assertRaisesRegex(AttributeError, 'cannot rebind constant'):
+            K.PI = 9
+        with self.assertRaisesRegex(AttributeError, 'cannot delete constant'):
+            del K.PI
 
     def test_duplicates(self):
         class CardNumber(NamedConstant):
