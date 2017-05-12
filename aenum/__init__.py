@@ -849,7 +849,7 @@ class _EnumDict(dict):
                 allowed_settings = dict.fromkeys(['autovalue', 'autonumber', 'noalias', 'unique', 'multivalue'])
                 for arg in value:
                     if arg not in allowed_settings:
-                        raise TypeError('unknown qualifier: %r' % (arg, ))
+                        raise TypeError('unknown qualifier: %r (from %r)' % (arg, value))
                     allowed_settings[arg] = True
                 self._multivalue = allowed_settings['multivalue']
                 self._autovalue = allowed_settings['autovalue']
@@ -886,7 +886,17 @@ class _EnumDict(dict):
             if key in self:
                 # enum overwriting a descriptor?
                 raise TypeError('%s already defined as: %r' % (key, self[key]))
-            if self._multivalue and isinstance(value, tuple):
+            if self._multivalue:
+                # make sure it's a tuple
+                if not isinstance(value, tuple):
+                    value = (value, )
+                # do we need to calculate the next value?
+                if self._autonumber and self._init:
+                    target_length = len(self._init)
+                    if self._init[0] != 'value':
+                        target_length += 1
+                    if len(value) != target_length:
+                        value = (self._value + 1, ) + value
                 if self._autonumber:
                     self._value = value[0]
             elif self._autovalue and self._init and not isinstance(value, auto):
@@ -1101,9 +1111,11 @@ class EnumMeta(StdlibEnumMeta or type):
         if start is not None:
             start += 1
         creating_init = []
+        auto_init = False
         if init is None and (AutoNumber in settings or start is not None):
                 creating_init = ['value']
         elif init is not None:
+            auto_init = True
             if (AutoNumber in settings or start is not None) and 'value' not in  init:
                 creating_init = ['value'] + init
             else:
@@ -1113,10 +1125,10 @@ class EnumMeta(StdlibEnumMeta or type):
         multivalue = MultiValue in settings
         noalias = NoAlias in settings
         unique = Unique in settings
-        # an Enum class is final once enumeration items have been defined; it
-        # cannot be mixed with other types (int, float, etc.) if it has an
-        # inherited __new__ unless a new __new__ is defined (or the resulting
-        # class will fail).
+        # an Enum class cannot be mixed with other types (int, float, etc.) if
+        #   it has an inherited __new__ unless a new __new__ is defined (or
+        #   the resulting class will fail).
+        # an Enum class is final once enumeration items have been defined;
         #
         # remove any keys listed in _ignore_
         clsdict.setdefault('_ignore_', []).append('_ignore_')
@@ -1171,8 +1183,9 @@ class EnumMeta(StdlibEnumMeta or type):
         for member_name in clsdict._member_names:
             value = enum_members[member_name]
             kwds = {}
-            more_args = ()
-            more_values = ()
+            new_args = ()
+            init_args = ()
+            extra_mv_args = ()
             if isinstance(value, enum):
                 args = value.args
                 kwds = value.kwds
@@ -1180,30 +1193,54 @@ class EnumMeta(StdlibEnumMeta or type):
                 args = (value, )
             else:
                 args = value
-            # tease value out of creating_init if specified
-            if 'value' in creating_init:
-                if 'value' in kwds:
-                    value = kwds.pop('value')
+            # possibilities
+            #
+            # - no init, multivalue  -> __new__[0], __init__(*[:]), extra=[1:]
+            # - init w/o value, multivalue  -> __new__[0], __init__(*[:]), extra=[1:]
+            #
+            # - init w/value, multivalue  -> __new__[0], __init__(*[1:]),  extra=[1:]
+            #
+            # - init w/value, no multivalue  -> __new__[0], __init__(*[1:]), extra=[]
+            #
+            # - init w/o value, no multivalue  -> __new__[:], __init__(*[:]), extra=[]
+            # - no init, no multivalue  ->  __new__[:], __init__(*[:]), extra=[]
+            if multivalue or 'value' in creating_init:
+                if multivalue:
+                    # when multivalue is True, creating_init can be anything
+                    new_args = args[0:1]
+                    extra_mv_args = args[1:]
+                    if 'value' in creating_init:
+                        init_args = args[1:]
+                    else:
+                        init_args = args
                 else:
-                    value, args = args[0], args[1:]
-                args, more_args = (value, ), args
-            elif multivalue and not creating_init:
-                args, more_values = args[0:1], args[1:]
-                value = args[0]
+                    # 'value' is definitely in creating_init
+                    new_args = args[0:1]
+                    if auto_init:
+                        # don't pass in value
+                        init_args = args[1:]
+                    else:
+                        # keep the all args for user-defined __init__
+                        init_args = args
+                value = new_args[0]
+            else:
+                # either no creating_init, or it doesn't have 'value'
+                new_args = args
+                init_args = args
             if member_type is tuple:   # special case for tuple enums
-                args = (args, )     # wrap it one more time
-            if not use_args or not (args or kwds):
+                new_args = (new_args, )     # wrap it one more time
+            if not use_args or not (new_args or kwds):
                 enum_member = __new__(enum_class)
                 if not hasattr(enum_member, '_value_'):
                     enum_member._value_ = value
             else:
-                enum_member = __new__(enum_class, *args, **kwds)
+                enum_member = __new__(enum_class, *new_args, **kwds)
                 if not hasattr(enum_member, '_value_'):
-                    enum_member._value_ = member_type(*args)
+                    enum_member._value_ = member_type(*new_args, **kwds)
             value = enum_member._value_
             enum_member._name_ = member_name
             enum_member.__objclass__ = enum_class
-            enum_member.__init__(*(more_args or args), **kwds)
+            enum_member.__init__(*init_args, **kwds)
             # If another member with the same value was already defined, the
             # new member becomes an alias to the existing one.
             if noalias:
@@ -1237,10 +1274,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 setattr(enum_class, member_name, enum_member)
             # now add to _member_map_
             enum_class._member_map_[member_name] = enum_member
-            if multivalue and creating_init:
-                values = args
-            else:
-                values = (value, ) + more_values
+            values = (value, ) + extra_mv_args
             enum_member._values_ = values
             for value in values:
                 # first check if value has already been used
@@ -1688,7 +1722,7 @@ def __init__(self, *args, **kwds):
             for name in remaining_args:
                 value = kwds.pop(name, undefined)
                 if value is undefined:
-                    raise TypeError('invalid keyword: %r' % name)
+                    raise TypeError('missing value for: %r' % name)
                 setattr(self, name, value)
             if kwds:
                 # too many keyword arguments
