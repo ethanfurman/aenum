@@ -5,6 +5,9 @@ import sys
 pyver = float('%s.%s' % sys.version_info[:2])
 import aenum
 import doctest
+import os
+import shutil
+import tempfile
 import unittest
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
@@ -1343,6 +1346,100 @@ class TestEnum(TestCase):
                 [TestAutoInt.a.value, TestAutoInt.b.value, TestAutoInt.c.value],
                 [0, 3, 4],
                 )
+
+    def test_meta_reconfigure(self):
+
+        def identity(*args):
+            if len(args) == 1:
+                return args[0]
+            return args
+
+        JSONEnum = None
+
+        class JSONEnumMeta(EnumMeta):
+
+            @classmethod
+            def __prepare__(metacls, cls, bases, init=None, start=None, settings=()):
+                return {}
+
+            def __init__(cls, *args , **kwds):
+                super(JSONEnumMeta, cls).__init__(*args)
+
+            def __new__(metacls, cls, bases, clsdict, init=None, start=None, settings=()):
+                import json
+                members = []
+                if JSONEnum is not None:
+                    if '_file' not in clsdict:
+                        raise TypeError('_file is required')
+                    if '_name' not in clsdict:
+                        raise TypeError('_name is required')
+                    if '_value' not in clsdict:
+                        raise TypeError('_value is required')
+                    name_spec = clsdict.pop('_name')
+                    if not isinstance(name_spec, (tuple, list)):
+                        name_spec = (name_spec, )
+                    value_spec = clsdict.pop('_value')
+                    file = clsdict.pop('_file')
+                    with open(file) as f:
+                        json_data = json.load(f)
+                    for data in json_data:
+                        values = []
+                        name = data[name_spec[0]]
+                        for piece in name_spec[1:]:
+                            name = name[piece]
+                        for order, (value_path, func) in sorted(value_spec.items()):
+                            if not isinstance(value_path, (list, tuple)):
+                                value_path = (value_path, )
+                            value = data[value_path[0]]
+                            for piece in value_path[1:]:
+                                value = value[piece]
+                            if func is not None:
+                                value = func(value)
+                            values.append(value)
+                        values = tuple(values)
+                        members.append(
+                            (name, identity(*values))
+                            )
+                # get the real EnumDict
+                enum_dict = super(JSONEnumMeta, metacls).__prepare__(cls, bases, init, start, settings)
+                # transfer the original dict content, _items first
+                items = list(clsdict.items())
+                items.sort(key=lambda p: (0 if p[0][0] == '_' else 1, p))
+                for name, value in items:
+                    enum_dict[name] = value
+                # add the members
+                for name, value in members:
+                    enum_dict[name] = value
+                return super(JSONEnumMeta, metacls).__new__(metacls, cls, bases, enum_dict, init, start, settings)
+
+        # for use with both Python 2/3
+        JSONEnum = JSONEnumMeta('JsonEnum', (Enum, ), {})
+
+        test_file = os.path.join(tempdir, 'test_json.json')
+        with open(test_file, 'w') as f:
+            f.write(
+                '[{"name":"Afghanistan","alpha-2":"AF","country-code":"004","notes":{"description":"pretty"}},'
+                '{"name":"Åland Islands","alpha-2":"AX","country-code":"248","notes":{"description":"serene"}},'
+                '{"name":"Albania","alpha-2":"AL","country-code":"008","notes":{"description":"exciting"}},'
+                '{"name":"Algeria","alpha-2":"DZ","country-code":"012","notes":{"description":"scarce"}}]')
+
+        class Country(JSONEnum):
+            _init_ = 'abbr code country_name description'
+            _file = test_file
+            _name = 'alpha-2'
+            _value = {
+                    1: ('alpha-2', None),
+                    2: ('country-code', lambda c: int(c)),
+                    3: ('name', None),
+                    4: (('notes','description'), lambda s: s.title()),
+                    }
+
+        self.assertEqual([Country.AF, Country.AX, Country.AL, Country.DZ], list(Country))
+        self.assertEqual(Country.AF.abbr, 'AF')
+        self.assertEqual(Country.AX.code, 248)
+        self.assertEqual(Country.AL.country_name, 'Albania')
+        self.assertEqual(Country.DZ.description, 'Scarce')
+
 
     def test_subclasses_with_getnewargs(self):
         class NamedInt(int):
@@ -3600,5 +3697,9 @@ class TestIntEnumConvert(TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    tempdir = tempfile.mkdtemp()
+    try:
+        unittest.main()
+    finally:
+        shutil.rmtree(tempdir, True)
 
