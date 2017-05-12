@@ -2259,6 +2259,35 @@ class TestEnum(TestCase):
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
+    def test_auto_and_init_w_value_and_some_values(self):
+        class Field(IntEnum):
+            _order_ = 'TYPE START BLAH BELCH'
+            _init_ = 'value __doc__'
+            _settings_ = AutoNumber
+            TYPE = 1, "Char, Date, Logical, etc."
+            START = 2, "Field offset in record"
+            BLAH = 5, "test blah"
+            BELCH = 7, 'test belch'
+        self.assertEqual(Field.TYPE, 1)
+        self.assertEqual(Field.START, 2)
+        self.assertEqual(Field.BLAH, 5)
+        self.assertEqual(Field.BELCH, 7)
+        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+        self.assertEqual(Field.BLAH.__doc__, 'test blah')
+        self.assertEqual(Field.BELCH.__doc__, 'test belch')
+
+    def test_auto_and_init_w_value_and_too_many_values(self):
+        with self.assertRaisesRegex(TypeError, 'BLAH: number of fields provided do not match init'):
+            class Field(IntEnum):
+                _order_ = 'TYPE START BLAH BELCH'
+                _init_ = 'value __doc__'
+                _settings_ = AutoNumber
+                TYPE = 1, "Char, Date, Logical, etc."
+                START = 2, "Field offset in record"
+                BLAH = 5, 6, "test blah"
+                BELCH = 7, 'test belch'
+
     def test_auto_and_init_and_some_complex_values(self):
         class Field(IntEnum):
             _order_ = 'TYPE START BLAH BELCH'
@@ -2428,6 +2457,56 @@ class TestEnum(TestCase):
         self.assertIs(Color(70), Color.blue)
         self.assertIs(Color(80), Color.blue)
         self.assertIs(Color(90), Color.blue)
+
+    def test_MultiValue_with_init_wo_value_w_autonumber_and_value(self):
+        class Color(Enum):
+            _init_ = 'color r g b'
+            _order_ = 'red green blue chartruese'
+            _settings_ = MultiValue, AutoNumber
+            red = 'red', 10, 20, 30
+            green = 'green', 40, 50, 60
+            blue = 5, 'blue', 70, 80, 90
+            chartruese = 'chartruese', 100, 110, 120
+        self.assertEqual(Color.red.value, 1)
+        self.assertEqual(Color.red.color, 'red')
+        self.assertEqual(Color.red.r, 10)
+        self.assertEqual(Color.red.g, 20)
+        self.assertEqual(Color.red.b, 30)
+        self.assertEqual(Color.green.value, 2)
+        self.assertEqual(Color.green.color, 'green')
+        self.assertEqual(Color.green.r, 40)
+        self.assertEqual(Color.green.g, 50)
+        self.assertEqual(Color.green.b, 60)
+        self.assertEqual(Color.blue.value, 5)
+        self.assertEqual(Color.blue.color, 'blue')
+        self.assertEqual(Color.blue.r, 70)
+        self.assertEqual(Color.blue.g, 80)
+        self.assertEqual(Color.blue.b, 90)
+        self.assertEqual(Color.chartruese.value, 6)
+        self.assertEqual(Color.chartruese.color, 'chartruese')
+        self.assertEqual(Color.chartruese.r, 100)
+        self.assertEqual(Color.chartruese.g, 110)
+        self.assertEqual(Color.chartruese.b, 120)
+        self.assertIs(Color(1), Color.red)
+        self.assertIs(Color('red'), Color.red)
+        self.assertIs(Color(10), Color.red)
+        self.assertIs(Color(20), Color.red)
+        self.assertIs(Color(30), Color.red)
+        self.assertIs(Color(2), Color.green)
+        self.assertIs(Color('green'), Color.green)
+        self.assertIs(Color(40), Color.green)
+        self.assertIs(Color(50), Color.green)
+        self.assertIs(Color(60), Color.green)
+        self.assertIs(Color(5), Color.blue)
+        self.assertIs(Color('blue'), Color.blue)
+        self.assertIs(Color(70), Color.blue)
+        self.assertIs(Color(80), Color.blue)
+        self.assertIs(Color(90), Color.blue)
+        self.assertIs(Color(6), Color.chartruese)
+        self.assertIs(Color('chartruese'), Color.chartruese)
+        self.assertIs(Color(100), Color.chartruese)
+        self.assertIs(Color(110), Color.chartruese)
+        self.assertIs(Color(120), Color.chartruese)
 
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum):

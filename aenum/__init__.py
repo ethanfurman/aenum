@@ -857,6 +857,8 @@ class _EnumDict(dict):
                 self._locked = not (self._autonumber or self._autovalue)
                 if self._autonumber and self._value is None:
                     self._value = 0
+                if self._autonumber and self._init and self._init[0:1] == ['value']:
+                    self._init.pop(0)
                 value = tuple(self._settings)
             elif key == '_init_':
                 if self._constructor_init:
@@ -864,6 +866,8 @@ class _EnumDict(dict):
                 _init_ = value
                 if isinstance(_init_, basestring):
                     _init_ = _init_.replace(',',' ').split()
+                if _init_[0:1] == ['value'] and self._autonumber:
+                    _init_.pop(0)
                 self._init = _init_
             elif key == '_generate_next_value_':
                 setattr(self, '_generate_next_value', value)
@@ -1050,6 +1054,8 @@ class EnumMeta(StdlibEnumMeta or type):
         if init is not None:
             if isinstance(init, basestring):
                 init = init.replace(',',' ').split()
+            if init[0:1] == ['value'] and AutoNumber in settings:
+                init.pop(0)
             enum_dict._init = init
         return enum_dict
 
