@@ -1900,6 +1900,8 @@ class TestEnum(TestCase):
         self.assertEqual(Color.brown.name, 'brown')
         self.assertEqual(Color.brown.value, 4)
         self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(4), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
         self.assertEqual(len(Color), 4)
 
     def test_extend_enum_shadow(self):
@@ -1911,11 +1913,13 @@ class TestEnum(TestCase):
         self.assertEqual(Color.value.name, 'value')
         self.assertEqual(Color.value.value, 4)
         self.assertTrue(Color.value in Color)
+        self.assertEqual(Color(4), Color.value)
+        self.assertEqual(Color['value'], Color.value)
         self.assertEqual(len(Color), 4)
         self.assertEqual(Color.red.value, 1)
 
     def test_extend_intenum(self):
-        class Index(Enum):
+        class Index(IntEnum):
             DeviceType    = 0x1000
             ErrorRegister = 0x1001
 

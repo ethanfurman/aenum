@@ -2113,6 +2113,8 @@ def extend_enum(enumeration, name, *args):
         # _unique_ = False
         _auto_init_ = []
     _new = getattr(enumeration, '__new_member__', object.__new__)
+    if _member_type_ is not object:
+        _new = _member_type_.__new__
     if _new is object.__new__:
         use_args = False
     else:
