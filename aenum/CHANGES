@@ -1,3 +1,13 @@
+2.0.7
+=====
+
+support mixin types with extend_enum
+init and AutoNumber can now work together
+add test for new Enum using EnumMeta
+add tests for variations of multivalue and init
+prevent deletion of NamedConstant.constant
+
+
 2.0.6
 =====
 
