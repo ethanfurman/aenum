@@ -1463,3 +1463,8 @@ A ``NamedConstant`` class is created much like an ``Enum``::
     Traceback (most recent call last):
     ...
     AttributeError: cannot rebind constant <Konstant.PI>
+
+    >>> del Konstant.PI
+    Traceback (most recent call last):
+    ...
+    AttributeError: cannot delete constant <Konstant.PI>
