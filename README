@@ -215,3 +215,7 @@ protocols, and have no restrictions on duplications::
     >>> K.TAU
     6.283192
 
+More Information
+----------------
+
+Detailed documentation can be found at `<aenum/doc/aenum.rst>`_
