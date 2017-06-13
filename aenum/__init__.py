@@ -1441,7 +1441,7 @@ class EnumMeta(StdlibEnumMeta or type):
         try:
             return cls._member_map_[name]
         except KeyError:
-            raise AttributeError
+            raise AttributeError(name)
 
     def __getitem__(cls, name):
         try:
