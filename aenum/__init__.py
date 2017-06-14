@@ -2102,6 +2102,7 @@ def extend_enum(enumeration, name, *args):
         # _auto_number_ = enumeration._auto_number_
         _multi_value_ = MultiValue in enumeration._settings_
         _no_alias_ = NoAlias in enumeration._settings_
+        _unique_ = Unique in enumeration._settings_
         # _unique_ = Unique in enumeration._settings_
         _auto_init_ = enumeration._auto_init_ or []
     except AttributeError:
@@ -2156,49 +2157,52 @@ def extend_enum(enumeration, name, *args):
     new_member.__init__(*args)
     # If another member with the same value was already defined, the
     # new member becomes an alias to the existing one.
+    is_alias = False
     if _no_alias_:
         # unless NoAlias was specified
         _member_names_.append(name)
     else:
-        nonunique = []
         for canonical_member in _member_map_.values():
-            if canonical_member.value == new_member._value_:
-                if unique:
-                    nonunique = canonical_member.name
-                    continue
-                new_member = canonical_member
+            for canonical_value in canonical_member._values_:
+                if canonical_value == new_member._value_:
+                    if _unique_ or _multi_value_:
+                        # aliases not allowed if Unique specified
+                        raise ValueError('%s is a duplicate of %s' % (name, canonical_member.name))
+                    _member_map_[new_member._name_] = canonical_member
+                    new_member = canonical_member
+                    is_alias = True
+                    break
+            if is_alias:
                 break
         else:
             # Aliases don't appear in member names (only in __members__).
             _member_names_.append(name)
-        if nonunique:
-            # duplicates not allowed if Unique specified
-            raise ValueError('%s is a duplicate of %s' % (name, nonunique))
-    values = (value, ) + more_values
-    new_member._values_ = values
-    for value in (value, ) + more_values:
-        # first check if value has already been used
-        if _multi_value_ and (
-                value in _value2member_map_
-                or any(v == value for (v, m) in _value2member_seq_)
-                ):
-            raise ValueError('%r has already been used' % (value,))
+    if not is_alias:
+        values = (value, ) + more_values
+        new_member._values_ = values
+        for value in (value, ) + more_values:
+            # first check if value has already been used
+            if _multi_value_ and (
+                    value in _value2member_map_
+                    or any(v == value for (v, m) in _value2member_seq_)
+                    ):
+                raise ValueError('%r has already been used' % (value,))
+            try:
+                # This may fail if value is not hashable. We can't add the value
+                # to the map, and by-value lookups for this value will be
+                # linear.
+                if _no_alias_:
+                    raise TypeError('cannot use dict to store value')
+                _value2member_map_[value] = new_member
+            except TypeError:
+                _value2member_seq_ += ((value, new_member), )
+        if name not in base_attributes:
+            setattr(enumeration, name, new_member)
+        _member_map_[name] = new_member
         try:
-            # This may fail if value is not hashable. We can't add the value
-            # to the map, and by-value lookups for this value will be
-            # linear.
-            if _no_alias_:
-                raise TypeError('cannot use dict to store value')
             _value2member_map_[value] = new_member
         except TypeError:
-            _value2member_seq_ += ((value, new_member), )
-    if name not in base_attributes:
-        setattr(enumeration, name, new_member)
-    _member_map_[name] = new_member
-    try:
-        _value2member_map_[value] = new_member
-    except TypeError:
-        pass
+            pass
 
 def unique(enumeration):
     """

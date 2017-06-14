@@ -9,7 +9,7 @@ import os
 import shutil
 import tempfile
 import unittest
-from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
+from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue
 from collections import OrderedDict
@@ -1904,6 +1904,41 @@ class TestEnum(TestCase):
         self.assertEqual(Color['brown'], Color.brown)
         self.assertEqual(len(Color), 4)
 
+    def test_extend_enum_alias(self):
+        class Color(Enum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'rojo', 1)
+        self.assertEqual(Color.rojo.name, 'red')
+        self.assertEqual(Color.rojo.value, 1)
+        self.assertTrue(Color.rojo in Color)
+        self.assertEqual(Color(1), Color.rojo)
+        self.assertEqual(Color['rojo'], Color.red)
+        self.assertEqual(len(Color), 3)
+
+    def test_extend_enum_no_alias(self):
+        class Color(UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(ValueError, 'rojo is a duplicate of red', extend_enum, Color, 'rojo', 1)
+        self.assertEqual(Color.red.name, 'red')
+        self.assertEqual(Color.red.value, 1)
+        self.assertTrue(Color.red in Color)
+        self.assertEqual(Color(1), Color.red)
+        self.assertEqual(Color['red'], Color.red)
+        self.assertEqual(Color.green.name, 'green')
+        self.assertEqual(Color.green.value, 2)
+        self.assertTrue(Color.green in Color)
+        self.assertEqual(Color(2), Color.green)
+        self.assertEqual(Color['blue'], Color.blue)
+        self.assertEqual(Color.blue.name, 'blue')
+        self.assertEqual(Color.blue.value, 3)
+        self.assertTrue(Color.blue in Color)
+        self.assertEqual(Color(3), Color.blue)
+        self.assertEqual(len(Color), 3)
+
     def test_extend_enum_shadow(self):
         class Color(UniqueEnum):
             red = 1
@@ -1917,6 +1952,48 @@ class TestEnum(TestCase):
         self.assertEqual(Color['value'], Color.value)
         self.assertEqual(len(Color), 4)
         self.assertEqual(Color.red.value, 1)
+
+    def test_extend_enum_multivalue(self):
+        class Color(MultiValueEnum):
+            red = 1, 4, 7
+            green = 2, 5, 8
+            blue = 3, 6, 9
+        extend_enum(Color, 'brown', 10, 20)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 10)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(10), Color.brown)
+        self.assertEqual(Color(20), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+
+    def test_extend_enum_multivalue_alias(self):
+        class Color(MultiValueEnum):
+            red = 1, 4, 7
+            green = 2, 5, 8
+            blue = 3, 6, 9
+        self.assertRaisesRegex(ValueError, 'rojo is a duplicate of red', extend_enum, Color, 'rojo', 7)
+        self.assertEqual(Color.red.name, 'red')
+        self.assertEqual(Color.red.value, 1)
+        self.assertTrue(Color.red in Color)
+        self.assertEqual(Color(1), Color.red)
+        self.assertEqual(Color(4), Color.red)
+        self.assertEqual(Color(7), Color.red)
+        self.assertEqual(Color['red'], Color.red)
+        self.assertEqual(Color.green.name, 'green')
+        self.assertEqual(Color.green.value, 2)
+        self.assertTrue(Color.green in Color)
+        self.assertEqual(Color(2), Color.green)
+        self.assertEqual(Color(5), Color.green)
+        self.assertEqual(Color(8), Color.green)
+        self.assertEqual(Color['blue'], Color.blue)
+        self.assertEqual(Color.blue.name, 'blue')
+        self.assertEqual(Color.blue.value, 3)
+        self.assertTrue(Color.blue in Color)
+        self.assertEqual(Color(3), Color.blue)
+        self.assertEqual(Color(6), Color.blue)
+        self.assertEqual(Color(9), Color.blue)
+        self.assertEqual(len(Color), 3)
 
     def test_extend_intenum(self):
         class Index(IntEnum):
