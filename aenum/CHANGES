@@ -1,3 +1,9 @@
+2.0.8
+=====
+
+extend_enum now handles aliases and multivalues correctly
+
+
 2.0.7
 =====
 
