@@ -27,7 +27,7 @@ if pyver < 3:
 import inspect
 
 __all__ = [
-        'NamedConstant', 'constant', 'skip'
+        'NamedConstant', 'constant', 'skip',
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
         'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
         'enum', 'extend_enum', 'unique',
