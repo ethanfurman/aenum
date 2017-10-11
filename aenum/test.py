@@ -3509,5 +3509,13 @@ class TestIntEnumConvert(TestCase):
                          [], msg='Names other than CONVERT_TEST_* found.')
 
 
+class TestStarImport(TestCase):
+
+    def test_all_exports_names(self):
+        scope = {}
+        exec('from aenum import *', scope, scope)
+        self.assertIn('Enum', scope)
+
+
 if __name__ == '__main__':
     unittest.main()
