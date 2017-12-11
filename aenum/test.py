@@ -2945,6 +2945,17 @@ class TestFlag(TestCase):
                 red = 'not an int'
                 blue = auto()
 
+    def test_auto_w_pending(self):
+        class Required(Flag):
+            _order_ = 'NONE TO_S FROM_S BOTH'
+            NONE = 0
+            TO_S = auto()
+            FROM_S = auto()
+            BOTH = TO_S | FROM_S
+        self.assertEqual(Required.TO_S.value, 1)
+        self.assertEqual(Required.FROM_S.value, 2)
+        self.assertEqual(Required.BOTH.value, 3)
+
     def test_cascading_failure(self):
         class Bizarre(Flag):
             c = 3
