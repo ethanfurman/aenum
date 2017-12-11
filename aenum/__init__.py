@@ -36,7 +36,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 8
+version = 2, 0, 9, 3
 
 try:
     any
@@ -2113,9 +2113,8 @@ def extend_enum(enumeration, name, *args):
         _no_alias_ = False
         # _unique_ = False
         _auto_init_ = []
-    _new = getattr(enumeration, '__new_member__', object.__new__)
-    if _member_type_ is not object:
-        _new = _member_type_.__new__
+    mt_new = _member_type_.__new__
+    _new = getattr(enumeration, '__member_new__', mt_new)
     if _new is object.__new__:
         use_args = False
     else:

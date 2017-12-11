@@ -2012,6 +2012,35 @@ class TestEnum(TestCase):
         self.assertEqual(Index.DeviceType.value, 0x1000)
         self.assertEqual(Index.StatusWord.value, 0x6041)
 
+    def test_extend_multi_init(self):
+        class HTTPStatus(IntEnum):
+            def __new__(cls, value, phrase, description=''):
+                obj = int.__new__(cls, value)
+                obj._value_ = value
+
+                obj.phrase = phrase
+                obj.description = description
+                return obj
+            CONTINUE = 100, 'Continue', 'Request received, please continue'
+            SWITCHING_PROTOCOLS = 101, 'Switching Protocols', 'Switching to new protocol; obey Upgrade header'
+            PROCESSING = 102, 'Processing'
+        aenum.extend_enum(HTTPStatus, 'BAD_SPAM', 513, 'Too greasy', 'for a train')
+        aenum.extend_enum(HTTPStatus, 'BAD_EGGS', 514, 'Too green')
+        self.assertEqual(len(HTTPStatus), 5)
+        self.assertEqual(
+                list(HTTPStatus),
+                [HTTPStatus.CONTINUE, HTTPStatus.SWITCHING_PROTOCOLS, HTTPStatus.PROCESSING, HTTPStatus.BAD_SPAM, HTTPStatus.BAD_EGGS],
+                )
+        self.assertEqual(HTTPStatus.BAD_SPAM.value, 513)
+        self.assertEqual(HTTPStatus.BAD_SPAM.name, 'BAD_SPAM')
+        self.assertEqual(HTTPStatus.BAD_SPAM.phrase, 'Too greasy')
+        self.assertEqual(HTTPStatus.BAD_SPAM.description, 'for a train')
+        self.assertEqual(HTTPStatus.BAD_EGGS.value, 514)
+        self.assertEqual(HTTPStatus.BAD_EGGS.name, 'BAD_EGGS')
+        self.assertEqual(HTTPStatus.BAD_EGGS.phrase, 'Too green')
+        self.assertEqual(HTTPStatus.BAD_EGGS.description, '')
+
+
     def test_no_duplicates(self):
         def bad_duplicates():
             class Color1(UniqueEnum):
