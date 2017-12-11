@@ -2320,12 +2320,13 @@ class TestEnum(TestCase):
         self.assertEqual(Color.BLUE.rgb, (0, 1, 0))
         self.assertEqual(Color.GREEN.rgb, (0, 0, 1))
 
-    def test_settings(self):
+    def test_noalias(self):
         class Settings(Enum):
             _settings_ = NoAlias
             red = 1
             rojo = 1
         self.assertFalse(Settings.red is Settings.rojo)
+        self.assertRaises(TypeError, Settings, 1)
 
     def test_auto_and_init(self):
         class Field(IntEnum):
