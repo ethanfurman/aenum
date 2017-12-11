@@ -1,3 +1,11 @@
+2.0.9
+=====
+
+fix missing comma in __all__
+fix extend_enum with custom __new__ methods
+fix MultiValue with AutoNumber without _init_
+
+
 2.0.8
 =====
 

@@ -2618,6 +2618,14 @@ class TestEnum(TestCase):
         self.assertIs(Color(110), Color.chartruese)
         self.assertIs(Color(120), Color.chartruese)
 
+    def test_multivalue_and_autonumber_wo_init_wo_value(self):
+        class Day(Enum):
+            _settings_ = MultiValue, AutoNumber
+            _start_ = 1
+            one = "21", "one"
+            two = "22", "two"
+            three = "23", "three"
+
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum):
             _settings_ = Unique

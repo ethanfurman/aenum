@@ -901,12 +901,18 @@ class _EnumDict(dict):
                 if not isinstance(value, tuple):
                     value = (value, )
                 # do we need to calculate the next value?
-                if self._autonumber and self._init:
-                    target_length = len(self._init)
-                    if self._init[0] != 'value':
-                        target_length += 1
-                    if len(value) != target_length:
-                        value = (self._value + 1, ) + value
+                if self._autonumber:
+                    if self._init:
+                        target_length = len(self._init)
+                        if self._init[0] != 'value':
+                            target_length += 1
+                        if len(value) != target_length:
+                            value = (self._value + 1, ) + value
+                    else:
+                        try:
+                            value = (self._value + 1, ) + value
+                        except TypeError:
+                            pass
                 if self._autonumber:
                     self._value = value[0]
             elif self._autovalue and self._init and not isinstance(value, auto):
