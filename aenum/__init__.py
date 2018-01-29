@@ -2348,6 +2348,10 @@ class Flag(Enum):
         inverted = reduce(_or_, inverted_members, self.__class__(0))
         return self.__class__(inverted)
 
+    def __iter__(self):
+        members, extra_flags = _decompose(self.__class__, self.value)
+        return (m for m in members if m._value_ != 0)
+
 
 class IntFlag(int, Flag):
     """Support for integer-based Flags"""

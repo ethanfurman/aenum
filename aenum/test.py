@@ -2741,6 +2741,13 @@ class TestFlag(TestCase):
     class Perm(Flag):
         R, W, X = 4, 2, 1
 
+    class Color(Flag):
+        BLACK = 0
+        RED = 1
+        GREEN = 2
+        BLUE = 4
+        PURPLE = RED|BLUE
+
     class Open(Flag):
         RO = 0
         WO = 1
@@ -2868,6 +2875,16 @@ class TestFlag(TestCase):
         Open = self.Open
         for f in Open:
             self.assertEqual(bool(f.value), bool(f))
+
+    def test_iteration(self):
+        C = self.Color
+        self.assertEqual(list(C), [C.BLACK, C.RED, C.GREEN, C.BLUE, C.PURPLE])
+
+    def test_member_iteration(self):
+        C = self.Color
+        self.assertEqual(list(C.BLACK), [])
+        self.assertEqual(list(C.RED), [C.RED])
+        self.assertEqual(list(C.PURPLE), [C.BLUE, C.RED])
 
     def test_programatic_function_string(self):
         Perm = Flag('Perm', 'R W X')
@@ -3079,6 +3096,7 @@ class TestIntFlag(TestCase):
         R = 1 << 2
 
     class Open(IntFlag):
+        "not a good flag candidate"
         RO = 0
         WO = 1
         RW = 2
@@ -3251,6 +3269,14 @@ class TestIntFlag(TestCase):
         Open = self.Open
         self.assertIs(Open.WO & ~Open.WO, Open.RO)
         self.assertIs((Open.WO|Open.CE) & ~Open.WO, Open.CE)
+
+    def test_iter(self):
+        Perm = self.Perm
+        NoPerm = Perm.R ^ Perm.R
+        RWX = Perm.R | Perm.W | Perm.X
+        self.assertEqual(list(NoPerm), [])
+        self.assertEqual(list(Perm.R), [Perm.R])
+        self.assertEqual(list(RWX), [Perm.R, Perm.W, Perm.X])
 
     def test_programatic_function_string(self):
         Perm = IntFlag('Perm', 'R W X')
