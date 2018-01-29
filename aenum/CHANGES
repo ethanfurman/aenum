@@ -1,3 +1,12 @@
+2.0.10
+======
+
+ensure _ignore_ is set when _settings_ specified in body which includes
+AutoValue
+
+make Flag members iterable
+
+
 2.0.9
 =====
 
