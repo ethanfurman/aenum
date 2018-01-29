@@ -62,7 +62,7 @@ Utility functions include:
 
 data = dict(
        name='aenum',
-       version='2.0.9',
+       version='2.0.10a2',
        url='https://bitbucket.org/stoneleaf/aenum',
        packages=['aenum'],
        package_data={

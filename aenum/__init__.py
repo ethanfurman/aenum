@@ -36,7 +36,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 9
+version = 2, 0, 10, 2
 
 try:
     any
@@ -763,6 +763,7 @@ class _EnumDict(dict):
         self._init = None
         # list of temporary names
         self._ignore = []
+        self._ignore_init_done = False
         # if _sunder_ values can be changed via the class body
         self._allow_init = True
         self._last_values = []
@@ -820,6 +821,8 @@ class _EnumDict(dict):
                 # sunder is used during creation, must be specified first
                 raise ValueError('cannot set %r after init phase' % (key,))
             elif key == '_ignore_':
+                if self._ignore_init_done:
+                    raise TypeError('ignore can only be specified once')
                 if isinstance(value, basestring):
                     value = value.split()
                 else:
@@ -828,6 +831,7 @@ class _EnumDict(dict):
                 already = set(value) & set(self._member_names)
                 if already:
                     raise ValueError('_ignore_ cannot specify already set names: %r' % (already, ))
+                self._ignore_init_done = True
             elif key == '_start_':
                 if self._constructor_start:
                     raise TypeError('start specified in constructor and class body')
@@ -861,6 +865,8 @@ class _EnumDict(dict):
                 self._autovalue = allowed_settings['autovalue']
                 self._autonumber = allowed_settings['autonumber']
                 self._locked = not (self._autonumber or self._autovalue)
+                if self._autovalue and not self._ignore_init_done:
+                    self._ignore = ['property', 'classmethod', 'staticmethod']
                 if self._autonumber and self._value is None:
                     self._value = 0
                 if self._autonumber and self._init and self._init[0:1] == ['value']:
@@ -1061,6 +1067,7 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_dict = _EnumDict(settings=settings, start=start, constructor_init=constructor_init, constructor_start=constructor_start)
         if settings & set([AutoValue, AutoNumber]) or start is not None:
             enum_dict['_ignore_'] = ['property', 'classmethod', 'staticmethod']
+            enum_dict._ignore_init_done = False
         if generate:
             enum_dict['_generate_next_value_'] = generate
         if init is not None:
@@ -2932,4 +2939,3 @@ class module(object):
 
     def register(self):
         _sys.modules["%s.%s" % (self._parent_module, self.__name__)] = self
-

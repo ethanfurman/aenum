@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import division, print_function
 import sys
 pyver = float('%s.%s' % sys.version_info[:2])
 import aenum
@@ -2685,6 +2685,49 @@ class TestEnum(TestCase):
             TAU = constant(2 * PI)
         self.assertEqual(Universe.PI, 3.141596)
         self.assertEqual(Universe.TAU, 2 * Universe.PI)
+
+    def test_ignore_with_autovalue_and_property(self):
+        class Color(Flag):
+            _settings_ = AutoValue
+            _init_ = 'value code'
+            def _generate_next_value_(name, start, count, last_values, *args, **kwds):
+                if not count:
+                    return ((1, start)[start is not None], ) + args
+                error = False
+                for last_value_pair in reversed(last_values):
+                    last_value, last_code = last_value_pair
+                    try:
+                        high_bit = aenum._high_bit(last_value)
+                        break
+                    except Exception:
+                        error = True
+                        break
+                if error:
+                    raise TypeError('Invalid Flag value: %r' % (last_value, ))
+                return (2 ** (high_bit+1), ) + args
+            @classmethod
+            def _create_pseudo_member_(cls, value):
+                pseudo_member = cls._value2member_map_.get(value, None)
+                if pseudo_member is None:
+                    members, _ = aenum._decompose(cls, value)
+                    pseudo_member = super(Color, cls)._create_pseudo_member_(value)
+                    pseudo_member.code = ';'.join(m.code for m in members)
+                return pseudo_member
+            AllReset = '0'           # ESC [ 0 m       # reset all (colors and brightness)
+            Bright = '1'          # ESC [ 1 m       # bright
+            Dim = '2'             # ESC [ 2 m       # dim (looks same as normal brightness)
+            Underline = '4'
+            Normal = '22'         # ESC [ 22 m      # normal brightness
+        # if we got here, we're good
+
+    def test_ignore_not_overridden(self):
+        with self.assertRaisesRegex(TypeError, 'object is not callable'):
+            class Color(Flag):
+                _ignore_ = 'irrelevent'
+                _settings_ = AutoValue
+                @property
+                def shade(self):
+                    print('I am light', self.name.lower())
 
     if StdlibEnumMeta is not None:
         def test_stdlib_inheritence(self):
