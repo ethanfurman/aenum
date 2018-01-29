@@ -2720,15 +2720,6 @@ class TestEnum(TestCase):
             Normal = '22'         # ESC [ 22 m      # normal brightness
         # if we got here, we're good
 
-    def test_ignore_not_overridden(self):
-        with self.assertRaisesRegex(TypeError, 'object is not callable'):
-            class Color(Flag):
-                _ignore_ = 'irrelevent'
-                _settings_ = AutoValue
-                @property
-                def shade(self):
-                    print('I am light', self.name.lower())
-
     if StdlibEnumMeta is not None:
         def test_stdlib_inheritence(self):
             self.assertTrue(isinstance(self.Season, StdlibEnumMeta))

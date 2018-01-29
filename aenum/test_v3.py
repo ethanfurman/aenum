@@ -1,4 +1,4 @@
-from aenum import Enum, IntEnum, UniqueEnum, AutoEnum, NamedTuple, TupleSize, AutoValue, AutoNumber, NoAlias, Unique, MultiValue
+from aenum import Enum, IntEnum, Flag, UniqueEnum, AutoEnum, NamedTuple, TupleSize, AutoValue, AutoNumber, NoAlias, Unique, MultiValue
 from aenum import AutoNumberEnum, OrderedEnum, unique, skip, extend_enum
 
 from collections import OrderedDict
@@ -102,6 +102,15 @@ class TestEnumV3(TestCase):
             red, green, blue
         self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
         self.assertEqual(Color.red.value, 1)
+
+    def test_ignore_not_overridden(self):
+        with self.assertRaisesRegex(TypeError, 'object is not callable'):
+            class Color(Flag):
+                _ignore_ = 'irrelevent'
+                _settings_ = AutoValue
+                @property
+                def shade(self):
+                    print('I am light', self.name.lower())
 
     def test_magic_start(self):
         class Color(Enum, start=0):
