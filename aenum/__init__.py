@@ -36,7 +36,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 10
+version = 2, 0, 11, 2
 
 try:
     any
@@ -2098,7 +2098,7 @@ def convert(enum, name, module, filter, source=None):
     module_globals.update(enum.__members__)
     module_globals[name] = enum
 
-def extend_enum(enumeration, name, *args):
+def extend_enum(enumeration, name, *args, **_private_kwds):
     """
     Add a new member to an existing Enum.
     """
@@ -2167,6 +2167,8 @@ def extend_enum(enumeration, name, *args):
     new_member._name_ = name
     new_member.__objclass__ = enumeration.__class__
     new_member.__init__(*args)
+    if _private_kwds.get('create_only'):
+        return new_member
     # If another member with the same value was already defined, the
     # new member becomes an alias to the existing one.
     is_alias = False
@@ -2281,9 +2283,7 @@ class Flag(Enum):
             if extra_flags:
                 raise ValueError("%r is not a valid %s" % (value, cls.__name__))
             # construct a singleton enum pseudo-member
-            pseudo_member = object.__new__(cls)
-            pseudo_member._name_ = None
-            pseudo_member._value_ = value
+            pseudo_member = extend_enum(cls, None, value, create_only=True)
             # use setdefault in case another thread already created a composite
             # with this value
             pseudo_member = cls._value2member_map_.setdefault(value, pseudo_member)
