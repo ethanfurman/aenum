@@ -29,6 +29,7 @@ import inspect
 __all__ = [
         'NamedConstant', 'constant', 'skip',
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
+        'Flag', 'IntFlag',
         'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
         'enum', 'extend_enum', 'unique',
         'NamedTuple', 'SqliteEnum',
