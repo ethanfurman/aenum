@@ -3077,6 +3077,145 @@ class TestFlag(TestCase):
                 'at least one thread failed while creating composite members')
         self.assertEqual(256, len(seen), 'too many composite members created')
 
+    def test_ignore_with_autovalue_and_property(self):
+        class Color(str, Flag):
+            _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
+            _settings_ = AutoValue
+            def __new__(cls, value, code):
+                str_value = '\x1b[%sm' % code
+                obj = str.__new__(cls, str_value)
+                obj._value_ = value
+                obj.code = code
+                return obj
+            @staticmethod
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return (2 ** count, ) + args
+            @classmethod
+            def _create_pseudo_member_(cls, value):
+                pseudo_member = cls._value2member_map_.get(value, None)
+                if pseudo_member is None:
+                    # calculate the code
+                    members, _ = aenum._decompose(cls, value)
+                    code = ';'.join(m.code for m in members)
+                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                return pseudo_member
+            #
+                                      # # FOREGROUND - 30s  BACKGROUND - 40s:
+            FG_Black = '30'           # ESC [ 30 m      # black
+            FG_Red = '31'             # ESC [ 31 m      # red
+            FG_Green = '32'           # ESC [ 32 m      # green
+            FG_Blue = '34'            # ESC [ 34 m      # blue
+                                      #
+            BG_Yellow = '43'          # ESC [ 33 m      # yellow
+            BG_Magenta = '45'         # ESC [ 35 m      # magenta
+            BG_Cyan = '46'            # ESC [ 36 m      # cyan
+            BG_White = '47'           # ESC [ 37 m      # white
+        # if we got here, we're good
+
+    def test_subclass(self):
+        class Color(str, Flag):
+            _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
+            _settings_ = AutoValue
+            def __new__(cls, *args):
+                value, code = args
+                str_value = '\x1b[%sm' % code
+                obj = str.__new__(cls, str_value)
+                obj._value_ = value
+                obj.code = code
+                return obj
+            @staticmethod
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return (2 ** count, ) + args
+            @classmethod
+            def _create_pseudo_member_(cls, value):
+                pseudo_member = cls._value2member_map_.get(value, None)
+                if pseudo_member is None:
+                    # calculate the code
+                    members, _ = aenum._decompose(cls, value)
+                    code = ';'.join(m.code for m in members)
+                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                return pseudo_member
+            #
+                                      # # FOREGROUND - 30s  BACKGROUND - 40s:
+            FG_Black = '30'           # ESC [ 30 m      # black
+            FG_Red = '31'             # ESC [ 31 m      # red
+            FG_Green = '32'           # ESC [ 32 m      # green
+            FG_Blue = '34'            # ESC [ 34 m      # blue
+                                      #
+            BG_Yellow = '43'          # ESC [ 33 m      # yellow
+            BG_Magenta = '45'         # ESC [ 35 m      # magenta
+            BG_Cyan = '46'            # ESC [ 36 m      # cyan
+            BG_White = '47'           # ESC [ 37 m      # white
+            #
+            def __repr__(self):
+                if self._name_ is not None:
+                    return '<%s.%s>' % (self.__class__.__name__, self._name_)
+                else:
+                    return '<%s: %s>' % (self.__class__.__name__, '|'.join([m.name for m in self]))
+        self.assertTrue(isinstance(Color.FG_Black, Color))
+        self.assertTrue(isinstance(Color.FG_Black, str))
+        self.assertEqual(Color.FG_Black, '\x1b[30m')
+        self.assertEqual(Color.FG_Black.code, '30')
+
+    def test_extend_flag(self):
+        class Color(Flag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 5)
+        self.assertTrue(Color(5) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 5)
+
+    def test_extend_flag_subclass(self):
+        class Color(str, Flag):
+            _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
+            _settings_ = AutoValue
+            def __new__(cls, value, code):
+                str_value = '\x1b[%sm' % code
+                obj = str.__new__(cls, str_value)
+                obj._value_ = value
+                obj.code = code
+                return obj
+            @staticmethod
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return (2 ** count, ) + args
+            @classmethod
+            def _create_pseudo_member_(cls, value):
+                pseudo_member = cls._value2member_map_.get(value, None)
+                if pseudo_member is None:
+                    # calculate the code
+                    members, _ = aenum._decompose(cls, value)
+                    code = ';'.join(m.code for m in members)
+                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                return pseudo_member
+            #
+                                      # # FOREGROUND - 30s  BACKGROUND - 40s:
+            FG_Black = '30'           # ESC [ 30 m      # black
+            FG_Red = '31'             # ESC [ 31 m      # red
+            FG_Green = '32'           # ESC [ 32 m      # green
+            FG_Blue = '34'            # ESC [ 34 m      # blue
+                                      #
+            BG_Yellow = '43'          # ESC [ 33 m      # yellow
+            BG_Magenta = '45'         # ESC [ 35 m      # magenta
+            BG_Cyan = '46'            # ESC [ 36 m      # cyan
+            BG_White = '47'           # ESC [ 37 m      # white
+            #
+            def __repr__(self):
+                if self._name_ is not None:
+                    return '<%s.%s>' % (self.__class__.__name__, self._name_)
+                else:
+                    return '<%s: %s>' % (self.__class__.__name__, '|'.join([m.name for m in self]))
+        #
+        Purple = Color.BG_Magenta | Color.FG_Blue
+        self.assertTrue(isinstance(Purple, Color))
+        self.assertTrue(isinstance(Purple, str))
+        self.assertIs(Purple, Color.BG_Magenta | Color.FG_Blue)
+        self.assertEqual(Purple, '\x1b[45;34m')
+        self.assertEqual(Purple.code, '45;34')
+        self.assertIs(Purple.name, None)
+
 
 class TestIntFlag(TestCase):
     """Tests of the IntFlags."""
