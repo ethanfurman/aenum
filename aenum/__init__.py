@@ -37,7 +37,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 0, 11, 2
+version = 2, 1, 0, 1
 
 try:
     any
@@ -944,7 +944,6 @@ class _EnumDict(dict):
                                 self._last_values[:],
                                 )
 
-
             elif self._autonumber and not self._locked:
                 # convert any auto instances to integers
                 if isinstance(value, auto):
@@ -1001,8 +1000,11 @@ class _EnumDict(dict):
                     self._value = value
                 else:
                     if value.value == _auto_null:
+                        gnv = self._generate_next_value
+                        if isinstance(gnv, staticmethod):
+                            gnv = gnv.__func__
                         if self._auto_args:
-                            value.value = self._generate_next_value(
+                            value.value = gnv(
                                     key,
                                     1,
                                     len(self._member_names),
@@ -1011,7 +1013,7 @@ class _EnumDict(dict):
                                     **value.kwds
                                     )
                         else:
-                            value.value = self._generate_next_value(
+                            value.value = gnv(
                                     key,
                                     1,
                                     len(self._member_names),
@@ -2273,10 +2275,11 @@ class Flag(Enum):
         return possible_member
 
     @classmethod
-    def _create_pseudo_member_(cls, value):
+    def _create_pseudo_member_(cls, *values):
         """
         Create a composite member iff value contains only members.
         """
+        value = values[0]
         pseudo_member = cls._value2member_map_.get(value, None)
         if pseudo_member is None:
             # verify all bits are accounted for
@@ -2284,7 +2287,7 @@ class Flag(Enum):
             if extra_flags:
                 raise ValueError("%r is not a valid %s" % (value, cls.__name__))
             # construct a singleton enum pseudo-member
-            pseudo_member = extend_enum(cls, None, value, create_only=True)
+            pseudo_member = extend_enum(cls, None, *values, create_only=True)
             # use setdefault in case another thread already created a composite
             # with this value
             pseudo_member = cls._value2member_map_.setdefault(value, pseudo_member)
@@ -2944,3 +2947,5 @@ class module(object):
 
     def register(self):
         _sys.modules["%s.%s" % (self._parent_module, self.__name__)] = self
+
+
