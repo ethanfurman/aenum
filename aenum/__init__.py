@@ -1124,6 +1124,7 @@ class EnumMeta(StdlibEnumMeta or type):
             _order_ = clsdict.pop('_order_', clsdict.pop('__order__', None))
             _ignore_ = clsdict.pop('_ignore_', None)
             _create_pseudo_member_ = clsdict.pop('_create_pseudo_member_', None)
+            _create_pseudo_member_values_ = clsdict.pop('_create_pseudo_member_values_', None)
             _generate_next_value_ = clsdict.pop('_generate_next_value_', None)
             _missing_ = clsdict.pop('_missing_', None)
             _missing_value_ = clsdict.pop('_missing_value_', None)
@@ -1144,8 +1145,9 @@ class EnumMeta(StdlibEnumMeta or type):
             original_dict = clsdict
             clsdict = metacls.__prepare__(cls, bases, init=init, start=start, settings=settings)
             for name in (
-                    '_ignore_', '_create_pseudo_member_', '_generate_next_value_', '_order_'
-                    , '_missing_', '_missing_value_', '_missing_name_', '__new__',
+                    '_ignore_', '_create_pseudo_member_', '_create_pseudo_member_values_',
+                    '_generate_next_value_', '_order_', '__new__',
+                    '_missing_', '_missing_value_', '_missing_name_',
                 ):
                 attr = locals()[name]
                 if attr is not None:
@@ -1156,8 +1158,8 @@ class EnumMeta(StdlibEnumMeta or type):
             for k, v in original_dict.items():
                 if k not in calced_order:
                     clsdict[k] = v
-            del _order_, _ignore_, _create_pseudo_member_, _generate_next_value_
-            del _missing_, _missing_value_, _missing_name_
+            del _order_, _ignore_, _create_pseudo_member_, _create_pseudo_member_values_,
+            del _generate_next_value_, _missing_, _missing_value_, _missing_name_
 
         # resume normal path
         if clsdict._new_to_init:
