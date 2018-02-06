@@ -722,6 +722,20 @@ value::
     >>> bool(Color.BLACK)
     False
 
+Flags can be iterated over to retrieve the individual truthy flags in the value::
+
+    >>> class Color(Flag):
+    ...     BLACK = 0
+    ...     RED = auto()
+    ...     BLUE = auto()
+    ...     GREEN = auto()
+    ...     WHITE = RED | BLUE | GREEN
+    ...
+    >>> list(Color.GREEN)
+    [<Color.GREEN: 4>]
+    >>> list(Color.WHITE)
+    [<Color.GREEN: 4>, <Color.BLUE: 2>, <Color.RED: 1>]
+
 .. note::
 
     For the majority of new code, ``Enum`` and ``Flag`` are strongly
@@ -961,6 +975,38 @@ is the Python 2 version::
     <NotificationType.blank: ('', '')>
     >>> NotificationType.B
     <NotificationType.B: ('B', 'Both')>
+
+combining Flag with other data types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Flag does support being combined with other data types.  To support this you
+need to provide a ``_create_pseudo_member_values_`` method which will be called
+with the members in a composite flag.  You may also need to provide a custom
+``__new__`` method::
+
+    >>> class AnsiFlag(str, Flag):
+    ...     def __new__(cls, value, code):
+    ...         str_value = '\x1b[%sm' % code
+    ...         obj = str.__new__(cls, str_value)
+    ...         obj._value_ = value
+    ...         obj.code = code
+    ...         return obj
+    ...     @classmethod
+    ...     def _create_pseudo_member_values_(cls, members, *values):
+    ...         code = ';'.join(m.code for m in members)
+    ...         return values + (code, )
+    ...     _settings_ = AutoValue
+    ...     _order_ = 'FG_Red FG_Green BG_Magenta BG_White'
+    ...     FG_Red = '31'             # ESC [ 31 m      # red
+    ...     FG_Green = '32'           # ESC [ 32 m      # green
+    ...     BG_Magenta = '45'         # ESC [ 35 m      # magenta
+    ...     BG_White = '47'           # ESC [ 37 m      # white
+    ...
+    >>> color = AnsiFlag.BG_White | AnsiFlag.FG_Red
+    >>> repr(color)
+    '<AnsiFlag.BG_White|FG_Red: 9>'
+    >>> str.__repr__(color)
+    "'\\x1b[47;31m'"
 
 
 Decorators
