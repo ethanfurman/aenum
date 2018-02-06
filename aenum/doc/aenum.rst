@@ -725,6 +725,7 @@ value::
 Flags can be iterated over to retrieve the individual truthy flags in the value::
 
     >>> class Color(Flag):
+    ...     _order_ = 'BLACK RED BLUE GREEN WHITE'
     ...     BLACK = 0
     ...     RED = auto()
     ...     BLUE = auto()
