@@ -465,7 +465,7 @@ class EnumConstants(NamedConstant):
 # Dummy value for Enum as EnumMeta explicity checks for it, but of course until
 # EnumMeta finishes running the first time the Enum class doesn't exist.  This
 # is also why there are checks in EnumMeta like `if Enum is not None`
-Enum = None
+Enum = Flag = None
 
 class enum(object):
     """
@@ -738,6 +738,8 @@ class _EnumDict(dict):
         super(_EnumDict, self).__init__()
         self._constructor_init = constructor_init
         self._constructor_start = constructor_start
+        # for Flag enumerations, we may need to get the _init_ from __new__
+        self._new_to_init = False
         # list of enum members
         self._member_names = []
         self._settings = settings
@@ -812,7 +814,8 @@ class _EnumDict(dict):
         if _is_sunder(key):
             if key not in (
                     '_init_', '_settings_', '_order_', '_ignore_', '_start_',
-                    '_create_pseudo_member_', '_generate_next_value_',
+                    '_create_pseudo_member_', '_create_pseudo_member_values_',
+                    '_generate_next_value_',
                     '_missing_', '_missing_value_', '_missing_name_',
                     ):
                 raise ValueError('_names_ are reserved for  Enum use')
@@ -891,6 +894,12 @@ class _EnumDict(dict):
                 if not self._allow_init:
                     # _order_ is used during creation, must be specified first
                     raise ValueError('cannot set %r after init phase' % (key,))
+            elif key == '__new__' and self._new_to_init:
+                # ArgSpec(args=[...], varargs=[...], keywords=[...], defaults=[...]
+                if isinstance(value, staticmethod):
+                    value = value.__func__
+                new_args = inspect.getargspec(value)[0][1:]
+                self._init = new_args
             if _is_descriptor(value):
                 self._locked = True
         elif key in self._member_names:
@@ -929,15 +938,18 @@ class _EnumDict(dict):
                     value = (value, )
                 source_values = len(value)
                 if target_values != source_values:
+                    gnv = self._generate_next_value
+                    if isinstance(gnv, staticmethod):
+                        gnv = gnv.__func__
                     if self._auto_args:
-                        value = self._generate_next_value(
+                        value = gnv(
                                 key, 1,
                                 len(self._member_names),
                                 self._last_values[:],
                                 *value
                                 )
                     else:
-                        value = self._generate_next_value(
+                        value = gnv(
                                 key,
                                 1,
                                 len(self._member_names),
@@ -1079,6 +1091,24 @@ class EnumMeta(StdlibEnumMeta or type):
             if init[0:1] == ['value'] and AutoNumber in settings:
                 init.pop(0)
             enum_dict._init = init
+        elif Flag is not None and any(issubclass(b, Flag) for b in bases) and member_type not in (int, object):
+            enum_dict._new_to_init = True
+            if Flag in bases:
+                # only happens on first mixin with Flag
+                def _generate_next_value_(name, start, count, values, *args, **kwds):
+                    return (2 ** count, ) + args
+                enum_dict['_generate_next_value_'] = staticmethod(_generate_next_value_)
+                def __new__(cls, flag_value, type_value):
+                    obj = member_type.__new__(cls, type_value)
+                    obj._value_ = flag_value
+                    return obj
+                enum_dict['__new__'] = __new__
+            else:
+                try:
+                    new_args = inspect.getargspec(first_enum.__member_new__)[0][1:]
+                    enum_dict._init = new_args
+                except TypeError:
+                    pass
         return enum_dict
 
     def __init__(cls, *args , **kwds):
@@ -1098,6 +1128,7 @@ class EnumMeta(StdlibEnumMeta or type):
             _missing_ = clsdict.pop('_missing_', None)
             _missing_value_ = clsdict.pop('_missing_value_', None)
             _missing_name_ = clsdict.pop('_missing_name_', None)
+            __new__ = clsdict.pop('__new__', None)
             enum_members = dict([
                     (k, v) for (k, v) in clsdict.items()
                     if not (_is_sunder(k) or _is_dunder(k) or _is_descriptor(v))
@@ -1114,7 +1145,7 @@ class EnumMeta(StdlibEnumMeta or type):
             clsdict = metacls.__prepare__(cls, bases, init=init, start=start, settings=settings)
             for name in (
                     '_ignore_', '_create_pseudo_member_', '_generate_next_value_', '_order_'
-                    , '_missing_', '_missing_value_', '_missing_name_',
+                    , '_missing_', '_missing_value_', '_missing_name_', '__new__',
                 ):
                 attr = locals()[name]
                 if attr is not None:
@@ -1127,7 +1158,11 @@ class EnumMeta(StdlibEnumMeta or type):
                     clsdict[k] = v
             del _order_, _ignore_, _create_pseudo_member_, _generate_next_value_
             del _missing_, _missing_value_, _missing_name_
+
         # resume normal path
+        if clsdict._new_to_init:
+            # remove calculated _init_ as it's no longer needed
+            clsdict._init = None
         clsdict._locked = True
         member_type, first_enum = metacls._get_mixins_(bases)
         _order_ = clsdict.pop('_order_', None)
@@ -2283,15 +2318,21 @@ class Flag(Enum):
         pseudo_member = cls._value2member_map_.get(value, None)
         if pseudo_member is None:
             # verify all bits are accounted for
-            _, extra_flags = _decompose(cls, value)
+            members, extra_flags = _decompose(cls, value)
             if extra_flags:
                 raise ValueError("%r is not a valid %s" % (value, cls.__name__))
+            # give subclasses a chance to modify values for new pseudo-member
+            values = cls._create_pseudo_member_values_(members, *values)
             # construct a singleton enum pseudo-member
             pseudo_member = extend_enum(cls, None, *values, create_only=True)
             # use setdefault in case another thread already created a composite
             # with this value
             pseudo_member = cls._value2member_map_.setdefault(value, pseudo_member)
         return pseudo_member
+
+    @classmethod
+    def _create_pseudo_member_values_(cls, members, *values):
+        return values
 
     def __contains__(self, other):
         if not isinstance(other, self.__class__):
