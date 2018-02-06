@@ -1,3 +1,11 @@
+2.1.0
+=====
+
+support Flags being combined with other data types:
+- add _create_pseudo_member_values_ 
+- add default __new__ and temporary _init_ 
+
+
 2.0.10
 ======
 
