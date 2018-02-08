@@ -9,6 +9,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import warnings
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue
@@ -67,11 +68,24 @@ def load_tests(loader, tests, ignore):
     return tests
 
 class TestCase(unittest.TestCase):
+
     def __init__(self, *args, **kwds):
         regex = getattr(self, 'assertRaisesRegex', None)
         if regex is None:
             self.assertRaisesRegex = getattr(self, 'assertRaisesRegexp')
         super(TestCase, self).__init__(*args, **kwds)
+
+    @classmethod
+    def setUpClass(cls, *args, **kwds):
+        super(TestCase, cls).setUpClass(*args, **kwds)
+        # filter warnings
+        warnings.filterwarnings(
+                'ignore',
+                'inspect\.getargspec\(\) is deprecated',
+                DeprecationWarning,
+                'aenum',
+                0,
+                )
 
 # for pickle tests
 try:
