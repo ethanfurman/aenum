@@ -2816,6 +2816,12 @@ class TestFlag(TestCase):
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
 
+    def test_name_lookup(self):
+        Color = self.Color
+        self.assertTrue(Color.RED is Color['RED'])
+        self.assertTrue(Color.RED|Color.GREEN is Color['RED|GREEN'])
+        self.assertTrue(Color.PURPLE is Color['RED|BLUE'])
+
     def test_or(self):
         Perm = self.Perm
         for i in Perm:

@@ -1501,6 +1501,15 @@ class EnumMeta(StdlibEnumMeta or type):
             return cls._member_map_[name]
         except KeyError:
             exc = _sys.exc_info()[1]
+        if '|' in name and issubclass(cls, Flag):
+            try:
+                # may be an __or__ed name
+                result = cls(0)
+                for n in name.split('|'):
+                    result |= cls[n]
+                return result
+            except KeyError:
+                raise exc
         result = cls._missing_name_(name)
         if isinstance(result, cls):
             return result
