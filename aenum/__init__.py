@@ -1540,7 +1540,7 @@ class EnumMeta(StdlibEnumMeta or type):
                     )
         super(EnumMeta, cls).__setattr__(name, value)
 
-    def _create_(cls, class_name, names=None, module=None, type=None, start=1):
+    def _create_(cls, class_name, names, module=None, type=None, start=1):
         """Convenience method to create a new Enum class.
 
         `names` can be:
