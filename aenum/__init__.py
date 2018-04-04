@@ -1453,7 +1453,14 @@ class EnumMeta(StdlibEnumMeta or type):
         return cls._create_(value, names, module=module, type=type, start=start)
 
     def __contains__(cls, member):
-        return isinstance(member, cls) and member.name in cls._member_map_
+        if cls._member_type_ is object:
+            return member in cls._member_map_.values()
+        elif isinstance(member, cls._member_type_):
+            try:
+                return member in cls._value2member_map_
+            except TypeError:
+                return member in (t[0] for t in cls._value2member_seq_)
+        return False
 
     def __delattr__(cls, attr):
         # nicer error message when someone tries to delete an attribute

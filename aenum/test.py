@@ -521,15 +521,23 @@ class TestEnum(TestCase):
 
     def test_contains(self):
         Season = self.Season
+        self.assertFalse('AUTUMN' in Season)
         self.assertTrue(Season.AUTUMN in Season)
         self.assertTrue(3 not in Season)
-
         val = Season(3)
         self.assertTrue(val in Season)
-
+        #
         class OtherEnum(Enum):
             one = 1; two = 2
         self.assertTrue(OtherEnum.two not in Season)
+        #
+        class Wierd(Enum):
+            this = [1, 2, 3]
+            that = (1, 2, 3)
+            those = {1: 1, 2: 2, 3: 3}
+        self.assertTrue(Wierd.this in Wierd)
+        self.assertFalse([1, 2, 3] in Wierd)
+        self.assertFalse({1: 1, 2: 2, 3: 3} in Wierd)
 
     if pyver >= 2.6:     # when `format` came into being
 
@@ -2762,6 +2770,18 @@ class TestFlag(TestCase):
         AC = 3
         CE = 1<<19
 
+    def test_membership(self):
+        Color = self.Color
+        Open = self.Open
+        self.assertFalse('BLACK' in Color)
+        self.assertFalse('RO' in Open)
+        self.assertTrue(Color.BLACK in Color)
+        self.assertTrue(Open.RO in Open)
+        self.assertFalse(Color.BLACK in Open)
+        self.assertFalse(Open.RO in Color)
+        self.assertFalse(0 in Color)
+        self.assertFalse(0 in Open)
+
     def test_str(self):
         Perm = self.Perm
         self.assertEqual(str(Perm.R), 'Perm.R')
@@ -3457,6 +3477,13 @@ class TestIntFlag(TestCase):
         W = 1 << 1
         R = 1 << 2
 
+    class Color(IntFlag):
+        BLACK = 0
+        RED = 1
+        GREEN = 2
+        BLUE = 4
+        PURPLE = RED|BLUE
+
     class Open(IntFlag):
         "not a good flag candidate"
         RO = 0
@@ -3464,6 +3491,24 @@ class TestIntFlag(TestCase):
         RW = 2
         AC = 3
         CE = 1<<19
+
+    def test_membership(self):
+        Color = self.Color
+        Open = self.Open
+        self.assertFalse('GREEN' in Color)
+        self.assertFalse('RW' in Open)
+        self.assertTrue(Color.GREEN in Color)
+        self.assertTrue(Open.RW in Open)
+        self.assertTrue(Color.GREEN in Open)
+        self.assertTrue(Open.RW in Color)
+        self.assertTrue(2 in Color)
+        self.assertTrue(2 in Open)
+
+    def test_name_lookup(self):
+        Color = self.Color
+        self.assertTrue(Color.RED is Color['RED'])
+        self.assertTrue(Color.RED|Color.GREEN is Color['RED|GREEN'])
+        self.assertTrue(Color.PURPLE is Color['RED|BLUE'])
 
     def test_type(self):
         Perm = self.Perm
