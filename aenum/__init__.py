@@ -2354,7 +2354,7 @@ class Flag(Enum):
 
     def __contains__(self, other):
         if not isinstance(other, self.__class__):
-            return NotImplemented
+            return False
         return other._value_ & self._value_ == other._value_
 
     def __repr__(self):

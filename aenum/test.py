@@ -539,6 +539,9 @@ class TestEnum(TestCase):
         self.assertFalse([1, 2, 3] in Wierd)
         self.assertFalse({1: 1, 2: 2, 3: 3} in Wierd)
 
+    def test_member_contains(self):
+        self.assertRaises(TypeError, lambda: 'test' in self.Season.AUTUMN)
+
     if pyver >= 2.6:     # when `format` came into being
 
         def test_format_enum(self):
@@ -2782,6 +2785,13 @@ class TestFlag(TestCase):
         self.assertFalse(0 in Color)
         self.assertFalse(0 in Open)
 
+    def test_member_contains(self):
+        Color = self.Color
+        self.assertFalse('test' in Color.BLUE)
+        self.assertFalse(2 in Color.BLUE)
+        self.assertTrue(Color.BLUE in Color.BLUE)
+        self.assertTrue(Color.BLUE in Color['RED|GREEN|BLUE'])
+
     def test_str(self):
         Perm = self.Perm
         self.assertEqual(str(Perm.R), 'Perm.R')
@@ -3503,6 +3513,13 @@ class TestIntFlag(TestCase):
         self.assertTrue(Open.RW in Color)
         self.assertTrue(2 in Color)
         self.assertTrue(2 in Open)
+
+    def test_member_contains(self):
+        Color = self.Color
+        self.assertFalse('test' in Color.RED)
+        self.assertFalse(1 in Color.RED)
+        self.assertTrue(Color.RED in Color.RED)
+        self.assertTrue(Color.RED in Color.PURPLE)
 
     def test_name_lookup(self):
         Color = self.Color
