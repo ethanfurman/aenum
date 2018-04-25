@@ -1,3 +1,10 @@
+2.1.1
+=====
+
+correctly raise TypeError for non-Enum containment checks
+support combining names with | for Flag key access
+
+
 2.1.0
 =====
 
