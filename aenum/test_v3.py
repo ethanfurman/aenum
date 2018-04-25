@@ -591,6 +591,126 @@ class TestEnumV3(TestCase):
             third
         self.assertEqual([Dupes.first, Dupes.second, Dupes.third], list(Dupes))
 
+    def test_order_as_function(self):
+        # first with _init_
+        class TestSequence(Enum):
+            _init_ = 'value, sequence'
+            _order_ = lambda member: member.sequence
+            item_id                  = 'An$(1,6)',      0     # Item Code
+            company_id               = 'An$(7,2)',      1     # Company Code
+            warehouse_no             = 'An$(9,4)',      2     # Warehouse Number
+            company                  = 'Hn$(13,6)',     3     # 4 SPACES + COMPANY
+            key_type                 = 'Cn$(19,3)',     4     # Key Type = '1**'
+            available                = 'Zn$(1,1)',      5     # Available?
+            contract_item            = 'Bn(2,1)',       6     # Contract Item?
+            sales_category           = 'Fn',            7     # Sales Category
+            gl_category              = 'Rn$(5,1)',      8     # G/L Category
+            warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
+            inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        ts = TestSequence
+        self.assertEqual(ts.item_id.name, 'item_id')
+        self.assertEqual(ts.item_id.value, 'An$(1,6)')
+        self.assertEqual(ts.item_id.sequence, 0)
+        self.assertEqual(ts.company_id.name, 'company_id')
+        self.assertEqual(ts.company_id.value, 'An$(7,2)')
+        self.assertEqual(ts.company_id.sequence, 1)
+        self.assertEqual(ts.warehouse_no.name, 'warehouse_no')
+        self.assertEqual(ts.warehouse_no.value, 'An$(9,4)')
+        self.assertEqual(ts.warehouse_no.sequence, 2)
+        self.assertEqual(ts.company.name, 'company')
+        self.assertEqual(ts.company.value, 'Hn$(13,6)')
+        self.assertEqual(ts.company.sequence, 3)
+        self.assertEqual(ts.key_type.name, 'key_type')
+        self.assertEqual(ts.key_type.value, 'Cn$(19,3)')
+        self.assertEqual(ts.key_type.sequence, 4)
+        self.assertEqual(ts.available.name, 'available')
+        self.assertEqual(ts.available.value, 'Zn$(1,1)')
+        self.assertEqual(ts.available.sequence, 5)
+        self.assertEqual(ts.contract_item.name, 'contract_item')
+        self.assertEqual(ts.contract_item.value, 'Bn(2,1)')
+        self.assertEqual(ts.contract_item.sequence, 6)
+        self.assertEqual(ts.sales_category.name, 'sales_category')
+        self.assertEqual(ts.sales_category.value, 'Fn')
+        self.assertEqual(ts.sales_category.sequence, 7)
+        self.assertEqual(ts.gl_category.name, 'gl_category')
+        self.assertEqual(ts.gl_category.value, 'Rn$(5,1)')
+        self.assertEqual(ts.gl_category.sequence, 8)
+        self.assertEqual(ts.warehouse_category.name, 'warehouse_category')
+        self.assertEqual(ts.warehouse_category.value, 'Sn$(6,1)')
+        self.assertEqual(ts.warehouse_category.sequence, 9)
+        self.assertEqual(ts.inv_units.name, 'inv_units')
+        self.assertEqual(ts.inv_units.value, 'Qn$(7,2)')
+        self.assertEqual(ts.inv_units.sequence, 10)
+        # and then without
+        class TestSequence(Enum):
+            _order_ = lambda member: member.value[1]
+            item_id                  = 'An$(1,6)',      0     # Item Code
+            company_id               = 'An$(7,2)',      1     # Company Code
+            warehouse_no             = 'An$(9,4)',      2     # Warehouse Number
+            company                  = 'Hn$(13,6)',     3     # 4 SPACES + COMPANY
+            key_type                 = 'Cn$(19,3)',     4     # Key Type = '1**'
+            available                = 'Zn$(1,1)',      5     # Available?
+            contract_item            = 'Bn(2,1)',       6     # Contract Item?
+            sales_category           = 'Fn',            7     # Sales Category
+            gl_category              = 'Rn$(5,1)',      8     # G/L Category
+            warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
+            inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        ts = TestSequence
+        self.assertEqual(ts.item_id.name, 'item_id')
+        self.assertEqual(ts.item_id.value, ('An$(1,6)', 0))
+        self.assertEqual(ts.company_id.name, 'company_id')
+        self.assertEqual(ts.company_id.value, ('An$(7,2)', 1))
+        self.assertEqual(ts.warehouse_no.name, 'warehouse_no')
+        self.assertEqual(ts.warehouse_no.value, ('An$(9,4)', 2))
+        self.assertEqual(ts.company.name, 'company')
+        self.assertEqual(ts.company.value, ('Hn$(13,6)', 3))
+        self.assertEqual(ts.key_type.name, 'key_type')
+        self.assertEqual(ts.key_type.value, ('Cn$(19,3)', 4))
+        self.assertEqual(ts.available.name, 'available')
+        self.assertEqual(ts.available.value, ('Zn$(1,1)', 5))
+        self.assertEqual(ts.contract_item.name, 'contract_item')
+        self.assertEqual(ts.contract_item.value, ('Bn(2,1)', 6))
+        self.assertEqual(ts.sales_category.name, 'sales_category')
+        self.assertEqual(ts.sales_category.value, ('Fn', 7))
+        self.assertEqual(ts.gl_category.name, 'gl_category')
+        self.assertEqual(ts.gl_category.value, ('Rn$(5,1)', 8))
+        self.assertEqual(ts.warehouse_category.name, 'warehouse_category')
+        self.assertEqual(ts.warehouse_category.value, ('Sn$(6,1)', 9))
+        self.assertEqual(ts.inv_units.name, 'inv_units')
+        self.assertEqual(ts.inv_units.value, ('Qn$(7,2)', 10))
+        # then with _init_ but without value
+        with self.assertRaises(TypeError):
+            class TestSequence(Enum):
+                _init_ = 'sequence'
+                _order_ = lambda member: member.sequence
+                item_id                  = 'An$(1,6)',      0     # Item Code
+                company_id               = 'An$(7,2)',      1     # Company Code
+                warehouse_no             = 'An$(9,4)',      2     # Warehouse Number
+                company                  = 'Hn$(13,6)',     3     # 4 SPACES + COMPANY
+                key_type                 = 'Cn$(19,3)',     4     # Key Type = '1**'
+                available                = 'Zn$(1,1)',      5     # Available?
+                contract_item            = 'Bn(2,1)',       6     # Contract Item?
+                sales_category           = 'Fn',            7     # Sales Category
+                gl_category              = 'Rn$(5,1)',      8     # G/L Category
+                warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
+                inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        # finally, out of order so Python 3 barfs
+        with self.assertRaises(TypeError):
+            class TestSequence(Enum):
+                _init_ = 'sequence'
+                _order_ = lambda member: member.sequence
+                item_id                  = 'An$(1,6)',      0     # Item Code
+                warehouse_no             = 'An$(9,4)',      2     # Warehouse Number
+                company                  = 'Hn$(13,6)',     3     # 4 SPACES + COMPANY
+                company_id               = 'An$(7,2)',      1     # Company Code
+                inv_units                = 'Qn$(7,2)',     10     # Inv Units
+                available                = 'Zn$(1,1)',      5     # Available?
+                contract_item            = 'Bn(2,1)',       6     # Contract Item?
+                sales_category           = 'Fn',            7     # Sales Category
+                key_type                 = 'Cn$(19,3)',     4     # Key Type = '1**'
+                gl_category              = 'Rn$(5,1)',      8     # G/L Category
+                warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
+
     if pyver == 3.4:
         def test_class_nested_enum_and_pickle_protocol_four(self):
             # would normally just have this directly in the class namespace

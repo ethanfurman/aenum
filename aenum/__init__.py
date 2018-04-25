@@ -1607,6 +1607,26 @@ class EnumMeta(StdlibEnumMeta or type):
                 calced_order = [name for (name, value) in enumsort(list(enum_members.items()))]
             elif isinstance(_order_, basestring):
                 calced_order = _order_ = _order_.replace(',', ' ').split()
+            elif callable(_order_):
+                member = NamedTuple('member', init and 'name ' + init or ['name', 'value'])
+                calced_order = []
+                for name, value in enum_members.items():
+                    if init:
+                        if not isinstance(value, tuple):
+                            value = (value, )
+                        name_value = (name, ) + value
+                        print(name_value)
+                    else:
+                        name_value = tuple((name, value))
+                    if member._defined_len_ != len(name_value):
+                        raise TypeError('%d values expected (%s), %d received (%s)' % (
+                            member._defined_len_,
+                            ', '.join(member._fields_),
+                            len(name_value),
+                            ', '.join([repr(v) for v in name_value]),
+                            ))
+                    calced_order.append(member(*name_value))
+                calced_order = _order_ = [m.name for m in sorted(calced_order, key=_order_)]
             else:
                 calced_order = _order_
             original_dict = clsdict
@@ -1888,9 +1908,12 @@ class EnumMeta(StdlibEnumMeta or type):
             setattr(enum_class, '__new__', Enum.__dict__['__new__'])
 
         # py3 support for definition order (helps keep py2/py3 code in sync)
-        if _order_ and _order_ != enum_class._member_names_:
-            raise TypeError('member order does not match _order_')
-
+        if _order_:
+            if callable(_order_):
+                # create ordered list for comparison
+                _order_ = [m.name for m in sorted(enum_class, key=_order_)]
+            if _order_ != enum_class._member_names_:
+                raise TypeError('member order does not match _order_')
         return enum_class
 
     def __bool__(cls):
@@ -2261,7 +2284,8 @@ def __init__(self, *args, **kwds):
         _auto_init_ = _auto_init_[1:]
     if _auto_init_:
         if len(_auto_init_) < len(args):
-            raise TypeError('%d arguments expected, %d received' % (len(_auto_init_), len(args)))
+            raise TypeError('%d arguments expected (%s), %d received (%s)'
+                    % (len(_auto_init_), _auto_init_, len(args), args))
         for name, arg in zip(_auto_init_, args):
             setattr(self, name, arg)
         if len(args) < len(_auto_init_):
