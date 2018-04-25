@@ -3,6 +3,7 @@
 
 correctly raise TypeError for non-Enum containment checks
 support combining names with | for Flag key access
+support _order_ being a callable
 
 
 2.1.0
