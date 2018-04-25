@@ -1453,14 +1453,11 @@ class EnumMeta(StdlibEnumMeta or type):
         return cls._create_(value, names, module=module, type=type, start=start)
 
     def __contains__(cls, member):
-        if cls._member_type_ is object:
-            return member in cls._member_map_.values()
-        elif isinstance(member, cls._member_type_):
-            try:
-                return member in cls._value2member_map_
-            except TypeError:
-                return member in (t[0] for t in cls._value2member_seq_)
-        return False
+        if not isinstance(member, Enum):
+            raise TypeError("%r (%r) is not an <aenum 'Enum'>" % (member, type(member)))
+        if not isinstance(member, cls):
+            return False
+        return True
 
     def __delattr__(cls, attr):
         # nicer error message when someone tries to delete an attribute
@@ -2353,6 +2350,8 @@ class Flag(Enum):
         return values
 
     def __contains__(self, other):
+        if not isinstance(other, Flag):
+            raise TypeError("%r (%r) is not an <aenum 'Flag'>" % (other, type(other)))
         if not isinstance(other, self.__class__):
             return False
         return other._value_ & self._value_ == other._value_

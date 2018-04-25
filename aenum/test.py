@@ -521,9 +521,9 @@ class TestEnum(TestCase):
 
     def test_contains(self):
         Season = self.Season
-        self.assertFalse('AUTUMN' in Season)
+        self.assertRaises(TypeError, lambda: 'AUTUMN' in Season)
         self.assertTrue(Season.AUTUMN in Season)
-        self.assertTrue(3 not in Season)
+        self.assertRaises(TypeError, lambda: 3 not in Season)
         val = Season(3)
         self.assertTrue(val in Season)
         #
@@ -536,8 +536,8 @@ class TestEnum(TestCase):
             that = (1, 2, 3)
             those = {1: 1, 2: 2, 3: 3}
         self.assertTrue(Wierd.this in Wierd)
-        self.assertFalse([1, 2, 3] in Wierd)
-        self.assertFalse({1: 1, 2: 2, 3: 3} in Wierd)
+        self.assertRaises(TypeError, lambda: [1, 2, 3] in Wierd)
+        self.assertRaises(TypeError, lambda: {1: 1, 2: 2, 3: 3} in Wierd)
 
     def test_member_contains(self):
         self.assertRaises(TypeError, lambda: 'test' in self.Season.AUTUMN)
@@ -2776,19 +2776,19 @@ class TestFlag(TestCase):
     def test_membership(self):
         Color = self.Color
         Open = self.Open
-        self.assertFalse('BLACK' in Color)
-        self.assertFalse('RO' in Open)
+        self.assertRaises(TypeError, lambda: 'BLACK' in Color)
+        self.assertRaises(TypeError, lambda: 'RO' in Open)
         self.assertTrue(Color.BLACK in Color)
         self.assertTrue(Open.RO in Open)
         self.assertFalse(Color.BLACK in Open)
         self.assertFalse(Open.RO in Color)
-        self.assertFalse(0 in Color)
-        self.assertFalse(0 in Open)
+        self.assertRaises(TypeError, lambda: 0 in Color)
+        self.assertRaises(TypeError, lambda: 0 in Open)
 
     def test_member_contains(self):
         Color = self.Color
-        self.assertFalse('test' in Color.BLUE)
-        self.assertFalse(2 in Color.BLUE)
+        self.assertRaises(TypeError, lambda: 'test' in Color.BLUE)
+        self.assertRaises(TypeError, lambda: 2 in Color.BLUE)
         self.assertTrue(Color.BLUE in Color.BLUE)
         self.assertTrue(Color.BLUE in Color['RED|GREEN|BLUE'])
 
@@ -3505,19 +3505,19 @@ class TestIntFlag(TestCase):
     def test_membership(self):
         Color = self.Color
         Open = self.Open
-        self.assertFalse('GREEN' in Color)
-        self.assertFalse('RW' in Open)
+        self.assertRaises(TypeError, lambda: 'GREEN' in Color)
+        self.assertRaises(TypeError, lambda: 'RW' in Open)
         self.assertTrue(Color.GREEN in Color)
         self.assertTrue(Open.RW in Open)
-        self.assertTrue(Color.GREEN in Open)
-        self.assertTrue(Open.RW in Color)
-        self.assertTrue(2 in Color)
-        self.assertTrue(2 in Open)
+        self.assertFalse(Color.GREEN in Open)
+        self.assertFalse(Open.RW in Color)
+        self.assertRaises(TypeError, lambda: 2 in Color)
+        self.assertRaises(TypeError, lambda: 2 in Open)
 
     def test_member_contains(self):
         Color = self.Color
-        self.assertFalse('test' in Color.RED)
-        self.assertFalse(1 in Color.RED)
+        self.assertRaises(TypeError, lambda: 'test' in Color.RED)
+        self.assertRaises(TypeError, lambda: 1 in Color.RED)
         self.assertTrue(Color.RED in Color.RED)
         self.assertTrue(Color.RED in Color.PURPLE)
 
