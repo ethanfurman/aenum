@@ -2260,6 +2260,8 @@ def __init__(self, *args, **kwds):
         # remove 'value' from _auto_init_ as it has already been handled
         _auto_init_ = _auto_init_[1:]
     if _auto_init_:
+        if len(_auto_init_) < len(args):
+            raise TypeError('%d arguments expected, %d received' % (len(_auto_init_), len(args)))
         for name, arg in zip(_auto_init_, args):
             setattr(self, name, arg)
         if len(args) < len(_auto_init_):
