@@ -4423,7 +4423,7 @@ class TestNamedConstant(TestCase):
             K.PI = 9
         with self.assertRaisesRegex(AttributeError, 'cannot delete constant'):
             del K.PI
-        with self.assertRaisesRegex(AttributeError, 'cannot delete constant'):
+        with self.assertRaisesRegex(AttributeError, 'cannot rebind constant'):
             K('PI', 3)
 
     def test_duplicates(self):
