@@ -607,6 +607,8 @@ class TestEnumV3(TestCase):
             gl_category              = 'Rn$(5,1)',      8     # G/L Category
             warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
             inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        for i, member in enumerate(TestSequence):
+            self.assertEqual(i, member.sequence)
         ts = TestSequence
         self.assertEqual(ts.item_id.name, 'item_id')
         self.assertEqual(ts.item_id.value, 'An$(1,6)')
@@ -655,6 +657,8 @@ class TestEnumV3(TestCase):
             gl_category              = 'Rn$(5,1)',      8     # G/L Category
             warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
             inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        for i, member in enumerate(TestSequence):
+            self.assertEqual(i, member.value[1])
         ts = TestSequence
         self.assertEqual(ts.item_id.name, 'item_id')
         self.assertEqual(ts.item_id.value, ('An$(1,6)', 0))

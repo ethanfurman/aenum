@@ -37,7 +37,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 1, 1
+version = 2, 1, 2, 1
 
 try:
     any
@@ -1525,11 +1525,13 @@ class EnumMeta(StdlibEnumMeta or type):
             settings = settings,
         settings = set(settings)
         generate = None
+        order = None
         # inherit previous flags
         member_type, first_enum = metacls._get_mixins_(bases)
         if first_enum is not None:
             settings |= first_enum._settings_
             init = init or first_enum._auto_init_
+            order = first_enum._order_function_
             if start is None:
                 start = first_enum._start_
             generate = getattr(first_enum, '_generate_next_value_', None)
@@ -1576,6 +1578,8 @@ class EnumMeta(StdlibEnumMeta or type):
                     enum_dict._init = new_args
                 except TypeError:
                     pass
+        if order is not None:
+            enum_dict['_order_'] = staticmethod(order)
         return enum_dict
 
     def __init__(cls, *args , **kwds):
@@ -1601,13 +1605,23 @@ class EnumMeta(StdlibEnumMeta or type):
                     (k, v) for (k, v) in clsdict.items()
                     if not (_is_sunder(k) or _is_dunder(k) or _is_descriptor(v))
                     ])
-            if isinstance(clsdict, OrderedDict):
-                calced_order = clsdict
+            original_dict = clsdict
+            clsdict = metacls.__prepare__(cls, bases, init=init, start=start, settings=settings)
+            init = init or clsdict._init
+            if _order_ is None:
+                _order_ = clsdict.get('_order_')
+                if _order_ is not None:
+                    _order_ = _order_.__get__(cls)
+            if isinstance(original_dict, OrderedDict):
+                calced_order = original_dict
             elif _order_ is None:
                 calced_order = [name for (name, value) in enumsort(list(enum_members.items()))]
             elif isinstance(_order_, basestring):
                 calced_order = _order_ = _order_.replace(',', ' ').split()
             elif callable(_order_):
+                if init:
+                    if not isinstance(init, basestring):
+                        init = ' '.join(init)
                 member = NamedTuple('member', init and 'name ' + init or ['name', 'value'])
                 calced_order = []
                 for name, value in enum_members.items():
@@ -1615,7 +1629,6 @@ class EnumMeta(StdlibEnumMeta or type):
                         if not isinstance(value, tuple):
                             value = (value, )
                         name_value = (name, ) + value
-                        print(name_value)
                     else:
                         name_value = tuple((name, value))
                     if member._defined_len_ != len(name_value):
@@ -1626,11 +1639,9 @@ class EnumMeta(StdlibEnumMeta or type):
                             ', '.join([repr(v) for v in name_value]),
                             ))
                     calced_order.append(member(*name_value))
-                calced_order = _order_ = [m.name for m in sorted(calced_order, key=_order_)]
+                calced_order = [m.name for m in sorted(calced_order, key=_order_)]
             else:
                 calced_order = _order_
-            original_dict = clsdict
-            clsdict = metacls.__prepare__(cls, bases, init=init, start=start, settings=settings)
             for name in (
                     '_ignore_', '_create_pseudo_member_', '_create_pseudo_member_values_',
                     '_generate_next_value_', '_order_', '__new__',
@@ -1718,6 +1729,7 @@ class EnumMeta(StdlibEnumMeta or type):
         enum_class._settings_ = settings
         enum_class._start_ = start
         enum_class._auto_init_ = _auto_init_ = init
+        enum_class._order_function_ = None
         if 'value' in creating_init and creating_init[0] != 'value':
             raise TypeError("'value', if specified, must be the first item in 'init'")
         # save attributes from super classes so we know if we can take
@@ -1909,7 +1921,13 @@ class EnumMeta(StdlibEnumMeta or type):
 
         # py3 support for definition order (helps keep py2/py3 code in sync)
         if _order_:
+            if isinstance(_order_, staticmethod):
+                # _order_ = staticmethod.__get__(enum_class)
+                # _order_ = getattr(_order_, 'im_func', _order_)
+                _order_ = _order_.__func__
             if callable(_order_):
+                # save order for future subclasses
+                enum_class._order_function_ = staticmethod(_order_)
                 # create ordered list for comparison
                 _order_ = [m.name for m in sorted(enum_class, key=_order_)]
             if _order_ != enum_class._member_names_:

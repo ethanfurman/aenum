@@ -2763,6 +2763,8 @@ class TestEnum(TestCase):
             gl_category              = 'Rn$(5,1)',      8     # G/L Category
             warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
             inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        for i, member in enumerate(TestSequence):
+            self.assertEqual(i, member.sequence)
         ts = TestSequence
         self.assertEqual(ts.item_id.name, 'item_id')
         self.assertEqual(ts.item_id.value, 'An$(1,6)')
@@ -2811,6 +2813,8 @@ class TestEnum(TestCase):
             gl_category              = 'Rn$(5,1)',      8     # G/L Category
             warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
             inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        for i, member in enumerate(TestSequence):
+            self.assertEqual(i, member.value[1])
         ts = TestSequence
         self.assertEqual(ts.item_id.name, 'item_id')
         self.assertEqual(ts.item_id.value, ('An$(1,6)', 0))
@@ -2866,6 +2870,65 @@ class TestEnum(TestCase):
                 key_type                 = 'Cn$(19,3)',     4     # Key Type = '1**'
                 gl_category              = 'Rn$(5,1)',      8     # G/L Category
                 warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
+
+    def test_order_as_function_in_subclass(self):
+        #
+        class Parent(Enum):
+            _init_ = 'value sequence'
+            _order_ = lambda m: m.sequence
+        #
+        class Child(Parent):
+            item_id                  = 'An$(1,6)',      0     # Item Code
+            company_id               = 'An$(7,2)',      1     # Company Code
+            warehouse_no             = 'An$(9,4)',      2     # Warehouse Number
+            company                  = 'Hn$(13,6)',     3     # 4 SPACES + COMPANY
+            key_type                 = 'Cn$(19,3)',     4     # Key Type = '1**'
+            available                = 'Zn$(1,1)',      5     # Available?
+            contract_item            = 'Bn(2,1)',       6     # Contract Item?
+            sales_category           = 'Fn',            7     # Sales Category
+            gl_category              = 'Rn$(5,1)',      8     # G/L Category
+            warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
+            inv_units                = 'Qn$(7,2)',     10     # Inv Units
+        #
+        for i, member in enumerate(Child):
+            self.assertEqual(i, member.sequence)
+        #
+        ts = Child
+        self.assertEqual(ts.item_id.name, 'item_id')
+        self.assertEqual(ts.item_id.value, 'An$(1,6)')
+        self.assertEqual(ts.item_id.sequence, 0)
+        self.assertEqual(ts.company_id.name, 'company_id')
+        self.assertEqual(ts.company_id.value, 'An$(7,2)')
+        self.assertEqual(ts.company_id.sequence, 1)
+        self.assertEqual(ts.warehouse_no.name, 'warehouse_no')
+        self.assertEqual(ts.warehouse_no.value, 'An$(9,4)')
+        self.assertEqual(ts.warehouse_no.sequence, 2)
+        self.assertEqual(ts.company.name, 'company')
+        self.assertEqual(ts.company.value, 'Hn$(13,6)')
+        self.assertEqual(ts.company.sequence, 3)
+        self.assertEqual(ts.key_type.name, 'key_type')
+        self.assertEqual(ts.key_type.value, 'Cn$(19,3)')
+        self.assertEqual(ts.key_type.sequence, 4)
+        self.assertEqual(ts.available.name, 'available')
+        self.assertEqual(ts.available.value, 'Zn$(1,1)')
+        self.assertEqual(ts.available.sequence, 5)
+        self.assertEqual(ts.contract_item.name, 'contract_item')
+        self.assertEqual(ts.contract_item.value, 'Bn(2,1)')
+        self.assertEqual(ts.contract_item.sequence, 6)
+        self.assertEqual(ts.sales_category.name, 'sales_category')
+        self.assertEqual(ts.sales_category.value, 'Fn')
+        self.assertEqual(ts.sales_category.sequence, 7)
+        self.assertEqual(ts.gl_category.name, 'gl_category')
+        self.assertEqual(ts.gl_category.value, 'Rn$(5,1)')
+        self.assertEqual(ts.gl_category.sequence, 8)
+        self.assertEqual(ts.warehouse_category.name, 'warehouse_category')
+        self.assertEqual(ts.warehouse_category.value, 'Sn$(6,1)')
+        self.assertEqual(ts.warehouse_category.sequence, 9)
+        self.assertEqual(ts.inv_units.name, 'inv_units')
+        self.assertEqual(ts.inv_units.value, 'Qn$(7,2)')
+        self.assertEqual(ts.inv_units.sequence, 10)
+
+        pass
 
     if StdlibEnumMeta is not None:
         def test_stdlib_inheritence(self):
