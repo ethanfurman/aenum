@@ -942,6 +942,7 @@ class enum(object):
         self._args = args
         self._kwds = kwds.items()
         self._hash = hash(args)
+        self.name = None
 
     @property
     def args(self):
@@ -1499,6 +1500,8 @@ class _EnumDict(dict):
                                     self._last_values[:],
                                     )
                     value = value.value
+            elif isinstance(value, enum):
+                value.name = key
             else:
                 pass
             self._member_names.append(key)
