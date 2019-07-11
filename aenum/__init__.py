@@ -2013,7 +2013,7 @@ class EnumMeta(StdlibEnumMeta or type):
             return cls._member_map_[name]
         except KeyError:
             exc = _sys.exc_info()[1]
-        if '|' in name and issubclass(cls, Flag):
+        if issubclass(cls, Flag) and '|' in name:
             try:
                 # may be an __or__ed name
                 result = cls(0)
