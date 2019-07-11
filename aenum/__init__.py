@@ -107,10 +107,10 @@ class _RouteClassAttributeToGetattr(object):
         return self.fget(instance)
 
     def __set__(self, instance, value):
-        raise AttributeError("can't set attribute %r" % self.name)
+        raise AttributeError("can't set attribute %r" % (self.name, ))
 
     def __delete__(self, instance):
-        raise AttributeError("can't delete attribute %r" % self.name)
+        raise AttributeError("can't delete attribute %r" % (self.name, ))
 
 
 class skip(object):
@@ -151,7 +151,7 @@ def _is_sunder(name):
 def _make_class_unpicklable(cls):
     """Make the given class un-picklable."""
     def _break_on_call_reduce(self, protocol=None):
-        raise TypeError('%r cannot be pickled' % self)
+        raise TypeError('%r cannot be pickled' % (self, ))
     cls.__reduce_ex__ = _break_on_call_reduce
     cls.__module__ = '<unknown>'
 
@@ -315,7 +315,7 @@ class _NamedConstantDict(dict):
             pass
         elif key in self._names:
             # overwriting an existing constant?
-            raise TypeError('Attempted to reuse name: %r' % key)
+            raise TypeError('Attempted to reuse name: %r' % (key, ))
         elif isinstance(value, constant) or not _is_descriptor(value):
             if key in self:
                 # overwriting a descriptor?
@@ -426,7 +426,7 @@ class _NamedTupleDict(OrderedDict):
                 key = '_order_'
         elif key in self._field_names:
             # overwriting a field?
-            raise TypeError('Attempted to reuse field name: %r' % key)
+            raise TypeError('Attempted to reuse field name: %r' % (key, ))
         elif not _is_descriptor(value):
             if key in self:
                 # field overwriting a descriptor?
@@ -565,7 +565,7 @@ class NamedTupleMeta(type):
         max_len = 0
         if not _order_:
             if unnumbered:
-                raise ValueError("_order_ not specified and OFFSETs not declared for %r" % unnumbered.keys())
+                raise ValueError("_order_ not specified and OFFSETs not declared for %r" % (unnumbered.keys(), ))
             for name, (index, doc, default) in sorted(numbered.items(), key=lambda nv: (nv[1][0], nv[0])):
                 if index in seen:
                     aliases.append(name)
@@ -703,7 +703,7 @@ class NamedTupleMeta(type):
                     try:
                         class_name = class_name.encode('ascii')
                     except UnicodeEncodeError:
-                        raise TypeError('%r is not representable in ASCII' % class_name)
+                        raise TypeError('%r is not representable in ASCII' % (class_name, ))
             # quick exit if names is a NamedTuple
             if isinstance(names, NamedTupleMeta):
                 names.__name__ = class_name
@@ -770,7 +770,7 @@ class NamedTupleMeta(type):
         return list(cls._aliases_)
 
     def __repr__(cls):
-        return "<NamedTuple %r>" % cls.__name__
+        return "<NamedTuple %r>" % (cls.__name__, )
 
 temp_namedtuple_dict = {}
 temp_namedtuple_dict['__doc__'] = "NamedTuple base class.\n\n    Derive from this class to define new NamedTuples.\n\n"
@@ -780,7 +780,7 @@ def __new__(cls, *args, **kwds):
         raise TypeError('%d fields expected, %d received' % (cls._defined_len_, len(args)))
     unknown = set(kwds) - set(cls._fields_) - set(cls._aliases_)
     if unknown:
-        raise TypeError('unknown fields: %r' % unknown)
+        raise TypeError('unknown fields: %r' % (unknown, ))
     final_args = list(args) + [undefined] * (len(cls.__fields__) - len(args))
     for field, value in kwds.items():
         index = getattr(cls, field).index
@@ -1290,7 +1290,7 @@ class _EnumDict(dict):
                     'create_pseudo_member_', '_missing_', '_missing_value_', '_missing_name_',
                 ):
                 # sunder is used during creation, must be specified first
-                raise ValueError('cannot set %r after init phase' % (key,))
+                raise ValueError('cannot set %r after init phase' % (key, ))
             elif key == '_ignore_':
                 if self._ignore_init_done:
                     raise TypeError('ignore can only be specified once')
@@ -1360,7 +1360,7 @@ class _EnumDict(dict):
                 key = '_order_'
                 if not self._allow_init:
                     # _order_ is used during creation, must be specified first
-                    raise ValueError('cannot set %r after init phase' % (key,))
+                    raise ValueError('cannot set %r after init phase' % (key, ))
             elif key == '__new__' and self._new_to_init:
                 # ArgSpec(args=[...], varargs=[...], keywords=[...], defaults=[...]
                 if isinstance(value, staticmethod):
@@ -1371,7 +1371,7 @@ class _EnumDict(dict):
                 self._locked = True
         elif key in self._member_names:
             # descriptor overwriting an enum?
-            raise TypeError('Attempted to reuse name: %r' % key)
+            raise TypeError('Attempted to reuse name: %r' % (key, ))
         elif key in self._ignore:
             pass
         elif not _is_descriptor(value):
@@ -1546,7 +1546,7 @@ class EnumMeta(StdlibEnumMeta or type):
         allowed_settings = dict.fromkeys(['autovalue', 'autonumber', 'noalias', 'unique', 'multivalue'])
         for arg in settings:
             if arg not in allowed_settings:
-                raise TypeError('unknown qualifier: %r' % (arg,))
+                raise TypeError('unknown qualifier: %r' % (arg, ))
             allowed_settings[arg] = True
         enum_dict = _EnumDict(settings=settings, start=start, constructor_init=constructor_init, constructor_start=constructor_start)
         if settings & set([AutoValue, AutoNumber]) or start is not None:
@@ -1574,7 +1574,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 enum_dict['__new__'] = __new__
             else:
                 try:
-                    new_args = inspect.getargspec(first_enum.__member_new__)[0][1:]
+                    new_args = inspect.getargspec(first_enum.__new_member__)[0][1:]
                     enum_dict._init = new_args
                 except TypeError:
                     pass
@@ -1846,7 +1846,7 @@ class EnumMeta(StdlibEnumMeta or type):
                         value in enum_class._value2member_map_
                         or any(v == value for (v, m) in enum_class._value2member_seq_)
                         ):
-                    raise ValueError('%r has already been used' % (value,))
+                    raise ValueError('%r has already been used' % (value, ))
                 try:
                     # This may fail if value is not hashable. We can't add the value
                     # to the map, and by-value lookups for this value will be
@@ -1916,7 +1916,7 @@ class EnumMeta(StdlibEnumMeta or type):
             # if the user defined their own __new__, save it before it gets
             # clobbered in case they subclass later
             if save_new:
-                setattr(enum_class, '__member_new__', enum_class.__dict__['__new__'])
+                setattr(enum_class, '__new_member__', enum_class.__dict__['__new__'])
             setattr(enum_class, '__new__', Enum.__dict__['__new__'])
 
         # py3 support for definition order (helps keep py2/py3 code in sync)
@@ -2040,7 +2040,7 @@ class EnumMeta(StdlibEnumMeta or type):
     __nonzero__ = __bool__
 
     def __repr__(cls):
-        return "<aenum %r>" % cls.__name__
+        return "<aenum %r>" % (cls.__name__, )
 
     def __setattr__(cls, name, value):
         """Block attempts to reassign Enum members/constants.
@@ -2078,7 +2078,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 try:
                     class_name = class_name.encode('ascii')
                 except UnicodeEncodeError:
-                    raise TypeError('%r is not representable in ASCII' % class_name)
+                    raise TypeError('%r is not representable in ASCII' % (class_name, ))
         metacls = cls.__class__
         if type is None:
             bases = (cls, )
@@ -2190,7 +2190,7 @@ class EnumMeta(StdlibEnumMeta or type):
             """
             # now find the correct __new__, checking to see of one was defined
             # by the user; also check earlier enum classes in case a __new__ was
-            # saved as __member_new__
+            # saved as __new_member__
             __new__ = clsdict.get('__new__', None)
             if __new__:
                 return None, True, True      # __new__, save_new, use_args
@@ -2201,9 +2201,9 @@ class EnumMeta(StdlibEnumMeta or type):
                 E__new__ = N__new__
             else:
                 E__new__ = Enum.__dict__['__new__']
-            # check all possibles for __member_new__ before falling back to
+            # check all possibles for __new_member__ before falling back to
             # __new__
-            for method in ('__member_new__', '__new__'):
+            for method in ('__new_member__', '__new__'):
                 for possible in (member_type, first_enum):
                     try:
                         target = possible.__dict__[method]
@@ -2215,7 +2215,7 @@ class EnumMeta(StdlibEnumMeta or type):
                             O__new__,
                             E__new__,
                             ]:
-                        if method == '__member_new__':
+                        if method == '__new_member__':
                             clsdict['__new__'] = target
                             return None, False, True
                         if isinstance(target, staticmethod):
@@ -2247,16 +2247,16 @@ class EnumMeta(StdlibEnumMeta or type):
             """
             # now find the correct __new__, checking to see of one was defined
             # by the user; also check earlier enum classes in case a __new__ was
-            # saved as __member_new__
+            # saved as __new_member__
             __new__ = clsdict.get('__new__', None)
 
-            # should __new__ be saved as __member_new__ later?
+            # should __new__ be saved as __new_member__ later?
             save_new = __new__ is not None
 
             if __new__ is None:
-                # check all possibles for __member_new__ before falling back to
+                # check all possibles for __new_member__ before falling back to
                 # __new__
-                for method in ('__member_new__', '__new__'):
+                for method in ('__new_member__', '__new__'):
                     for possible in (member_type, first_enum):
                         target = getattr(possible, method, None)
                         if target not in (
@@ -2311,7 +2311,7 @@ def __init__(self, *args, **kwds):
             for name in remaining_args:
                 value = kwds.pop(name, undefined)
                 if value is undefined:
-                    raise TypeError('missing value for: %r' % name)
+                    raise TypeError('missing value for: %r' % (name, ))
                 setattr(self, name, value)
             if kwds:
                 # too many keyword arguments
@@ -2673,7 +2673,7 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         _value2member_map_ = enumeration._value2member_map_
         base_attributes = set([a for b in enumeration.mro() for a in b.__dict__])
     except AttributeError:
-        raise TypeError('%r is not a supported Enum' % (enumeration,))
+        raise TypeError('%r is not a supported Enum' % (enumeration, ))
     try:
         _value2member_seq_ = enumeration._value2member_seq_
         # _auto_number_ = enumeration._auto_number_
@@ -2691,7 +2691,7 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         # _unique_ = False
         _auto_init_ = []
     mt_new = _member_type_.__new__
-    _new = getattr(enumeration, '__member_new__', mt_new)
+    _new = getattr(enumeration, '__new_member__', mt_new)
     if _new is object.__new__:
         use_args = False
     else:
@@ -2764,7 +2764,7 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
                     value in _value2member_map_
                     or any(v == value for (v, m) in _value2member_seq_)
                     ):
-                raise ValueError('%r has already been used' % (value,))
+                raise ValueError('%r has already been used' % (value, ))
             try:
                 # This may fail if value is not hashable. We can't add the value
                 # to the map, and by-value lookups for this value will be
@@ -2822,7 +2822,7 @@ class Flag(Enum):
                 error = True
                 break
         if error:
-            raise TypeError('Invalid Flag value: %r' % last_value)
+            raise TypeError('Invalid Flag value: %r' % (last_value, ))
         return 2 ** (high_bit+1)
 
     @classmethod
