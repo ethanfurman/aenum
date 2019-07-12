@@ -457,6 +457,38 @@ class TestEnum(TestCase):
         self.assertNotEqual(e1, e3)
         self.assertNotEqual(e2, e3)
 
+    def test_enum_in_enum(self):
+        #
+        class Level(Enum):
+            #
+            def __new__(cls, *args, **kwds):
+                member = object.__new__(cls)
+                member._value_ = len(cls) + 1  # members are 1-based
+                return member
+            #
+            def __init__(self, prereq=None, dependent=None):
+                # create priority level lists
+                self.lower_priority_levels = list(self.__class__._member_map_.values())
+                self.greater_priority_levels = []
+                # update previous members' greater priority list
+                for member in self.lower_priority_levels:
+                    member.greater_priority_levels.append(self)
+                # and save prereq and dependent
+                self.prerequisite = prereq and self.__class__[prereq.name] or None
+                self.dependent = dependent and self.__class__[dependent.name] or None
+            #
+            DATA_CHECK = enum()
+            DESIGN_CHECK = enum(DATA_CHECK)
+            ALERT = enum(None, DATA_CHECK)
+        #
+        self.assertEqual(Level.DATA_CHECK.value, 1)
+        self.assertEqual(Level.DATA_CHECK.prerequisite, None)
+        self.assertEqual(Level.DATA_CHECK.dependent, None)
+        self.assertEqual(Level.DESIGN_CHECK.prerequisite, Level.DATA_CHECK)
+        self.assertEqual(Level.DESIGN_CHECK.dependent, None)
+        self.assertEqual(Level.ALERT.prerequisite, None)
+        self.assertEqual(Level.ALERT.dependent, Level.DATA_CHECK)
+
     def test_value_name(self):
         Season = self.Season
         self.assertEqual(Season.SPRING.name, 'SPRING')
