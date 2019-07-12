@@ -457,7 +457,6 @@ class TestEnum(TestCase):
         self.assertNotEqual(e1, e3)
         self.assertNotEqual(e2, e3)
 
-
     def test_value_name(self):
         Season = self.Season
         self.assertEqual(Season.SPRING.name, 'SPRING')
@@ -2057,23 +2056,28 @@ class TestEnum(TestCase):
         self.assertEqual(Index.StatusWord.value, 0x6041)
 
     def test_extend_multi_init(self):
-        class HTTPStatus(IntEnum):
-            def __new__(cls, value, phrase, description=''):
-                obj = int.__new__(cls, value)
-                obj._value_ = value
+        try:
+            from http import HTTPStatus
+            length = len(HTTPStatus)
+        except ImportError:
+            class HTTPStatus(IntEnum):
+                def __new__(cls, value, phrase, description):
+                    obj = int.__new__(cls, value)
+                    obj._value_ = value
 
-                obj.phrase = phrase
-                obj.description = description
-                return obj
-            CONTINUE = 100, 'Continue', 'Request received, please continue'
-            SWITCHING_PROTOCOLS = 101, 'Switching Protocols', 'Switching to new protocol; obey Upgrade header'
-            PROCESSING = 102, 'Processing'
-        aenum.extend_enum(HTTPStatus, 'BAD_SPAM', 513, 'Too greasy', 'for a train')
-        aenum.extend_enum(HTTPStatus, 'BAD_EGGS', 514, 'Too green')
-        self.assertEqual(len(HTTPStatus), 5)
+                    obj.phrase = phrase
+                    obj.description = description
+                    return obj
+                CONTINUE = 100, 'Continue', 'Request received, please continue'
+                SWITCHING_PROTOCOLS = 101, 'Switching Protocols', 'Switching to new protocol; obey Upgrade header'
+                PROCESSING = 102, 'Processing', ''
+            length = 3
+        extend_enum(HTTPStatus, 'BAD_SPAM', 513, 'Too greasy', 'for a train')
+        extend_enum(HTTPStatus, 'BAD_EGGS', 514, 'Too green', '')
+        self.assertEqual(len(HTTPStatus), length+2)
         self.assertEqual(
-                list(HTTPStatus),
-                [HTTPStatus.CONTINUE, HTTPStatus.SWITCHING_PROTOCOLS, HTTPStatus.PROCESSING, HTTPStatus.BAD_SPAM, HTTPStatus.BAD_EGGS],
+                list(HTTPStatus)[-2:],
+                [HTTPStatus.BAD_SPAM, HTTPStatus.BAD_EGGS],
                 )
         self.assertEqual(HTTPStatus.BAD_SPAM.value, 513)
         self.assertEqual(HTTPStatus.BAD_SPAM.name, 'BAD_SPAM')
@@ -2083,6 +2087,13 @@ class TestEnum(TestCase):
         self.assertEqual(HTTPStatus.BAD_EGGS.name, 'BAD_EGGS')
         self.assertEqual(HTTPStatus.BAD_EGGS.phrase, 'Too green')
         self.assertEqual(HTTPStatus.BAD_EGGS.description, '')
+
+    # informational
+    CONTINUE = 100, 'Continue', 'Request received, please continue'
+    SWITCHING_PROTOCOLS = (101, 'Switching Protocols',
+            'Switching to new protocol; obey Upgrade header')
+    PROCESSING = 102, 'Processing'
+
 
 
     def test_no_duplicates(self):
