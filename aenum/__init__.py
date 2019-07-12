@@ -2744,7 +2744,8 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         _member_names_.append(name)
     else:
         for canonical_member in _member_map_.values():
-            for canonical_value in canonical_member._values_:
+            _values_ = getattr(canonical_member, '_values_', [canonical_member._value_])
+            for canonical_value in _values_:
                 if canonical_value == new_member._value_:
                     if _unique_ or _multi_value_:
                         # aliases not allowed if Unique specified

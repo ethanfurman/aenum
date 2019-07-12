@@ -457,6 +457,7 @@ class TestEnum(TestCase):
         self.assertNotEqual(e1, e3)
         self.assertNotEqual(e2, e3)
 
+
     def test_value_name(self):
         Season = self.Season
         self.assertEqual(Season.SPRING.name, 'SPRING')
@@ -1917,6 +1918,22 @@ class TestEnum(TestCase):
             magenta = 5
             yellow = 6
         self.assertEqual(MoreColor.magenta.hex(), '5 hexlified!')
+
+    if StdlibEnum is not None:
+
+        def test_extend_enum_stdlib(self):
+            class Color(StdlibEnum):
+                red = 1
+                green = 2
+                blue = 3
+            self.assertEqual(getattr(Color.red, '_values_', None), None)
+            extend_enum(Color, 'brown', 4)
+            self.assertEqual(Color.brown.name, 'brown')
+            self.assertEqual(Color.brown.value, 4)
+            self.assertTrue(Color.brown in Color)
+            self.assertEqual(Color(4), Color.brown)
+            self.assertEqual(Color['brown'], Color.brown)
+            self.assertEqual(len(Color), 4)
 
     def test_extend_enum_plain(self):
         class Color(UniqueEnum):
@@ -4532,9 +4549,6 @@ class TestNamedConstant(TestCase):
         self.assertEqual(Stuff.HillWomp.__doc__, 'blah blah')
 
 
-class TestMe(TestCase):
-
-    pass
 
 
 # These are unordered here on purpose to ensure that declaration order
