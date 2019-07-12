@@ -2819,6 +2819,8 @@ class Flag(Enum):
             return (1, start)[start is not None]
         error = False
         for last_value in reversed(last_values):
+            if isinstance(last_value, auto):
+                last_value = last_value.value
             try:
                 high_bit = _high_bit(last_value)
                 break
