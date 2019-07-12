@@ -1702,7 +1702,7 @@ class EnumMeta(StdlibEnumMeta or type):
         for key in ignore:
             clsdict.pop(key, None)
         # get the method to create enum members
-        __new__, save_new, use_args = metacls._find_new_(
+        __new__, save_new, new_uses_args = metacls._find_new_(
                 clsdict,
                 member_type,
                 first_enum,
@@ -1796,7 +1796,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 init_args = args
             if member_type is tuple:   # special case for tuple enums
                 new_args = (new_args, )     # wrap it one more time
-            if not use_args or not (new_args or kwds):
+            if not new_uses_args:
                 enum_member = __new__(enum_class)
                 if not hasattr(enum_member, '_value_'):
                     enum_member._value_ = value
@@ -2196,7 +2196,7 @@ class EnumMeta(StdlibEnumMeta or type):
             # saved as __new_member__
             __new__ = clsdict.get('__new__', None)
             if __new__:
-                return None, True, True      # __new__, save_new, use_args
+                return None, True, True      # __new__, save_new, new_uses_args
 
             N__new__ = getattr(None, '__new__')
             O__new__ = getattr(object, '__new__')
@@ -2234,11 +2234,11 @@ class EnumMeta(StdlibEnumMeta or type):
             # assigned to the enum member name will be passed to __new__ and to the
             # new enum member's __init__
             if __new__ is object.__new__:
-                use_args = False
+                new_uses_args = False
             else:
-                use_args = True
+                new_uses_args = True
 
-            return __new__, False, use_args
+            return __new__, False, new_uses_args
     else:
         @staticmethod
         def _find_new_(clsdict, member_type, first_enum):
@@ -2279,11 +2279,11 @@ class EnumMeta(StdlibEnumMeta or type):
             # assigned to the enum member name will be passed to __new__ and to the
             # new enum member's __init__
             if __new__ is object.__new__:
-                use_args = False
+                new_uses_args = False
             else:
-                use_args = True
+                new_uses_args = True
 
-            return __new__, save_new, use_args
+            return __new__, save_new, new_uses_args
 
 
 ########################################################
@@ -2696,9 +2696,9 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
     mt_new = _member_type_.__new__
     _new = getattr(enumeration, '__new_member__', mt_new)
     if _new is object.__new__:
-        use_args = False
+        new_uses_args = False
     else:
-        use_args = True
+        new_uses_args = True
     if len(args) == 1:
         [value] = args
     else:
@@ -2722,7 +2722,7 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         value, more_values, args = args[0], args[1:], ()
     if _member_type_ is tuple:
         args = (args, )
-    if not use_args:
+    if not new_uses_args:
         new_member = _new(enumeration)
         if not hasattr(new_member, '_value_'):
             new_member._value_ = value
