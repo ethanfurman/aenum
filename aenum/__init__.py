@@ -37,7 +37,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 1, 3
+version = 2, 1, 4, 0
 
 try:
     any
@@ -2702,6 +2702,16 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         _auto_init_ = []
     mt_new = _member_type_.__new__
     _new = getattr(enumeration, '__new_member__', mt_new)
+    if not args:
+        _gnv = getattr(enumeration, '_generate_next_value_')
+        if _gnv is None:
+            raise TypeError('value not provided and _generate_next_value_ missing')
+        last_values = [m.value for m in enumeration]
+        count = len(enumeration)
+        start = getattr(enumeration, '_start_')
+        if start is None:
+            start = last_values and last_values[0] or 1
+        args = ( _gnv(name, start, count, last_values), )
     if _new is object.__new__:
         new_uses_args = False
     else:

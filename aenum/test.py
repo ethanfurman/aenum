@@ -2139,8 +2139,6 @@ class TestEnum(TestCase):
             'Switching to new protocol; obey Upgrade header')
     PROCESSING = 102, 'Processing'
 
-
-
     def test_no_duplicates(self):
         def bad_duplicates():
             class Color1(UniqueEnum):

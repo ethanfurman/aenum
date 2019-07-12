@@ -478,6 +478,18 @@ class TestEnumV3(TestCase):
         self.assertEqual(len(Color), 4)
         self.assertEqual(Color.red.value, 1)
 
+    def test_extend_enum_generate(self):
+        class Foo(AutoEnum):
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return name
+            a
+            b
+        #
+        extend_enum(Foo, 'c')
+        self.assertEqual(Foo.a.value, 'a')
+        self.assertEqual(Foo.b.value, 'b')
+        self.assertEqual(Foo.c.value, 'c')
+
     def test_extend_enum_unique_with_duplicate(self):
         with self.assertRaises(ValueError):
             class Color(Enum, settings=Unique):
