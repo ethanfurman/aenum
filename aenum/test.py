@@ -2540,6 +2540,16 @@ class TestEnum(TestCase):
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
+    def test_auto_and_enum(self):
+        class Foo(aenum.Flag):
+            _order_ = 'a b'
+            a = aenum.auto()
+            b = a | aenum.auto()
+
+        self.assertEqual([Foo.a, Foo.b], list(Foo))
+        self.assertEqual(Foo.a.value, 1)
+        self.assertEqual(Foo.b.value, 3)
+
     def test_AutoNumberEnum_and_property(self):
         class Color(aenum.AutoNumberEnum):
             red = ()

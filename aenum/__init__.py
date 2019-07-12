@@ -1175,13 +1175,25 @@ class auto(enum):
         elif self._value is not _auto_null:
             return self._value
         else:
+            return self._resolve()
+
+    @value.setter
+    def value(self, value):
+        if self._operations:
+            value = self._resolve(value)
+        self._value = value
+
+    def _resolve(self, base_value=None):
             cls = self.__class__
             for op, params in self._operations:
                 values = []
                 for param in params:
                     if isinstance(param, cls):
                         if param.value is _auto_null:
-                            raise ValueError('unable to complete pending operations')
+                            if base_value is None:
+                                return _auto_null
+                            else:
+                                values.append(base_value)
                         else:
                             values.append(param.value)
                     else:
@@ -1190,11 +1202,6 @@ class auto(enum):
             self._operations[:] = []
             self._value = value
             return value
-    @value.setter
-    def value(self, value):
-        if self._operations:
-            raise ValueError('operations pending, cannot set value')
-        self._value = value
 
 class _EnumDict(dict):
     """Track enum member order and ensure member names are not reused.
