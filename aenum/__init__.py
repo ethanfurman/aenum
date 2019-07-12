@@ -24,7 +24,14 @@ from operator import truediv as _truediv_, sub as _sub_
 if pyver < 3:
     from operator import div as _div_
 
-import inspect
+if pyver >= 3:
+    from inspect import getfullargspec
+    def getargspec(method):
+        args, varargs, keywords, defaults, _, _, _ = getfullargspec(method)
+        return args, varargs, keywords, defaults
+else:
+    from inspect import getargspec
+
 
 __all__ = [
         'NamedConstant', 'constant', 'skip',
@@ -160,7 +167,7 @@ def _check_auto_args(method):
     if isinstance(method, staticmethod):
         method = method.__get__(type)
     method = getattr(method, 'im_func', method)
-    args, varargs, keywords, defaults = inspect.getargspec(method)
+    args, varargs, keywords, defaults = getargspec(method)
     return varargs is not None and keywords is not None
 
 def _get_attr_from_chain(cls, attr):
@@ -1373,7 +1380,7 @@ class _EnumDict(dict):
                 # ArgSpec(args=[...], varargs=[...], keywords=[...], defaults=[...]
                 if isinstance(value, staticmethod):
                     value = value.__func__
-                new_args = inspect.getargspec(value)[0][1:]
+                new_args = getargspec(value)[0][1:]
                 self._init = new_args
             if _is_descriptor(value):
                 self._locked = True
@@ -1584,7 +1591,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 enum_dict['__new__'] = __new__
             else:
                 try:
-                    new_args = inspect.getargspec(first_enum.__new_member__)[0][1:]
+                    new_args = getargspec(first_enum.__new_member__)[0][1:]
                     enum_dict._init = new_args
                 except TypeError:
                     pass
