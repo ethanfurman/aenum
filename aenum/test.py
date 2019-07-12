@@ -1850,7 +1850,7 @@ class TestEnum(TestCase):
             RedApple = 1
             GreenApple = 2
             @classmethod
-            def _missing_value_(cls, name):
+            def _missing_value_(cls, value):
                 return cls.AnyApple
 
         self.assertEqual(Label.AnyApple, Label(4))
@@ -1874,6 +1874,19 @@ class TestEnum(TestCase):
             Label.redapple
         with self.assertRaises(ValueError):
             Label('redapple')
+
+    def test_missing_value_bad_input(self):
+        class Label(Enum):
+            AnyApple = 0
+            RedApple = 1
+            GreenApple = 2
+            @classmethod
+            def _missing_value_(cls, value):
+                return cls.AnyApple
+
+        self.assertEqual(Label.AnyApple, Label(4))
+        with self.assertRaises(KeyError):
+            Label[True]
 
     def test_missing_name_bad_return(self):
         class Label(Enum):
