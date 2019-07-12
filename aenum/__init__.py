@@ -2093,7 +2093,7 @@ class EnumMeta(StdlibEnumMeta or type):
         # special processing needed for names?
         if isinstance(names, basestring):
             names = names.replace(',', ' ').split()
-        if isinstance(names, (tuple, list)) and isinstance(names[0], basestring):
+        if isinstance(names, (tuple, list)) and names and isinstance(names[0], basestring):
             original_names, names = names, []
             last_values = []
             for count, name in enumerate(original_names):

@@ -3260,6 +3260,22 @@ class TestFlag(TestCase):
             self.assertIn(e, Perm)
             self.assertIs(type(e), Perm)
 
+    def test_programatic_function_empty_list(self):
+        Perm = IntFlag('Perm', [])
+        self.assertEqual(len(list(Perm)), len(Perm))
+        self.assertEqual(len(Perm), 0)
+        Thing = Enum('Thing', [])
+        self.assertEqual(len(list(Thing)), len(Thing))
+        self.assertEqual(len(Thing), 0)
+
+    def test_programatic_function_empty_tuple(self):
+        Perm = IntFlag('Perm', ())
+        self.assertEqual(len(list(Perm)), len(Perm))
+        self.assertEqual(len(Perm), 0)
+        Thing = Enum('Thing', ())
+        self.assertEqual(len(list(Thing)), len(Thing))
+        self.assertEqual(len(Thing), 0)
+
     def test_pickle(self):
         if isinstance(FlagStooges, Exception):
             raise FlagStooges
