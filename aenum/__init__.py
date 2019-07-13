@@ -322,7 +322,7 @@ class _NamedConstantDict(dict):
             pass
         elif key in self._names:
             # overwriting an existing constant?
-            raise TypeError('Attempted to reuse name: %r' % (key, ))
+            raise TypeError('attempt to reuse name: %r' % (key, ))
         elif isinstance(value, constant) or not _is_descriptor(value):
             if key in self:
                 # overwriting a descriptor?
@@ -433,7 +433,7 @@ class _NamedTupleDict(OrderedDict):
                 key = '_order_'
         elif key in self._field_names:
             # overwriting a field?
-            raise TypeError('Attempted to reuse field name: %r' % (key, ))
+            raise TypeError('attempt to reuse field name: %r' % (key, ))
         elif not _is_descriptor(value):
             if key in self:
                 # field overwriting a descriptor?
@@ -1281,7 +1281,7 @@ class _EnumDict(dict):
         elif self._autovalue:
             value = self._generate_next_value(key, 1, len(self._member_names), self._last_values[:])
         else:
-            raise Exception('Neither AutoNumber nor AutoValue set -- why am I here?')
+            raise Exception('neither AutoNumber nor AutoValue set -- why am I here?')
         self.__setitem__(key, value)
         return value
 
@@ -1386,7 +1386,7 @@ class _EnumDict(dict):
                 self._locked = True
         elif key in self._member_names:
             # descriptor overwriting an enum?
-            raise TypeError('Attempted to reuse name: %r' % (key, ))
+            raise TypeError('attempt to reuse name: %r' % (key, ))
         elif key in self._ignore:
             pass
         elif not _is_descriptor(value):
@@ -1905,6 +1905,7 @@ class EnumMeta(StdlibEnumMeta or type):
                     continue
                 setattr(enum_class, name, enum_method)
 
+
         # method resolution and int's are not playing nice
         # Python's less than 2.6 use __cmp__
 
@@ -2156,8 +2157,6 @@ class EnumMeta(StdlibEnumMeta or type):
         """
         if not bases or Enum is None:
             return object, Enum
-
-
         # double check that we are not subclassing a class with existing
         # enumeration members; while we're at it, see if any other data
         # type has been mixed in so we can use the correct __new__
@@ -2166,7 +2165,7 @@ class EnumMeta(StdlibEnumMeta or type):
             if  (base is not Enum and base is not StdlibEnum and
                     issubclass(base, Enum) and
                     base._member_names_):
-                raise TypeError("cannot extend enumerations via subclassing.")
+                raise TypeError("cannot extend enumerations via subclassing")
         # base is now the last base in bases
         if not issubclass(base, Enum):
             raise TypeError("new enumerations must be created as "
@@ -2852,7 +2851,7 @@ class Flag(Enum):
                 error = True
                 break
         if error:
-            raise TypeError('Invalid Flag value: %r' % (last_value, ))
+            raise TypeError('invalid Flag value: %r' % (last_value, ))
         return 2 ** (high_bit+1)
 
     @classmethod
