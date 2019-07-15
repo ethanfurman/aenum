@@ -1733,7 +1733,7 @@ class EnumMeta(StdlibEnumMeta or type):
             elif isinstance(obj, _RouteClassAttributeToGetattr):
                 obj.name = name
         # check for illegal enum names (any others?)
-        invalid_names = set(enum_members) & set(['mro'])
+        invalid_names = set(enum_members) & set(['mro', ''])
         if invalid_names:
             raise ValueError('Invalid enum member name(s): %s' % (
                 ', '.join(invalid_names), ))
