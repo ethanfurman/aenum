@@ -1899,8 +1899,9 @@ class EnumMeta(StdlibEnumMeta or type):
         # things break (such as pickle)
         for name in ('__repr__', '__str__', '__format__', '__reduce_ex__'):
             class_method = getattr(enum_class, name)
+            obj_method = getattr(member_type, name, None)
             enum_method = getattr(first_enum, name, None)
-            if name not in clsdict and class_method is not enum_method:
+            if obj_method is not None and obj_method == class_method:
                 if name == '__reduce_ex__' and unpicklable:
                     continue
                 setattr(enum_class, name, enum_method)
@@ -2157,41 +2158,25 @@ class EnumMeta(StdlibEnumMeta or type):
         """
         if not bases or Enum is None:
             return object, Enum
-        # double check that we are not subclassing a class with existing
-        # enumeration members; while we're at it, see if any other data
-        # type has been mixed in so we can use the correct __new__
-        member_type = first_enum = None
-        for base in bases:
-            if  (base is not Enum and base is not StdlibEnum and
-                    issubclass(base, Enum) and
-                    base._member_names_):
-                raise TypeError("cannot extend enumerations via subclassing")
-        # base is now the last base in bases
-        if not issubclass(base, Enum):
-            raise TypeError("new enumerations must be created as "
-                    "`ClassName([mixin_type,] enum_type)`")
+        def _find_data_type(bases):
+            for chain in bases:
+                for base in chain.__mro__:
+                    if base is object or base is StdlibEnum:
+                        continue
+                    elif '__new__' in base.__dict__:
+                        if issubclass(base, Enum) and not hasattr(base, '__new_member__'):
+                            continue
+                        return base
 
-        # get correct mix-in type (either mix-in type of Enum subclass, or
-        # first base if last base is Enum)
-        if StdlibEnum is not None:
-            enum_classes = Enum, StdlibEnum
-        else:
-            enum_classes = Enum
-        if not issubclass(bases[0], enum_classes):
-            member_type = bases[0]     # first data type
-            first_enum = bases[-1]  # enum type
-        else:
-            for base in bases[0].__mro__:
-                # most common: (IntEnum, int, Enum, object)
-                # possible:    (<Enum 'AutoIntEnum'>, <Enum 'IntEnum'>,
-                #               <class 'int'>, <Enum 'Enum'>,
-                #               <class 'object'>)
-                if issubclass(base, enum_classes):
-                    if first_enum is None:
-                        first_enum = base
-                else:
-                    if member_type is None:
-                        member_type = base
+        # ensure final parent class is an Enum derivative, find any concrete
+        # data type, and check that Enum has no members
+        first_enum = bases[-1]
+        if not issubclass(first_enum, Enum):
+            raise TypeError("new enumerations should be created as "
+                    "`EnumName([mixin_type, ...] [data_type,] enum_type)`")
+        member_type = _find_data_type(bases) or object
+        if first_enum._member_names_:
+            raise TypeError("cannot extend enumerations via subclassing")
 
         return member_type, first_enum
 

@@ -470,17 +470,25 @@ are also descriptors).
     those methods.  See `Planet`_ for an example.
 
 
-Restricted subclassing of enumerations
---------------------------------------
+Restricted Enum subclassing
+---------------------------
 
-Subclassing an enumeration is allowed only if the enumeration does not define
+A new `Enum` class must have one base Enum class, up to one concrete
+data type, and as many `object`-based mixin classes as needed.  The
+order of these base classes is::
+
+    def EnumName([mix-in, ...,] [data-type,] base-enum):
+        pass
+
+Also, subclassing an enumeration is allowed only if the enumeration does not define
+
 any members.  So this is forbidden::
 
     >>> class MoreColor(Color):
     ...   pink = 17
     Traceback (most recent call last):
     ...
-    TypeError: cannot extend enumerations via subclassing.
+    TypeError: cannot extend enumerations via subclassing
 
 But this is allowed::
 
