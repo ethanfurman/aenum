@@ -2164,7 +2164,7 @@ class EnumMeta(StdlibEnumMeta or type):
                     if base is object or base is StdlibEnum:
                         continue
                     elif '__new__' in base.__dict__:
-                        if issubclass(base, Enum) and not hasattr(base, '__new_member__'):
+                        if issubclass(base, Enum):
                             continue
                         return base
 
