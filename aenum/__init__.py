@@ -751,7 +751,7 @@ class NamedTupleMeta(type):
             if module is None:
                 try:
                     module = _sys._getframe(1).f_globals['__name__']
-                except (AttributeError, KeyError):
+                except (AttributeError, ValueError, KeyError):
                     pass
             if module is None:
                 _make_class_unpicklable(namedtuple_class)
