@@ -2283,6 +2283,33 @@ class EnumMeta(StdlibEnumMeta or type):
 
             return __new__, save_new, new_uses_args
 
+    def _convert(cls, name, module, filter, source=None):
+        """
+        Create a new Enum subclass that replaces a collection of global constants
+        """
+        # convert all constants from source (or module) that pass filter() to
+        # a new Enum called name, and export the enum and its members back to
+        # module;
+        # also, replace the __reduce_ex__ method so unpickling works in
+        # previous Python versions
+        module_globals = vars(_sys.modules[module])
+        if source:
+            source = vars(source)
+        else:
+            source = module_globals
+        members = [(key, source[key]) for key in source.keys() if filter(key)]
+        try:
+            # sort by value, name
+            members.sort(key=lambda t: (t[1], t[0]))
+        except TypeError:
+            # unless some values aren't comparable, in which case sort by just name
+            members.sort(key=lambda t: t[0])
+        cls = cls(name, members, module=module)
+        cls.__reduce_ex__ = _reduce_ex_by_name
+        module_globals.update(cls.__members__)
+        module_globals[name] = cls
+        return cls
+
 
 ########################################################
 # In order to support Python 2 and 3 with a single
@@ -2522,36 +2549,6 @@ def values(self):
     return self._values_
 temp_enum_dict['values'] = values
 del values
-
-@classmethod
-def _convert(cls, name, module, filter, source=None):
-    """
-    Create a new Enum subclass that replaces a collection of global constants
-    """
-    # convert all constants from source (or module) that pass filter() to
-    # a new Enum called name, and export the enum and its members back to
-    # module;
-    # also, replace the __reduce_ex__ method so unpickling works in
-    # previous Python versions
-    module_globals = vars(_sys.modules[module])
-    if source:
-        source = vars(source)
-    else:
-        source = module_globals
-    members = [(key, source[key]) for key in source.keys() if filter(key)]
-    try:
-        # sort by value, name
-        members.sort(key=lambda t: (t[1], t[0]))
-    except TypeError:
-        # unless some values aren't comparable, in which case sort by just name
-        members.sort(key=lambda t: t[0])
-    cls = cls(name, members, module=module)
-    cls.__reduce_ex__ = _reduce_ex_by_name
-    module_globals.update(cls.__members__)
-    module_globals[name] = cls
-    return cls
-temp_enum_dict['_convert'] = _convert
-del _convert
 
 def _reduce_ex_by_name(self, proto):
     return self.name
