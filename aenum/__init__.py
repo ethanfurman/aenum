@@ -2283,33 +2283,6 @@ class EnumMeta(StdlibEnumMeta or type):
 
             return __new__, save_new, new_uses_args
 
-    def _convert(cls, name, module, filter, source=None):
-        """
-        Create a new Enum subclass that replaces a collection of global constants
-        """
-        # convert all constants from source (or module) that pass filter() to
-        # a new Enum called name, and export the enum and its members back to
-        # module;
-        # also, replace the __reduce_ex__ method so unpickling works in
-        # previous Python versions
-        module_globals = vars(_sys.modules[module])
-        if source:
-            source = vars(source)
-        else:
-            source = module_globals
-        members = [(key, source[key]) for key in source.keys() if filter(key)]
-        try:
-            # sort by value, name
-            members.sort(key=lambda t: (t[1], t[0]))
-        except TypeError:
-            # unless some values aren't comparable, in which case sort by just name
-            members.sort(key=lambda t: t[0])
-        cls = cls(name, members, module=module)
-        cls.__reduce_ex__ = _reduce_ex_by_name
-        module_globals.update(cls.__members__)
-        module_globals[name] = cls
-        return cls
-
 
 ########################################################
 # In order to support Python 2 and 3 with a single
@@ -2536,6 +2509,35 @@ def __reduce_ex__(self, proto):
     return self.__class__, (self._value_, )
 temp_enum_dict['__reduce_ex__'] = __reduce_ex__
 del __reduce_ex__
+
+def _convert(cls, name, module, filter, source=None):
+    """
+    Create a new Enum subclass that replaces a collection of global constants
+    """
+    # convert all constants from source (or module) that pass filter() to
+    # a new Enum called name, and export the enum and its members back to
+    # module;
+    # also, replace the __reduce_ex__ method so unpickling works in
+    # previous Python versions
+    module_globals = vars(_sys.modules[module])
+    if source:
+        source = vars(source)
+    else:
+        source = module_globals
+    members = [(key, source[key]) for key in source.keys() if filter(key)]
+    try:
+        # sort by value, name
+        members.sort(key=lambda t: (t[1], t[0]))
+    except TypeError:
+        # unless some values aren't comparable, in which case sort by just name
+        members.sort(key=lambda t: t[0])
+    cls = cls(name, members, module=module)
+    cls.__reduce_ex__ = _reduce_ex_by_name
+    module_globals.update(cls.__members__)
+    module_globals[name] = cls
+    return cls
+temp_enum_dict['_convert'] = classmethod(_convert)
+del _convert
 
 # _RouteClassAttributeToGetattr is used to provide access to the `name`
 # and `value` properties of enum members while keeping some measure of
