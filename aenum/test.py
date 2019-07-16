@@ -607,13 +607,23 @@ class TestEnum(TestCase):
             self.assertEqual('{0:<20}'.format(Season.SPRING),
                              '{0:<20}'.format(str(Season.SPRING)))
 
-        def test_format_enum_custom(self):
+        def test_custom_format(self):
             class TestFloat(float, Enum):
                 one = 1.0
                 two = 2.0
                 def __format__(self, spec):
                     return 'TestFloat success!'
+            self.assertEqual(str(TestFloat.one), 'TestFloat.one')
             self.assertEqual('{0}'.format(TestFloat.one), 'TestFloat success!')
+
+        def test_format_with_custom_str(self):
+            class TestInt(int, Enum):
+                one = 1
+                two = 2
+                def __str__(self):
+                    return self.name * 3
+            self.assertEqual(str(TestInt.two), 'twotwotwo')
+            self.assertEqual('{0}'.format(TestInt.two), 'twotwotwo')
 
         def assertFormatIsValue(self, spec, member):
             self.assertEqual(spec.format(member), spec.format(member.value))

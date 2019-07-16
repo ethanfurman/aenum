@@ -2451,8 +2451,9 @@ def __format__(self, format_spec):
     # we can get strange results with the Enum name showing up instead of
     # the value
 
-    # pure Enum branch
-    if self._member_type_ is object:
+    # pure Enum branch / overridden __str__ branch
+    overridden_str = self.__class__.__str__ != Enum.__str__
+    if self._member_type_ is object or overridden_str:
         cls = str
         val = str(self)
     # mix-in branch
