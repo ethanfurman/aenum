@@ -2368,11 +2368,25 @@ def __new__(cls, value):
             if name == value:
                 return member
     # still not found -- try _missing_ hook
-    result = cls._missing_value_(value)
+    try:
+        exc = None
+        result = cls._missing_value_(value)
+    except Exception as e:
+        exc = e
+        result = None
     if isinstance(result, cls):
         return result
     else:
-        raise ValueError("%r is not a valid %s" % (value, cls.__name__))
+        ve_exc = ValueError("%r is not a valid %s" % (value, cls.__name__))
+        if result is None and exc is None:
+            raise ve_exc
+        elif exc is None:
+            exc = TypeError(
+                    'error in %s._missing_: returned %r instead of None or a valid member'
+                    % (cls.__name__, result)
+                    )
+        exc.__context__ = ve_exc
+        raise exc
 temp_enum_dict['__new__'] = __new__
 del __new__
 

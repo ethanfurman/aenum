@@ -727,6 +727,39 @@ class TestEnumV3(TestCase):
                 gl_category              = 'Rn$(5,1)',      8     # G/L Category
                 warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
 
+    if pyver >= 3.2:
+        def test_missing(self):
+            class Color(Enum):
+                red = 1
+                green = 2
+                blue = 3
+                @classmethod
+                def _missing_(cls, item):
+                    if item == 'three':
+                        return cls.blue
+                    elif item == 'bad return':
+                        # trigger internal error
+                        return 5
+                    elif item == 'error out':
+                        raise ZeroDivisionError
+                    else:
+                        # trigger not found
+                        return None
+            self.assertIs(Color('three'), Color.blue)
+            self.assertRaises(ValueError, Color, 7)
+            try:
+                Color('bad return')
+            except TypeError as exc:
+                self.assertTrue(isinstance(exc.__context__, ValueError))
+            else:
+                raise Exception('Exception not raised.')
+            try:
+                Color('error out')
+            except ZeroDivisionError as exc:
+                self.assertTrue(isinstance(exc.__context__, ValueError))
+            else:
+                raise Exception('Exception not raised.')
+
     if pyver == 3.4:
         def test_class_nested_enum_and_pickle_protocol_four(self):
             # would normally just have this directly in the class namespace
