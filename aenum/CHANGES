@@ -1,3 +1,29 @@
+2.1.4
+=====
+
+EnumMeta:
+- change __member_new__ to __new_member__ (as the stdlib enum does)
+- assign member name to enum() instances (an Enum helper for defining members)
+- handle empty iterables when using functional API
+- make auto() work with previous enum members
+- keep searching mixins until base class is found
+
+Enum:
+- fix bug in Flag checks (ensure it is a Flag before checking the name)
+- add multiple mixin support
+- do not allow blank names (functional API)
+- raise TypeError if _missing_* returns wrong type
+- fix __format__ to honor custom __str__
+
+extend_enum:
+- support stdlib Enums
+- use _generate_next_value_ if value not provided
+
+general:
+- standardize exception formatting
+- use getfullargspec() in Python 3 (avoids deprecation warnings)
+
+
 2.1.2
 =====
 
