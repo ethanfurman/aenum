@@ -727,7 +727,7 @@ class TestEnumV3(TestCase):
                 gl_category              = 'Rn$(5,1)',      8     # G/L Category
                 warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
 
-    if pyver >= 3.2:
+    if pyver >= 3.3:
         def test_missing(self):
             class Color(Enum):
                 red = 1
@@ -759,6 +759,53 @@ class TestEnumV3(TestCase):
                 self.assertTrue(isinstance(exc.__context__, ValueError))
             else:
                 raise Exception('Exception not raised.')
+
+    def test_enum_of_types(self):
+        """Support using Enum to refer to types deliberately."""
+        class MyTypes(Enum):
+            i = int
+            f = float
+            s = str
+        self.assertEqual(MyTypes.i.value, int)
+        self.assertEqual(MyTypes.f.value, float)
+        self.assertEqual(MyTypes.s.value, str)
+        class Foo:
+            pass
+        class Bar:
+            pass
+        class MyTypes2(Enum):
+            a = Foo
+            b = Bar
+        self.assertEqual(MyTypes2.a.value, Foo)
+        self.assertEqual(MyTypes2.b.value, Bar)
+        class SpamEnumNotInner:
+            pass
+        class SpamEnum(Enum):
+            spam = SpamEnumNotInner
+        self.assertEqual(SpamEnum.spam.value, SpamEnumNotInner)
+
+    def test_nested_classes_in_enum_do_not_create_members(self):
+        """Support locally-defined nested classes."""
+        # manually set __qualname__ to remove testing framework noise
+        class Outer(Enum):
+            __qualname__ = "Outer"
+            a = 1
+            b = 2
+            class Inner(Enum):
+                __qualname__ = "Outer.Inner"
+                foo = 10
+                bar = 11
+        self.assertTrue(isinstance(Outer.Inner, type))
+        self.assertEqual(Outer.a.value, 1)
+        self.assertEqual(Outer.Inner.foo.value, 10)
+        self.assertEqual(
+            list(Outer.Inner),
+            [Outer.Inner.foo, Outer.Inner.bar],
+            )
+        self.assertEqual(
+            list(Outer),
+            [Outer.a, Outer.b],
+            )
 
     if pyver == 3.4:
         def test_class_nested_enum_and_pickle_protocol_four(self):

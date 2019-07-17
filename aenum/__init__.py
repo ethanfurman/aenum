@@ -3,6 +3,8 @@
 import sys as _sys
 pyver = float('%s.%s' % _sys.version_info[:2])
 
+import re
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -34,7 +36,7 @@ else:
 
 
 __all__ = [
-        'NamedConstant', 'constant', 'skip',
+        'NamedConstant', 'constant', 'skip', 'nonmember', 'member',
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
         'Flag', 'IntFlag',
         'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
@@ -44,7 +46,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 1, 4
+version = 2, 2, 0, 0
 
 try:
     any
@@ -120,7 +122,7 @@ class _RouteClassAttributeToGetattr(object):
         raise AttributeError("can't delete attribute %r" % (self.name, ))
 
 
-class skip(object):
+class NonMember(object):
     """
     Protects item from becaming an Enum member during class creation.
     """
@@ -129,7 +131,15 @@ class skip(object):
 
     def __get__(self, instance, ownerclass=None):
         return self.value
+skip = nonmember = NonMember
 
+class Member(object):
+    """
+    Forces item to became an Enum member during class creation.
+    """
+    def __init__(self, value):
+        self.value = value
+member = Member
 
 def _is_descriptor(obj):
     """Returns True if obj is a descriptor, False otherwise."""
@@ -153,6 +163,14 @@ def _is_sunder(name):
             name[0] == name[-1] == '_' and
             name[1] != '_' and
             name[-2] != '_')
+
+def _is_internal_class(cls_name, obj):
+    # only 3.3 and up, always return False in 3.2 and below
+    if pyver < 3.3:
+        return False
+    else:
+        qualname = getattr(obj, '__qualname__', False)
+        return not _is_descriptor(obj) and qualname and re.search(r"\.?%s\.\w+$" % cls_name, qualname)
 
 
 def _make_class_unpicklable(cls):
@@ -348,7 +366,7 @@ class NamedConstantMeta(type):
             if name in clsdict._names:
                 constants[name] = obj
                 continue
-            elif isinstance(obj, skip):
+            elif isinstance(obj, nonmember):
                 obj = obj.value
             newdict[name] = obj
         newcls = super(NamedConstantMeta, metacls).__new__(metacls, cls, bases, newdict)
@@ -1216,8 +1234,9 @@ class _EnumDict(dict):
     EnumMeta will use the names found in self._member_names as the
     enumeration member names.
     """
-    def __init__(self, settings, start, constructor_init, constructor_start):
+    def __init__(self, cls_name, settings, start, constructor_init, constructor_start):
         super(_EnumDict, self).__init__()
+        self._cls_name = cls_name
         self._constructor_init = constructor_init
         self._constructor_start = constructor_start
         # for Flag enumerations, we may need to get the _init_ from __new__
@@ -1293,7 +1312,9 @@ class _EnumDict(dict):
 
         Single underscore (sunder) names are reserved.
         """
-        if _is_sunder(key):
+        if _is_internal_class(self._cls_name, value):
+            pass
+        elif _is_sunder(key):
             if key not in (
                     '_init_', '_settings_', '_order_', '_ignore_', '_start_',
                     '_create_pseudo_member_', '_create_pseudo_member_values_',
@@ -1565,7 +1586,7 @@ class EnumMeta(StdlibEnumMeta or type):
             if arg not in allowed_settings:
                 raise TypeError('unknown qualifier: %r' % (arg, ))
             allowed_settings[arg] = True
-        enum_dict = _EnumDict(settings=settings, start=start, constructor_init=constructor_init, constructor_start=constructor_start)
+        enum_dict = _EnumDict(cls_name=cls, settings=settings, start=start, constructor_init=constructor_init, constructor_start=constructor_start)
         if settings & set([AutoValue, AutoNumber]) or start is not None:
             enum_dict['_ignore_'] = ['property', 'classmethod', 'staticmethod']
             enum_dict._ignore_init_done = False
@@ -1728,7 +1749,7 @@ class EnumMeta(StdlibEnumMeta or type):
             del clsdict[name]
         # move skipped values out of the descriptor, and add names to DynamicAttributes
         for name, obj in clsdict.items():
-            if isinstance(obj, skip):
+            if isinstance(obj, nonmember):
                 dict.__setitem__(clsdict, name, obj.value)
             elif isinstance(obj, _RouteClassAttributeToGetattr):
                 obj.name = name
@@ -1770,6 +1791,9 @@ class EnumMeta(StdlibEnumMeta or type):
             if isinstance(value, enum):
                 args = value.args
                 kwds = value.kwds
+            elif isinstance(value, Member):
+                value = value.value
+                args = (value, )
             elif not isinstance(value, tuple):
                 args = (value, )
             else:

@@ -12,7 +12,7 @@ import unittest
 import warnings
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
-from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue
+from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -2210,11 +2210,11 @@ class TestEnum(TestCase):
         self.assertEqual(round(Planet.EARTH.surface_gravity, 2), 9.80)
         self.assertEqual(Planet.EARTH.value, (5.976e+24, 6.37814e6))
 
-        @skip
+        @unittest.skip
         def test_init_and_autonumber(self):
             pass
 
-        @skip
+        @unittest.skip
         def test_init_and_autonumber_and_value(self):
             pass
 
@@ -2805,6 +2805,56 @@ class TestEnum(TestCase):
                 elementD = 'd'
         self.assertIs(enumA.enumB, enumA.__dict__['enumB'])
 
+    def test_nonmember(self):
+        class enumA(Enum):
+            @nonmember
+            class enumB(Enum):
+                elementA = 'a'
+                elementB = 'b'
+            @nonmember
+            class enumC(Enum):
+                elementC = 'c'
+                elementD = 'd'
+        self.assertIs(enumA.enumB, enumA.__dict__['enumB'])
+
+    def test_member_with_external_functions(self):
+        class Func(Enum):
+            an_int = member(int)
+            a_str = member(str)
+            @classproperty
+            def types(cls):
+                return [m.value for m in list(cls)]
+            def __repr__(self):
+                return "<%s.%s>" % (self.__class__.__name__, self.name, )
+            def __call__(self, *args, **kwds):
+                return self.value(*args, **kwds)
+        #
+        self.assertEqual([Func.an_int, Func.a_str], list(Func))
+        self.assertEqual([int, str], Func.types)
+        self.assertEqual(Func.an_int(7), 7)
+        self.assertEqual(Func.a_str('BlahBlah'), 'BlahBlah')
+
+    def test_member_with_internal_functions(self):
+        class Func(Enum):
+            @member
+            def haha():
+                return 'haha'
+            @member
+            def hehe(name):
+                return 'hehe -- what a name!  %s!' % name
+            @classproperty
+            def types(cls):
+                return [m.value for m in list(cls)]
+            def __repr__(self):
+                return "<%s.%s>" % (self.__class__.__name__, self.name, )
+            def __call__(self, *args, **kwds):
+                return self.value(*args, **kwds)
+        #
+        self.assertEqual([Func.haha, Func.hehe], list(Func))
+        self.assertEqual([Func.haha.value, Func.hehe.value], Func.types)
+        self.assertEqual(Func.haha(), 'haha')
+        self.assertEqual(Func.hehe('BlahBlah'), 'hehe -- what a name!  BlahBlah!')
+
     def test_constantness_of_constants(self):
         class Universe(Enum):
             PI = constant(3.141596)
@@ -2819,40 +2869,6 @@ class TestEnum(TestCase):
             TAU = constant(2 * PI)
         self.assertEqual(Universe.PI, 3.141596)
         self.assertEqual(Universe.TAU, 2 * Universe.PI)
-
-    def test_ignore_with_autovalue_and_property(self):
-        class Color(Flag):
-            _settings_ = AutoValue
-            _init_ = 'value code'
-            def _generate_next_value_(name, start, count, last_values, *args, **kwds):
-                if not count:
-                    return ((1, start)[start is not None], ) + args
-                error = False
-                for last_value_pair in reversed(last_values):
-                    last_value, last_code = last_value_pair
-                    try:
-                        high_bit = aenum._high_bit(last_value)
-                        break
-                    except Exception:
-                        error = True
-                        break
-                if error:
-                    raise TypeError('Invalid Flag value: %r' % (last_value, ))
-                return (2 ** (high_bit+1), ) + args
-            @classmethod
-            def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    members, _ = aenum._decompose(cls, value)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value)
-                    pseudo_member.code = ';'.join(m.code for m in members)
-                return pseudo_member
-            AllReset = '0'           # ESC [ 0 m       # reset all (colors and brightness)
-            Bright = '1'          # ESC [ 1 m       # bright
-            Dim = '2'             # ESC [ 2 m       # dim (looks same as normal brightness)
-            Underline = '4'
-            Normal = '22'         # ESC [ 22 m      # normal brightness
-        # if we got here, we're good
 
     def test_order_as_function(self):
         # first with _init_
@@ -3171,6 +3187,119 @@ class TestEnum(TestCase):
             REVERT_ALL = "REVERT_ALL"
             RETRY = "RETRY"
 
+
+    def test_enum_of_types(self):
+        """Support using Enum to refer to types deliberately."""
+        class MyTypes(Enum):
+            i = int
+            f = float
+            s = str
+        self.assertEqual(MyTypes.i.value, int)
+        self.assertEqual(MyTypes.f.value, float)
+        self.assertEqual(MyTypes.s.value, str)
+        class Foo:
+            pass
+        class Bar:
+            pass
+        class MyTypes2(Enum):
+            a = Foo
+            b = Bar
+        self.assertEqual(MyTypes2.a.value, Foo)
+        self.assertEqual(MyTypes2.b.value, Bar)
+        class SpamEnumNotInner:
+            pass
+        class SpamEnum(Enum):
+            spam = SpamEnumNotInner
+        self.assertEqual(SpamEnum.spam.value, SpamEnumNotInner)
+
+    if pyver < 3.0:
+        def test_nested_classes_in_enum_do_become_members(self):
+            # manually set __qualname__ to remove testing framework noise
+            class Outer(Enum):
+                _order_ = 'a b Inner'
+                __qualname__ = "Outer"
+                a = 1
+                b = 2
+                class Inner(Enum):
+                    __qualname__ = "Outer.Inner"
+                    foo = 10
+                    bar = 11
+            self.assertTrue(isinstance(Outer.Inner, Outer))
+            self.assertEqual(Outer.a.value, 1)
+            self.assertEqual(Outer.Inner.value.foo.value, 10)
+            self.assertEqual(
+                list(Outer.Inner.value),
+                [Outer.Inner.value.foo, Outer.Inner.value.bar],
+                )
+            self.assertEqual(
+                list(Outer),
+                [Outer.a, Outer.b, Outer.Inner],
+                )
+
+        def test_really_nested_classes_in_enum_do_become_members(self):
+            class Outer(Enum):
+                _order_ = 'a b Inner'
+                a = 1
+                b = 2
+                class Inner(Enum):
+                    foo = 10
+                    bar = 11
+            self.assertTrue(isinstance(Outer.Inner, Outer))
+            self.assertEqual(Outer.a.value, 1)
+            self.assertEqual(Outer.Inner.value.foo.value, 10)
+            self.assertEqual(
+                list(Outer.Inner.value),
+                [Outer.Inner.value.foo, Outer.Inner.value.bar],
+                )
+            self.assertEqual(
+                list(Outer),
+                [Outer.a, Outer.b, Outer.Inner],
+                )
+
+    def test_nested_classes_in_enum_are_skipped_with_skip(self):
+        """Support locally-defined nested classes using @skip"""
+        # manually set __qualname__ to remove testing framework noise
+        class Outer(Enum):
+            __qualname__ = "Outer"
+            a = 1
+            b = 2
+            @skip
+            class Inner(Enum):
+                __qualname__ = "Outer.Inner"
+                foo = 10
+                bar = 11
+        self.assertTrue(isinstance(Outer.Inner, type))
+        self.assertEqual(Outer.a.value, 1)
+        self.assertEqual(Outer.Inner.foo.value, 10)
+        self.assertEqual(
+            list(Outer.Inner),
+            [Outer.Inner.foo, Outer.Inner.bar],
+            )
+        self.assertEqual(
+            list(Outer),
+            [Outer.a, Outer.b],
+            )
+
+    def test_really_nested_classes_in_enum_are_skipped_with_skip(self):
+        """Support locally-defined nested classes using @skip"""
+        class Outer(Enum):
+            a = 1
+            b = 2
+            @skip
+            class Inner(Enum):
+                foo = 10
+                bar = 11
+        self.assertTrue(isinstance(Outer.Inner, type))
+        self.assertEqual(Outer.a.value, 1)
+        self.assertEqual(Outer.Inner.foo.value, 10)
+        self.assertEqual(
+            list(Outer.Inner),
+            [Outer.Inner.foo, Outer.Inner.bar],
+            )
+        self.assertEqual(
+            list(Outer),
+            [Outer.a, Outer.b],
+            )
 
 class TestFlag(TestCase):
     """Tests of the Flags."""
@@ -3610,7 +3739,42 @@ class TestFlag(TestCase):
                 'at least one thread failed while creating composite members')
         self.assertEqual(256, len(seen), 'too many composite members created')
 
-    def test_ignore_with_autovalue_and_property(self):
+    def test_init_with_autovalue_and_generate_next_value(self):
+        class Color(Flag):
+            _settings_ = AutoValue
+            _init_ = 'value code'
+            def _generate_next_value_(name, start, count, last_values, *args, **kwds):
+                if not count:
+                    return ((1, start)[start is not None], ) + args
+                error = False
+                for last_value_pair in reversed(last_values):
+                    last_value, last_code = last_value_pair
+                    try:
+                        high_bit = aenum._high_bit(last_value)
+                        break
+                    except Exception:
+                        error = True
+                        break
+                if error:
+                    raise TypeError('Invalid Flag value: %r' % (last_value, ))
+                return (2 ** (high_bit+1), ) + args
+            # TODO: actually test _create_pseudo_member
+            @classmethod
+            def _create_pseudo_member_(cls, value):
+                pseudo_member = cls._value2member_map_.get(value, None)
+                if pseudo_member is None:
+                    members, _ = aenum._decompose(cls, value)
+                    pseudo_member = super(Color, cls)._create_pseudo_member_(value)
+                    pseudo_member.code = ';'.join(m.code for m in members)
+                return pseudo_member
+            AllReset = '0'           # ESC [ 0 m       # reset all (colors and brightness)
+            Bright = '1'          # ESC [ 1 m       # bright
+            Dim = '2'             # ESC [ 2 m       # dim (looks same as normal brightness)
+            Underline = '4'
+            Normal = '22'         # ESC [ 22 m      # normal brightness
+        # if we got here, we're good
+
+    def test_autovalue_and_generate_next_value(self):
         class Color(str, Flag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
             _settings_ = AutoValue
@@ -3623,6 +3787,7 @@ class TestFlag(TestCase):
             @staticmethod
             def _generate_next_value_(name, start, count, values, *args, **kwds):
                 return (2 ** count, ) + args
+            # TODO: actually test _create_pseudo_member
             @classmethod
             def _create_pseudo_member_(cls, value):
                 pseudo_member = cls._value2member_map_.get(value, None)

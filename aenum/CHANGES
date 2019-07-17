@@ -1,3 +1,37 @@
+2.2.0
+=====
+
+BREAKING CHANGE
+---------------
+In Python 3+ classes defined inside an Enum no longer become members by
+default; in Python 2 they still become members, but see below.
+
+For cross-compatibility and full control two decorators are provided:
+
+- @member  --> forces item to become a member
+- @nonmember  --> excludes item from becoming a member
+
+So to have an Enum that behaves the same in Python 2 and 3, use the
+decorators (and other compatibility shims):
+
+    class Color(Enum):
+
+        _order_ = 'red green blue'
+
+        red = 1
+        green = 2
+        blue = 3
+
+        @nonmember
+        class Shades(Enum):
+
+            _order_ = 'light medium dark'
+
+            light = 1
+            medium = 2
+            dark = 3
+
+
 2.1.4
 =====
 
