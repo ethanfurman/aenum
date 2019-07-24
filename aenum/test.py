@@ -476,6 +476,7 @@ class TestEnum(TestCase):
     def test_enum_in_enum(self):
         #
         class Level(Enum):
+            _order_ = 'DATA_CHECK DESIGN_CHECK ALERT'
             #
             def __new__(cls, *args, **kwds):
                 member = object.__new__(cls)
