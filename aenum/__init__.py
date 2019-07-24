@@ -36,7 +36,7 @@ else:
 
 
 __all__ = [
-        'NamedConstant', 'constant', 'skip', 'nonmember', 'member',
+        'NamedConstant', 'constant', 'skip', 'nonmember', 'member', 'no_arg',
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
         'Flag', 'IntFlag',
         'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
