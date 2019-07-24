@@ -835,6 +835,20 @@ class TestEnumV3(TestCase):
                     protocol=(0, HIGHEST_PROTOCOL))
 
     if pyver >= 3.4:
+        def test_enum_injection(self):
+            class Color(Enum):
+                _order_ = 'BLACK WHITE'
+                BLACK = Color('black', '#000')
+                WHITE = Color('white', '#fff')
+
+                def __init__(self, label, hex):
+                    self.label = label
+                    self.hex = hex
+
+            self.assertEqual([Color.BLACK, Color.WHITE], list(Color))
+            self.assertEqual(Color.WHITE.hex, '#fff')
+            self.assertEqual(Color.BLACK.label, 'black')
+
         def test_subclasses_with_getnewargs_ex(self):
             class NamedInt(int):
                 __qualname__ = 'NamedInt'       # needed for pickle protocol 4

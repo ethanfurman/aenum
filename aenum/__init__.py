@@ -1273,7 +1273,9 @@ class _EnumDict(dict):
         self._last_values = []
 
     def __getitem__(self, key):
-        if key == '_auto_on_':
+        if key == self._cls_name and self._cls_name not in self:
+            return enum
+        elif key == '_auto_on_':
             self._locked = False
             if not self._autonumber:
                 self._autovalue = True
