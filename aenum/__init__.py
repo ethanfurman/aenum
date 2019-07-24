@@ -46,7 +46,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 0
+version = 2, 2, 1, 1
 
 try:
     any
@@ -141,6 +141,7 @@ class Member(object):
         self.value = value
 member = Member
 
+
 def _is_descriptor(obj):
     """Returns True if obj is a descriptor, False otherwise."""
     return (
@@ -171,7 +172,6 @@ def _is_internal_class(cls_name, obj):
     else:
         qualname = getattr(obj, '__qualname__', False)
         return not _is_descriptor(obj) and qualname and re.search(r"\.?%s\.\w+$" % cls_name, qualname)
-
 
 def _make_class_unpicklable(cls):
     """Make the given class un-picklable."""
@@ -1552,6 +1552,7 @@ class _EnumDict(dict):
         super(_EnumDict, self).__setitem__(key, value)
 
 
+no_arg = object()
 class EnumMeta(StdlibEnumMeta or type):
     """Metaclass for Enum"""
     @classmethod
@@ -1983,7 +1984,7 @@ class EnumMeta(StdlibEnumMeta or type):
         """
         return True
 
-    def __call__(cls, value, names=None, module=None, type=None, start=1):
+    def __call__(cls, value=no_arg, names=None, module=None, type=None, start=1):
         """Either returns an existing member, or creates a new enum class.
 
         This method is used both when an enum class is given a value to match
@@ -2374,7 +2375,10 @@ def __new__(cls, value):
     if isinstance(result, cls):
         return result
     else:
-        ve_exc = ValueError("%r is not a valid %s" % (value, cls.__name__))
+        if value is no_arg:
+            ve_exc = ValueError('%s() should be called with a value' % (cls.__name__, ))
+        else:
+            ve_exc = ValueError("%r is not a valid %s" % (value, cls.__name__))
         if result is None and exc is None:
             raise ve_exc
         elif exc is None:

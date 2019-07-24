@@ -12,7 +12,7 @@ import unittest
 import warnings
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
-from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember
+from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -3301,6 +3301,21 @@ class TestEnum(TestCase):
             list(Outer),
             [Outer.a, Outer.b],
             )
+
+    def test_enum_call_without_arg(self):
+        class Color(Enum):
+            black = 0
+            red = 1
+            green = 2
+            blue = 3
+            #
+            @classmethod
+            def _missing_value_(cls, value):
+                if value is no_arg:
+                    return cls.black
+        self.assertTrue(Color.red is Color(1))
+        self.assertTrue(Color.black is Color())
+
 
 class TestFlag(TestCase):
     """Tests of the Flags."""
