@@ -1,3 +1,34 @@
+2.2.1
+=====
+
+allow Enums to be called without a value
+
+    class Color(Enum):
+        black = 0
+        red = 1
+        green = 2
+        blue = 3
+        #
+        @classmethod
+        def _missing_value_(cls, value):
+            if value is no_arg:
+                return cls.black
+
+    >>> Color()
+    <Color.black: 0>
+
+allow Enum name use while constructing Enum (Python 3.4+ only)
+
+    class Color(Enum):
+        _order_ = 'BLACK WHITE'
+        BLACK = Color('black', '#000')
+        WHITE = Color('white', '#fff')
+
+        def __init__(self, label, hex):
+            self.label = label
+            self.hex = hex
+
+
 2.2.0
 =====
 
