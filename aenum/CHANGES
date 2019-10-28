@@ -4,6 +4,25 @@
 replace _RouteClassAttributeToGetattr with enum_property (it is still
 available as an alias)
 
+support constant() and auto() being used together:
+
+    --> class Fruit(Flag):
+    ...    _order_ = 'apple banana lemon orange'
+    ...    apple = auto()
+    ...    banana = auto()
+    ...    lemon = auto()
+    ...    orange = auto()
+    ...    CitrusTypes = constant(lemon | orange)
+
+    --> list(Fruit)
+    [Fruit.apple, Fruit.banana, Fruit.lemon, Fruit.orange]
+
+    --> list(Fruit.CitrusTypes)
+    [Fruit.orange, Fruit.lemon]
+
+    --> Fruit.orange in Fruit.CitrusTypes
+    True
+
 
 2.2.1
 =====

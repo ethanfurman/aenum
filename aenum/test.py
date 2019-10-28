@@ -2915,6 +2915,17 @@ class TestEnum(TestCase):
         self.assertEqual(Universe.PI, 3.141596)
         self.assertEqual(Universe.TAU, 2 * Universe.PI)
 
+    def test_constant_with_auto_is_updated(self):
+        class FRUIT(Flag):
+            _order_ = 'APPLE BANANA LEMON ORANGE'
+            APPLE = auto()
+            BANANA = auto()
+            LEMON = auto()
+            ORANGE = auto()
+            CITRUS_TYPES = constant(LEMON | ORANGE)
+        self.assertEqual(list(FRUIT), [FRUIT.APPLE, FRUIT.BANANA, FRUIT.LEMON, FRUIT.ORANGE])
+        self.assertEqual(list(FRUIT.CITRUS_TYPES), [FRUIT.ORANGE, FRUIT.LEMON])
+        self.assertTrue(FRUIT.ORANGE in FRUIT.CITRUS_TYPES)
 
     def test_order_as_function(self):
         # first with _init_

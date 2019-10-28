@@ -46,7 +46,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 2, 1
+version = 2, 2, 2, 2
 
 try:
     any
@@ -1528,6 +1528,12 @@ class _EnumDict(dict):
                 else:
                     if value.value == _auto_null:
                         gnv = self._generate_next_value
+                        prev_values = []
+                        for v in self._last_values:
+                            if isinstance(v, auto):
+                                prev_values.append(v.value)
+                            else:
+                                prev_values.append(v)
                         if isinstance(gnv, staticmethod):
                             gnv = gnv.__func__
                         if self._auto_args:
@@ -1535,7 +1541,7 @@ class _EnumDict(dict):
                                     key,
                                     1,
                                     len(self._member_names),
-                                    self._last_values[:],
+                                    prev_values,
                                     *value.args,
                                     **value.kwds
                                     )
@@ -1544,9 +1550,8 @@ class _EnumDict(dict):
                                     key,
                                     1,
                                     len(self._member_names),
-                                    self._last_values[:],
+                                    prev_values,
                                     )
-                    value = value.value
             elif isinstance(value, enum):
                 value.name = key
             else:
@@ -1797,6 +1802,8 @@ class EnumMeta(StdlibEnumMeta or type):
             __new__ = enum_class.__new__
         for member_name in clsdict._member_names:
             value = enum_members[member_name]
+            if isinstance(value, auto):
+                value = value.value
             kwds = {}
             new_args = ()
             init_args = ()
@@ -1920,6 +1927,10 @@ class EnumMeta(StdlibEnumMeta or type):
                     enum_class._value2member_map_[value] = enum_member
                 except TypeError:
                     enum_class._value2member_seq_ += ((value, enum_member), )
+        # check for constants with auto() values
+        for k, v in enum_class.__dict__.items():
+            if isinstance(v, constant) and isinstance(v.value, auto):
+                v.value = enum_class(v.value.value)
         # If a custom type is mixed into the Enum, and it does not know how
         # to pickle itself, pickle.dumps will succeed but pickle.loads will
         # fail.  Rather than have the error show up later and possibly far
@@ -1995,7 +2006,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 # create ordered list for comparison
                 _order_ = [m.name for m in sorted(enum_class, key=_order_)]
             if _order_ != enum_class._member_names_:
-                raise TypeError('member order does not match _order_')
+                raise TypeError('member order does not match _order_: %r %r' % (enum_class._member_names_, enum_class._member_map_.items()))
         return enum_class
 
     def __bool__(cls):
