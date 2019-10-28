@@ -4143,10 +4143,16 @@ class TestFlag(TestCase):
             RED = 1
             GREEN = 2
             BLUE = 4
-        extend_enum(Color, 'PURPLE', 5)
-        self.assertTrue(Color(5) is Color.PURPLE)
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
         self.assertTrue(isinstance(Color.PURPLE, Color))
-        self.assertEqual(Color.PURPLE.value, 5)
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+        print(list(Color))
 
     def test_extend_flag_subclass(self):
         class Color(str, Flag):

@@ -46,7 +46,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 2, 2
+version = 2, 2, 2, 3
 
 try:
     any
@@ -1401,7 +1401,14 @@ class _EnumDict(dict):
                     _init_.pop(0)
                 self._init = _init_
             elif key == '_generate_next_value_':
-                setattr(self, '_generate_next_value', value)
+                if isinstance(value, staticmethod):
+                    gnv = value.__func__
+                elif isinstance(value, classmethod):
+                    raise TypeError('_generate_next_value should be a staticmethod, not a classmethod')
+                else:
+                    gnv = value
+                    value = staticmethod(value)
+                setattr(self, '_generate_next_value', gnv)
                 self._auto_args = _check_auto_args(value)
         elif _is_dunder(key):
             if key == '__order__':
@@ -1454,8 +1461,6 @@ class _EnumDict(dict):
                 source_values = len(value)
                 if target_values != source_values:
                     gnv = self._generate_next_value
-                    if isinstance(gnv, staticmethod):
-                        gnv = gnv.__func__
                     if self._auto_args:
                         value = gnv(
                                 key, 1,
