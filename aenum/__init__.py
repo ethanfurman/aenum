@@ -40,13 +40,13 @@ __all__ = [
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
         'Flag', 'IntFlag',
         'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
-        'enum', 'extend_enum', 'unique',
+        'enum', 'extend_enum', 'unique', 'enum_property',
         'NamedTuple', 'SqliteEnum',
         ]
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 1
+version = 2, 2, 2, 1
 
 try:
     any
@@ -97,23 +97,32 @@ except ImportError:
 # will be exported later
 AutoValue = AutoNumber = MultiValue = NoAlias = Unique = None
 
-class _RouteClassAttributeToGetattr(object):
-    """Route attribute access on a class to __getattr__.
-
-    This is a descriptor, used to define attributes that act differently when
-    accessed through an instance and through a class.  Instance access remains
-    normal, but access to an attribute through a class will be routed to the
-    class's __getattr__ method; this is done by raising AttributeError.
+class enum_property(object):
     """
+    This is a descriptor, used to define attributes that act differently
+    when accessed through an enum member and through an enum class.
+    Instance access is the same as property(), but access to an attribute
+    through the enum class will look in the class' _member_map_.
+    """
+
     name = None  # set by metaclass
 
-    def __init__(self, fget=None):
+    def __init__(self, fget=None, doc=None):
         self.fget = fget
+        self.__doc__ = doc or fget.__doc__
+
+    def __call__(self, func, doc=None):
+        self.fget = func
+        self.__doc__ = self.__doc__ or doc or func.__doc__
 
     def __get__(self, instance, ownerclass=None):
         if instance is None:
-            raise AttributeError()
-        return self.fget(instance)
+            try:
+                return ownerclass._member_map_[self.name]
+            except KeyError:
+                raise AttributeError(self.name)
+        else:
+            return self.fget(instance)
 
     def __set__(self, instance, value):
         raise AttributeError("can't set attribute %r" % (self.name, ))
@@ -121,6 +130,7 @@ class _RouteClassAttributeToGetattr(object):
     def __delete__(self, instance):
         raise AttributeError("can't delete attribute %r" % (self.name, ))
 
+_RouteClassAttributeToGetattr = enum_property
 
 class NonMember(object):
     """
@@ -1754,7 +1764,7 @@ class EnumMeta(StdlibEnumMeta or type):
         for name, obj in clsdict.items():
             if isinstance(obj, nonmember):
                 dict.__setitem__(clsdict, name, obj.value)
-            elif isinstance(obj, _RouteClassAttributeToGetattr):
+            elif isinstance(obj, enum_property):
                 obj.name = name
         # check for illegal enum names (any others?)
         invalid_names = set(enum_members) & set(['mro', ''])
@@ -1877,9 +1887,19 @@ class EnumMeta(StdlibEnumMeta or type):
                                 (cls, ';  '.join(message))
                             )
             # performance boost for any member that would not shadow
-            # a DynamicClassAttribute (aka _RouteClassAttributeToGetattr)
+            # an enum_property
             if member_name not in base_attributes:
                 setattr(enum_class, member_name, enum_member)
+            else:
+                # otherwise make sure the thing being shadowed /is/ an
+                # enum_property
+                for parent in enum_class.mro()[1:]:
+                    if member_name in parent.__dict__:
+                        obj = parent.__dict__[member_name]
+                        if not isinstance(obj, enum_property):
+                            raise TypeError('%r already used: %r' % (member_name, obj))
+                        # we're good
+                        break
             # now add to _member_map_
             enum_class._member_map_[member_name] = enum_member
             values = (value, ) + extra_mv_args
@@ -1900,8 +1920,6 @@ class EnumMeta(StdlibEnumMeta or type):
                     enum_class._value2member_map_[value] = enum_member
                 except TypeError:
                     enum_class._value2member_seq_ += ((value, enum_member), )
-
-
         # If a custom type is mixed into the Enum, and it does not know how
         # to pickle itself, pickle.dumps will succeed but pickle.loads will
         # fail.  Rather than have the error show up later and possibly far
@@ -2038,21 +2056,6 @@ class EnumMeta(StdlibEnumMeta or type):
         is a copy of the internal mapping.
         """
         return cls._member_map_.copy()
-
-    def __getattr__(cls, name):
-        """Return the enum member matching `name`
-
-        We use __getattr__ instead of descriptors or inserting into the enum
-        class' __dict__ in order to support `name` and `value` being both
-        properties for enum members (which live in the class' __dict__) and
-        enum members themselves.
-        """
-        if _is_dunder(name):
-            raise AttributeError(name)
-        try:
-            return cls._member_map_[name]
-        except KeyError:
-            raise AttributeError(name)
 
     def __getitem__(cls, name):
         try:
@@ -2569,29 +2572,29 @@ def _convert(cls, name, module, filter, source=None):
 temp_enum_dict['_convert'] = classmethod(_convert)
 del _convert
 
-# _RouteClassAttributeToGetattr is used to provide access to the `name`
-# and `value` properties of enum members while keeping some measure of
-# protection from modification, while still allowing for an enumeration
-# to have members named `name` and `value`.  This works because enumeration
-# members are not set directly on the enum class -- __getattr__ is
-# used to look them up.
+# enum_property is used to provide access to the `name`, `value', etc.,
+# properties of enum members while keeping some measure of protection
+# from modification, while still allowing for an enumeration to have
+# members named `name`, `value`, etc..  This works because enumeration
+# members are not set directly on the enum class -- enum_property will
+# look them up in _member_map_.
 #
-# This method is also very slow, so EnumMeta will add members directly to the
-# Enum class if it won't shadow other instance attributes
+# This method is also very slow, so EnumMeta will add members directlyi
+# to the Enum class if it won't shadow other instance attributes
 
-@_RouteClassAttributeToGetattr
+@enum_property
 def name(self):
     return self._name_
 temp_enum_dict['name'] = name
 del name
 
-@_RouteClassAttributeToGetattr
+@enum_property
 def value(self):
     return self._value_
 temp_enum_dict['value'] = value
 del value
 
-@_RouteClassAttributeToGetattr
+@enum_property
 def values(self):
     return self._values_
 temp_enum_dict['values'] = values
@@ -2794,14 +2797,27 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
     if _no_alias_:
         # unless NoAlias was specified
         _member_names_.append(name)
+        _member_map_[name] = new_member
     else:
         for canonical_member in _member_map_.values():
             _values_ = getattr(canonical_member, '_values_', [canonical_member._value_])
             for canonical_value in _values_:
                 if canonical_value == new_member._value_:
+                    # name is an alias
                     if _unique_ or _multi_value_:
                         # aliases not allowed if Unique specified
                         raise ValueError('%s is a duplicate of %s' % (name, canonical_member.name))
+                    if name not in base_attributes:
+                        setattr(enumeration, name, canonical_member)
+                    else:
+                        # check type of name
+                        for parent in enumeration.mro()[1:]:
+                            if name in parent.__dict__:
+                                obj = parent.__dict__[name]
+                                if not isinstance(obj, enum_property):
+                                    raise TypeError('%r already used: %r' % (name, obj))
+                                break
+                    # Aliases don't appear in member names (only in __members__ and _member_map_).
                     _member_map_[new_member._name_] = canonical_member
                     new_member = canonical_member
                     is_alias = True
@@ -2809,34 +2825,41 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
             if is_alias:
                 break
         else:
-            # Aliases don't appear in member names (only in __members__).
+            # not an alias
+            values = (value, ) + more_values
+            new_member._values_ = values
+            for value in (value, ) + more_values:
+                # first check if value has already been used
+                if _multi_value_ and (
+                        value in _value2member_map_
+                        or any(v == value for (v, m) in _value2member_seq_)
+                        ):
+                    raise ValueError('%r has already been used' % (value, ))
+                try:
+                    # This may fail if value is not hashable. We can't add the value
+                    # to the map, and by-value lookups for this value will be
+                    # linear.
+                    if _no_alias_:
+                        raise TypeError('cannot use dict to store value')
+                    _value2member_map_[value] = new_member
+                except TypeError:
+                    _value2member_seq_ += ((value, new_member), )
+            if name not in base_attributes:
+                setattr(enumeration, name, new_member)
+            else:
+                # check type of name
+                for parent in enumeration.mro()[1:]:
+                    if name in parent.__dict__:
+                        obj = parent.__dict__[name]
+                        if not isinstance(obj, enum_property):
+                            raise TypeError('%r already used: %r' % (name, obj))
+                        break
             _member_names_.append(name)
-    if not is_alias:
-        values = (value, ) + more_values
-        new_member._values_ = values
-        for value in (value, ) + more_values:
-            # first check if value has already been used
-            if _multi_value_ and (
-                    value in _value2member_map_
-                    or any(v == value for (v, m) in _value2member_seq_)
-                    ):
-                raise ValueError('%r has already been used' % (value, ))
+            _member_map_[name] = new_member
             try:
-                # This may fail if value is not hashable. We can't add the value
-                # to the map, and by-value lookups for this value will be
-                # linear.
-                if _no_alias_:
-                    raise TypeError('cannot use dict to store value')
                 _value2member_map_[value] = new_member
             except TypeError:
-                _value2member_seq_ += ((value, new_member), )
-        if name not in base_attributes:
-            setattr(enumeration, name, new_member)
-        _member_map_[name] = new_member
-        try:
-            _value2member_map_[value] = new_member
-        except TypeError:
-            pass
+                pass
 
 def unique(enumeration):
     """

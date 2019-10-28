@@ -46,6 +46,9 @@ Utility functions include:
 
 - enum: helper class for creating members with keywords
 
+- enum_property: property to enable enum members to have same named attributes
+                 (e.g. `name` and `value`)
+
 - export: helper to insert Enum members into a namespace (usually globals())
 
 - extend_enum: add new members to enumerations after creation
@@ -62,7 +65,7 @@ Utility functions include:
 
 data = dict(
        name='aenum',
-       version='2.2.1',
+       version='2.2.2a1',
        url='https://bitbucket.org/stoneleaf/aenum',
        packages=['aenum'],
        package_data={
@@ -104,7 +107,7 @@ make = [
 
 if __name__ == '__main__':
     if 'install' in sys.argv:
-        import os, sys, shutil
+        import os, sys
         if sys.version_info[0] != 2:
             for file in py2_only:
                 try:

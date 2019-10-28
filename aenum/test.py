@@ -13,6 +13,7 @@ import warnings
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
+from aenum import enum_property
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -1990,6 +1991,33 @@ class TestEnum(TestCase):
             yellow = 6
         self.assertEqual(MoreColor.magenta.hex(), '5 hexlified!')
 
+    def test_extending4(self):
+        class hohum(object):
+            def cyan(self):
+                "cyanize a color"
+                return self.value
+        with self.assertRaises(TypeError):
+            class Color(hohum, Enum):
+                red = 1
+                green = 2
+                blue = 3
+                cyan = 4
+
+    def test_extending5(self):
+        class Color(Enum):
+            _order_ = 'red green blue value'
+            red = 1
+            green = 2
+            blue = 3
+            value = 4
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue, Color.value])
+        self.assertEqual(Color.value.name, 'value')
+        self.assertEqual(Color.value.value, 4)
+        self.assertTrue(Color.value in Color)
+        self.assertEqual(Color(4), Color.value)
+        self.assertEqual(Color['value'], Color.value)
+        self.assertEqual(Color.red.value, 1)
+
     if StdlibEnum is not None:
 
         def test_extend_enum_stdlib(self):
@@ -2067,6 +2095,20 @@ class TestEnum(TestCase):
         self.assertEqual(Color['value'], Color.value)
         self.assertEqual(len(Color), 4)
         self.assertEqual(Color.red.value, 1)
+
+    def test_extend_enum_shadow_base(self):
+        class hohum(object):
+            def cyan(self):
+                "cyanize a color"
+                return self.value
+        class Color(hohum, UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        with self.assertRaises(TypeError):
+            extend_enum(Color, 'cyan', 4)
+        self.assertEqual(len(Color), 3)
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
 
     def test_extend_enum_multivalue(self):
         class Color(MultiValueEnum):
@@ -2820,6 +2862,7 @@ class TestEnum(TestCase):
 
     def test_member_with_external_functions(self):
         class Func(Enum):
+            _order_ = 'an_int a_str'
             an_int = member(int)
             a_str = member(str)
             @classproperty
@@ -2837,6 +2880,7 @@ class TestEnum(TestCase):
 
     def test_member_with_internal_functions(self):
         class Func(Enum):
+            _order_ = 'haha hehe'
             @member
             def haha():
                 return 'haha'
@@ -2870,6 +2914,7 @@ class TestEnum(TestCase):
             TAU = constant(2 * PI)
         self.assertEqual(Universe.PI, 3.141596)
         self.assertEqual(Universe.TAU, 2 * Universe.PI)
+
 
     def test_order_as_function(self):
         # first with _init_

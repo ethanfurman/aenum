@@ -1,3 +1,10 @@
+2.2.2
+=====
+
+replace _RouteClassAttributeToGetattr with enum_property (it is still
+available as an alias)
+
+
 2.2.1
 =====
 
