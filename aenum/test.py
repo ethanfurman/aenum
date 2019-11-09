@@ -13,7 +13,6 @@ import warnings
 from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
-from aenum import enum_property
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -2916,6 +2915,18 @@ class TestEnum(TestCase):
         self.assertEqual(Universe.TAU, 2 * Universe.PI)
 
     def test_constant_with_auto_is_updated(self):
+        class Fruit(Flag):
+            _order_ = 'apple banana lemon orange'
+            apple = auto()
+            banana = auto()
+            lemon = auto()
+            orange = auto()
+            CitrusTypes = constant(lemon | orange)
+        self.assertEqual(list(Fruit), [Fruit.apple, Fruit.banana, Fruit.lemon, Fruit.orange])
+        self.assertEqual(list(Fruit.CitrusTypes), [Fruit.orange, Fruit.lemon])
+        self.assertTrue(Fruit.orange in Fruit.CitrusTypes)
+
+    def test_constant_with_enum_is_updated(self):
         class Fruit(Flag):
             _order_ = 'apple banana lemon orange'
             apple = auto()
