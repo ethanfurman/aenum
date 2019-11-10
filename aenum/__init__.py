@@ -1955,10 +1955,14 @@ class EnumMeta(StdlibEnumMeta or type):
                     _make_class_unpicklable(enum_class)
                     unpicklable = True
 
-
         # double check that repr and friends are not the mixin's or various
         # things break (such as pickle)
+
         for name in ('__repr__', '__str__', '__format__', '__reduce_ex__'):
+            enum_class_method = enum_class.__dict__.get(name, None)
+            if enum_class_method:
+                # class has defined/imported/copied the method
+                continue
             class_method = getattr(enum_class, name)
             obj_method = getattr(member_type, name, None)
             enum_method = getattr(first_enum, name, None)
@@ -1966,7 +1970,6 @@ class EnumMeta(StdlibEnumMeta or type):
                 if name == '__reduce_ex__' and unpicklable:
                     continue
                 setattr(enum_class, name, enum_method)
-
 
         # method resolution and int's are not playing nice
         # Python's less than 2.6 use __cmp__

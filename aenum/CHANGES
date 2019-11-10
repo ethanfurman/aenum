@@ -1,3 +1,22 @@
+2.2.3
+=====
+
+use member type's methods __str__, __repr__, __format__, and
+__reduce_ex__ if directly assigned in Enum class body; i.e.:
+
+    --> class Color(str, Enum):
+    ...     red = 'red'
+    ...     green = 'green'
+    ...     blue = 'blue'
+    ...     __str__ = str.__str__
+
+    --> print(repr(Color.green))
+    <Color.green: 'green'>
+
+    --> print(Color.green)
+    green
+
+
 2.2.2
 =====
 
@@ -45,14 +64,14 @@ allow Enums to be called without a value
 
 allow Enum name use while constructing Enum (Python 3.4+ only)
 
-    class Color(Enum):
-        _order_ = 'BLACK WHITE'
-        BLACK = Color('black', '#000')
-        WHITE = Color('white', '#fff')
-
-        def __init__(self, label, hex):
-            self.label = label
-            self.hex = hex
+    --> class Color(Enum):
+    ...     _order_ = 'BLACK WHITE'
+    ...     BLACK = Color('black', '#000')
+    ...     WHITE = Color('white', '#fff')
+    ...     #
+    ...     def __init__(self, label, hex):
+    ...         self.label = label
+    ...         self.hex = hex
 
 
 2.2.0

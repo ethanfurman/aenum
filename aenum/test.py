@@ -3397,12 +3397,79 @@ class TestFlag(TestCase):
         BLUE = 4
         PURPLE = RED|BLUE
 
+    class TermColor(str, Flag):
+        _settings_ = AutoValue
+
+        def __new__(cls, value, code):
+            str_value = '\x1b[%sm' % code
+            obj = str.__new__(cls, str_value)
+            obj._value_ = value
+            obj.code = code
+            return obj
+
+        @classmethod
+        def _create_pseudo_member_values_(cls, members, *values):
+            code = ';'.join(m.code for m in members)
+            return values + (code, )
+
+        AllReset = '0'           # ESC [ 0 m       # reset all (colors and brightness)
+        Bright = '1'          # ESC [ 1 m       # bright
+        Dim = '2'             # ESC [ 2 m       # dim (looks same as normal brightness)
+        Underline = '4'
+        Normal = '22'         # ESC [ 22 m      # normal brightness
+                            #
+                            # # FOREGROUND - 30s  BACKGROUND - 40s:
+        FG_Black = '30'           # ESC [ 30 m      # black
+        FG_Red = '31'             # ESC [ 31 m      # red
+        FG_Green = '32'           # ESC [ 32 m      # green
+        FG_Yellow = '33'          # ESC [ 33 m      # yellow
+        FG_Blue = '34'            # ESC [ 34 m      # blue
+        FG_Magenta = '35'         # ESC [ 35 m      # magenta
+        FG_Cyan = '36'            # ESC [ 36 m      # cyan
+        FG_White = '37'           # ESC [ 37 m      # white
+        FG_Reset = '39'           # ESC [ 39 m      # reset
+                                #
+        BG_Black = '40'           # ESC [ 30 m      # black
+        BG_Red = '41'             # ESC [ 31 m      # red
+        BG_Green = '42'           # ESC [ 32 m      # green
+        BG_Yellow = '43'          # ESC [ 33 m      # yellow
+        BG_Blue = '44'            # ESC [ 34 m      # blue
+        BG_Magenta = '45'         # ESC [ 35 m      # magenta
+        BG_Cyan = '46'            # ESC [ 36 m      # cyan
+        BG_White = '47'           # ESC [ 37 m      # white
+        BG_Reset = '49'           # ESC [ 39 m      # reset
+
+        __str__ = str.__str__
+
+        def __repr__(self):
+            if self._name_ is not None:
+                return '<%s.%s>' % (self.__class__.__name__, self._name_)
+            else:
+                return '<%s: %s>' % (self.__class__.__name__, '|'.join([m.name for m in Flag.__iter__(self)]))
+
+        def __enter__(self):
+            print(self.AllReset, end='', verbose=0)
+            return self
+
+        def __exit__(self, *args):
+            print(self.AllReset, end='', verbose=0)
+
+
     class Open(Flag):
         RO = 0
         WO = 1
         RW = 2
         AC = 3
         CE = 1<<19
+
+    def test_str_is_str_str(self):
+        red, white = self.TermColor.FG_Red, self.TermColor.BG_White
+        barber = red | white
+        self.assertEqual(barber, '\x1b[47;31m')
+        self.assertEqual(barber.value, red.value | white.value)
+        self.assertEqual(barber.code, ';'.join([white.code, red.code]))
+        self.assertEqual(repr(barber), '<TermColor: BG_White|FG_Red>')
+        self.assertEqual(str(barber), '\x1b[47;31m')
 
     def test_membership(self):
         Color = self.Color
