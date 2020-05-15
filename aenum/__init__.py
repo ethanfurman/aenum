@@ -46,7 +46,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 3
+version = 2, 2, 4, 3
 
 try:
     any
@@ -2598,7 +2598,7 @@ del _convert
 # members are not set directly on the enum class -- enum_property will
 # look them up in _member_map_.
 #
-# This method is also very slow, so EnumMeta will add members directlyi
+# This method is also very slow, so EnumMeta will add members directly
 # to the Enum class if it won't shadow other instance attributes
 
 @enum_property
