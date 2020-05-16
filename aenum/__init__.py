@@ -38,6 +38,7 @@ else:
 __all__ = [
         'NamedConstant', 'constant', 'skip', 'nonmember', 'member', 'no_arg',
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
+        'StrEnum', 'UpperStrEnum', 'LowerStrEnum',
         'Flag', 'IntFlag',
         'AutoNumber', 'MultiValue', 'NoAlias', 'Unique',
         'enum', 'extend_enum', 'unique', 'enum_property',
@@ -105,11 +106,15 @@ class enum_property(object):
     through the enum class will look in the class' _member_map_.
     """
 
-    name = None  # set by metaclass
-
-    def __init__(self, fget=None, doc=None):
+    def __init__(self, fget=None, doc=None, name=None, method=None):
+        # fget is for normal property behavior
+        # fmethod is a fuction higher up the mro
+        if fget is method is None:
+            raise ValueError('either fget or method must be specified')
         self.fget = fget
         self.__doc__ = doc or fget.__doc__
+        self.name = name
+        self.fmethod = method
 
     def __call__(self, func, doc=None):
         self.fget = func
@@ -122,7 +127,10 @@ class enum_property(object):
             except KeyError:
                 raise AttributeError(self.name)
         else:
-            return self.fget(instance)
+            if self.fget is not None:
+                return self.fget(instance)
+            elif self.fmethod is not None:
+                return lambda : self.fmethod(instance)
 
     def __set__(self, instance, value):
         raise AttributeError("can't set attribute %r" % (self.name, ))
@@ -1898,20 +1906,19 @@ class EnumMeta(StdlibEnumMeta or type):
                             'duplicate names found in %r: %s' %
                                 (cls, ';  '.join(message))
                             )
-            # performance boost for any member that would not shadow
-            # an enum_property
-            if member_name not in base_attributes:
-                setattr(enum_class, member_name, enum_member)
+            # members are either added directly to the class or, if naming conflicts,
+            # added as enum_property's
+            for parent in enum_class.mro()[1:]:
+                if member_name in parent.__dict__:
+                    obj = parent.__dict__[member_name]
+                    if isinstance(obj, enum_property):
+                        setattr(enum_class, member_name, enum_property(obj.fget, name=member_name))
+                    else:
+                        setattr(enum_class, member_name, enum_property(name=member_name, method=obj))
+                    # we're good
+                    break
             else:
-                # otherwise make sure the thing being shadowed /is/ an
-                # enum_property
-                for parent in enum_class.mro()[1:]:
-                    if member_name in parent.__dict__:
-                        obj = parent.__dict__[member_name]
-                        if not isinstance(obj, enum_property):
-                            raise TypeError('%r already used: %r' % (member_name, obj))
-                        # we're good
-                        break
+                setattr(enum_class, member_name, enum_member)
             # now add to _member_map_
             enum_class._member_map_[member_name] = enum_member
             values = (value, ) + extra_mv_args
@@ -2633,6 +2640,48 @@ del temp_enum_dict
 
 class IntEnum(int, Enum):
     """Enum where members are also (and must be) ints"""
+
+class StrEnum(str, Enum): 
+    """Enum where members are also (and must already be) strings
+    
+        default value is member name
+    """
+    def __new__(cls, value, *args, **kwds):
+        if args or kwds:
+            raise TypeError('only a single string value may be specified')
+        if not isinstance(value, str):
+            raise TypeError('values for StrEnum must be strings, not %r' % type(value))
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        return obj
+    def _generate_next_value_(name, start, count, last_values, *args, **kwds):
+        return name
+
+class LowerStrEnum(StrEnum):
+    """Enum where members are also (and must already be) lower-case strings
+    
+        default value is member name, lower-cased
+    """
+    def __new__(cls, value, *args, **kwds):
+        obj = StrEnum.__new_member__(cls, value, *args, **kwds)
+        if value != value.lower():
+            raise ValueError('%r is not lower-case' % value)
+        return obj
+    def _generate_next_value_(name, start, count, last_values, *args, **kwds):
+        return name.lower()
+
+class UpperStrEnum(StrEnum):
+    """Enum where members are also (and must already be) upper-case strings
+    
+        default value is member name, upper-cased
+    """
+    def __new__(cls, value, *args, **kwds):
+        obj = StrEnum.__new_member__(cls, value, *args, **kwds)
+        if value != value.upper():
+            raise ValueError('%r is not upper-case' % value)
+        return obj
+    def _generate_next_value_(name, start, count, last_values, *args, **kwds):
+        return name.upper()
 
 if pyver >= 3:
     class AutoEnum(Enum):

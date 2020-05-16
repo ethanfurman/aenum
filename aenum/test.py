@@ -136,7 +136,7 @@ except Exception:
 # for pickle test and subclass tests
 try:
     class StrEnum(str, Enum):
-        'accepts only string values'
+        'members become strings'
     class Name(StrEnum):
         BDFL = 'Guido van Rossum'
         FLUFL = 'Barry Warsaw'
@@ -1994,13 +1994,18 @@ class TestEnum(TestCase):
         class hohum(object):
             def cyan(self):
                 "cyanize a color"
-                return self.value
-        with self.assertRaises(TypeError):
-            class Color(hohum, Enum):
-                red = 1
-                green = 2
-                blue = 3
-                cyan = 4
+                return self.value * 7
+        class Color(hohum, Enum):
+            red = 1
+            green = 2
+            blue = 3
+            cyan = 4
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue, Color.cyan])
+        self.assertEqual(Color.red.cyan(), 7)
+        self.assertEqual(Color.green.cyan(), 14)
+        self.assertEqual(Color.blue.cyan(), 21)
+        self.assertEqual(Color.cyan.cyan(), 28)
+
 
     def test_extending5(self):
         class Color(Enum):
@@ -3382,6 +3387,55 @@ class TestEnum(TestCase):
                     return cls.black
         self.assertTrue(Color.red is Color(1))
         self.assertTrue(Color.black is Color())
+
+    def test_strict_strenum(self):
+        from aenum import StrEnum, LowerStrEnum, UpperStrEnum
+        with self.assertRaisesRegex(TypeError, 'only a single string value may be specified'):
+            class Huh(StrEnum):
+                huh = 'this', 'is', 'too', 'many'
+
+        for uhoh in (object, object(), [], Enum, 9):
+            with self.assertRaisesRegex(TypeError, 'values for StrEnum must be strings, not '):
+                class Huh(StrEnum):
+                    huh = uhoh
+
+        class Either(StrEnum):
+            _order_ = 'this that Those lower upper'
+            this = auto()
+            that = 'That'
+            Those = auto()
+            lower = 'lower'
+            upper = 'UPPER'
+
+        self.assertEqual([m.value for m in Either], ['this', 'That', 'Those', 'lower', 'UPPER'])
+
+        with self.assertRaisesRegex(ValueError, ' is not lower-case'):
+            class Huh(LowerStrEnum):
+                huh = 'What'
+
+        class Lower(LowerStrEnum):
+            _order_ = 'this that Those lower upper'
+            this = auto()
+            that = 'that'
+            Those = auto()
+            lower = 'lower'
+            upper = 'upper'
+
+        self.assertEqual([m.value for m in Lower], ['this', 'that', 'those', 'lower', 'upper'])
+
+        with self.assertRaisesRegex(ValueError, ' is not upper-case'):
+            class Huh(UpperStrEnum):
+                huh = 'What'
+
+        class Upper(UpperStrEnum):
+            _order_ = 'this that Those lower upper'
+            this = auto()
+            that = 'THAT'
+            Those = auto()
+            lower = 'LOWER'
+            upper = 'UPPER'
+
+        self.assertEqual([m.value for m in Upper], ['THIS', 'THAT', 'THOSE', 'LOWER', 'UPPER'])
 
 
 class TestFlag(TestCase):
