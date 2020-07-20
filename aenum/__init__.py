@@ -125,10 +125,18 @@ class enum_property(object):
             try:
                 return ownerclass._member_map_[self.name]
             except KeyError:
+                # search through mro
+                # for base in ownerclass.__mro__[1:]:
+                #     if self.name in base.__dict__:
+                #         obj = base.__dict__[self.name]
+                        # check if descriptor or callable
+
                 raise AttributeError(self.name)
         else:
             if self.fget is not None:
                 return self.fget(instance)
+            # else:
+            #     return super(ownerclass, instance).__getattribute__(self.name)
             elif self.fmethod is not None:
                 return lambda : self.fmethod(instance)
 
@@ -410,7 +418,15 @@ class NamedConstantMeta(type):
 temp_constant_dict = {}
 temp_constant_dict['__doc__'] = "NamedConstants protection.\n\n    Derive from this class to lock NamedConstants.\n\n"
 
-def __new__(cls, name, value, doc=None):
+def __new__(cls, name, value=None, doc=None):
+    if value is None:
+        # lookup, name is value
+        value = name
+        for name, obj in cls.__dict__.items():
+            if isinstance(obj, cls) and obj._value_ == value:
+                return obj
+        else:
+            raise ValueError('%r does not exist in %r' % (value, cls.__name__))
     cur_obj = cls.__dict__.get(name)
     if isinstance(cur_obj, NamedConstant):
         raise AttributeError('cannot rebind constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
@@ -418,10 +434,13 @@ def __new__(cls, name, value, doc=None):
         doc = doc or value.__doc__
         value = value.value
     metacls = cls.__class__
+    if isinstance(value, NamedConstant):
+        # constants from other classes are reduced to their actual value
+        value = value._value_
     actual_type = type(value)
     value_type = cls._named_constant_cache_.get(actual_type)
     if value_type is None:
-        value_type = type(cls.__name__, (NamedConstant, type(value)), {})
+        value_type = type(cls.__name__, (cls, type(value)), {})
         cls._named_constant_cache_[type(value)] = value_type
     obj = actual_type.__new__(value_type, value)
     obj._name_ = name
@@ -437,6 +456,12 @@ def __repr__(self):
             self.__class__.__name__, self._name_, self._value_)
 temp_constant_dict['__repr__'] = __repr__
 del __repr__
+
+def __reduce_ex__(self, proto):
+    return getattr, (self.__class__, self._name_)
+temp_constant_dict['__reduce_ex__'] = __reduce_ex__
+del __reduce_ex__
+
 
 NamedConstant = NamedConstantMeta('NamedConstant', (object, ), temp_constant_dict)
 Constant = NamedConstant
@@ -1016,7 +1041,7 @@ class enum(object):
         kwds = ', '.join([('%s=%r') % (k, v) for k, v in enumsort(list(self.kwds.items()))])
         if kwds:
             final.append(kwds)
-        return 'enum(%s)' % ', '.join(final)
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(final))
 
 _auto_null = object()
 class auto(enum):
@@ -1392,8 +1417,8 @@ class _EnumDict(dict):
                 self._autovalue = allowed_settings['autovalue']
                 self._autonumber = allowed_settings['autonumber']
                 self._locked = not (self._autonumber or self._autovalue)
-                if self._autovalue and not self._ignore_init_done:
-                    self._ignore = ['property', 'classmethod', 'staticmethod']
+                if (self._autovalue or self._autonumber) and not self._ignore_init_done:
+                    self._ignore = ['property', 'classmethod', 'staticmethod', 'aenum', 'auto']
                 if self._autonumber and self._value is None:
                     self._value = 0
                 if self._autonumber and self._init and self._init[0:1] == ['value']:
@@ -1454,12 +1479,13 @@ class _EnumDict(dict):
                             target_length += 1
                         if len(value) != target_length:
                             value = (self._value + 1, ) + value
+                        if isinstance(value[0], auto):
+                            value = (self._value + 1, ) + value[1:]
                     else:
                         try:
                             value = (self._value + 1, ) + value
                         except TypeError:
                             pass
-                if self._autonumber:
                     self._value = value[0]
             elif self._autovalue and self._init and not isinstance(value, auto):
                 # call generate iff init is specified and calls for more values than are present
@@ -1901,7 +1927,7 @@ class EnumMeta(StdlibEnumMeta or type):
                     message = []
                     for name, aliases in nonunique.items():
                         bad_aliases = ','.join(aliases)
-                        message.append('%s --> %s' % (name, bad_aliases))
+                        message.append('%s --> %s [%r]' % (name, bad_aliases, enum_class[name].value))
                     raise ValueError(
                             'duplicate names found in %r: %s' %
                                 (cls, ';  '.join(message))

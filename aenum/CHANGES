@@ -1,7 +1,40 @@
+2.2.4
+=====
+
+add support to Constant to retrieve members by value
+
+    --> class K(Constant):
+    ...     one = 1
+    ...     two = 2
+
+    --> K.one
+    <K.one: 1>
+
+    --> K(1)
+    <K.one: 1>
+
+add pickle/deepcopy support to Constant
+
+add support for Constant to use other Constant values
+  (resulting members /are not/ the same)
+
+    --> class C(Constant)
+    ...     one = K.one
+    ...     three = 3
+
+    --> C.one == K.one
+    True
+
+    --> C.one is K.one
+    False
+
+AutoNumber and auto() now work together
+
+
 2.2.3
 =====
 
-use member type's methods __str__, __repr__, __format__, and
+use members' type's methods __str__, __repr__, __format__, and
 __reduce_ex__ if directly assigned in Enum class body; i.e.:
 
     --> class Color(str, Enum):

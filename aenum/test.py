@@ -2803,10 +2803,35 @@ class TestEnum(TestCase):
     def test_multivalue_and_autonumber_wo_init_wo_value(self):
         class Day(Enum):
             _settings_ = MultiValue, AutoNumber
+            _order_ = 'one two three'
             _start_ = 1
             one = "21", "one"
             two = "22", "two"
             three = "23", "three"
+        self.assertEqual(Day.one.value, 1)
+        self.assertEqual(Day.two.value, 2)
+        self.assertEqual(Day.three.value, 3)
+        self.assertEqual(Day('one'), Day.one)
+
+    def test_multivalue_and_autonumber_wo_init_w_some_value(self):
+        class Color(Enum):
+            _settings_ = AutoNumber, MultiValue, Unique
+            _order_ = 'BLACK RED BLUE YELLOW GREEN MAGENTA'
+            _init_ = "value description"
+            BLACK = -1, "Text0"
+            RED = -50, "Text1"
+            BLUE = auto(), "Text2"
+            YELLOW = auto(), "Text3"
+            GREEN = -70, "Text4"
+            MAGENTA = auto(), "Text5"
+        self.assertEqual(Color.BLACK.value, -1)
+        self.assertEqual(Color.RED.value, -50)
+        self.assertEqual(Color.BLUE.value, -49)
+        self.assertEqual(Color.YELLOW.value, -48)
+        self.assertEqual(Color.GREEN.value, -70)
+        self.assertEqual(Color.MAGENTA.value, -69)
+        self.assertEqual(Color(-1), Color.BLACK)
+        self.assertEqual(Color('Text2'), Color.BLUE)
 
     def test_combine_new_settings_with_old_settings(self):
         class Auto(Enum):
@@ -4284,7 +4309,6 @@ class TestFlag(TestCase):
         self.assertTrue(isinstance(Color.PURPLE, Color))
         self.assertEqual(Color.PURPLE.value, 11)
         self.assertTrue(issubclass(Color, Flag))
-        print(list(Color))
 
     def test_extend_flag_subclass(self):
         class Color(str, Flag):
@@ -5266,8 +5290,25 @@ class TestNamedConstant(TestCase):
         self.assertEqual(Stuff.HillWomp, 29)
         self.assertEqual(Stuff.HillWomp.__doc__, 'blah blah')
 
+    def test_deep_copy(self):
+        import copy
+        class APITypes(aenum.Constant):
+            STRING = "string"
+            INT = "int"
+        APITypes('string')
+        d = {"first": APITypes.STRING}
+        copy.deepcopy(d)
+        self.assertTrue(d['first'] is APITypes.STRING)
 
-
+    def test_subclass_w_same_value(self):
+        class Foo(aenum.Constant):
+            BLA = 'bla1'
+            ABA = 'aba1'
+        class Bar(aenum.Constant):
+            BLA = Foo.BLA
+            ABA = 'aba2'
+        self.assertEqual(Foo.BLA, Bar.BLA)
+        self.assertFalse(Foo.BLA is Bar.BLA)
 
 # These are unordered here on purpose to ensure that declaration order
 # makes no difference.
