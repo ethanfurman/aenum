@@ -2632,9 +2632,6 @@ del _convert
 # members named `name`, `value`, etc..  This works because enumeration
 # members are not set directly on the enum class -- enum_property will
 # look them up in _member_map_.
-#
-# This method is also very slow, so EnumMeta will add members directly
-# to the Enum class if it won't shadow other instance attributes
 
 @enum_property
 def name(self):
@@ -2739,7 +2736,7 @@ class MultiValueEnum(Enum):
 
 class NoAliasEnum(Enum):
     """
-    Duplicate value members are distinct, and cannot be looked up by value.
+    Duplicate value members are distinct, but cannot be looked up by value.
     """
     _settings_ = NoAlias
 
