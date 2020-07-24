@@ -3462,6 +3462,52 @@ class TestEnum(TestCase):
 
         self.assertEqual([m.value for m in Upper], ['THIS', 'THAT', 'THOSE', 'LOWER', 'UPPER'])
 
+    def test_enum_property(self):
+        class SomeClass(object):
+            #
+            an_attr = 97
+            _attr_x = None
+            #
+            def a_method(self, some_number):
+                return self.an_attr - some_number
+            #
+            @property
+            def attr(self):
+                return self._attr_x
+            @attr.setter
+            def attr(self, value):
+                self._attr_x = value
+            #
+            @classmethod
+            def a_class_method(cls, another_number, a_string=None):
+                return a_string * (9 - another_number)
+            #
+            @staticmethod
+            def a_static_method(a, b):
+                return a * b
+        #
+        class SomeEnum(SomeClass, Enum):
+            _order_ = 'an_attr a_method attr a_class_method a_static_method'
+            an_attr = 1
+            a_method = 2
+            attr = 3
+            a_class_method = 4
+            a_static_method = 5
+        #
+        SE = SomeEnum
+        self.assertEqual(
+                list(SomeEnum),
+                [SE.an_attr, SE.a_method, SE.attr, SE.a_class_method, SE.a_static_method],
+                )
+        self.assertEqual(SE.an_attr.a_static_method(2, 3), 6)
+        self.assertEqual(SE.a_method.an_attr, 97)
+        self.assertEqual(SE.attr.a_class_method(6, 'x'), 'xxx')
+        self.assertEqual(SE.a_class_method.attr, None)
+        SE.a_class_method.attr = 99
+        self.assertEqual(SE.a_class_method.attr, 99)
+        self.assertEqual(SE.a_method.attr, None)
+        self.assertEqual(SE.a_static_method.a_method(90), 7)
+
 
 class TestFlag(TestCase):
     """Tests of the Flags."""

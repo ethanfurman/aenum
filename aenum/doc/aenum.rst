@@ -1208,21 +1208,24 @@ member instances.
 Finer Points
 ^^^^^^^^^^^^
 
-``Enum`` members are instances of an ``Enum`` class, and even though they
-are accessible as `EnumClass.member1.member2`, they should not be
-accessed directly from the member as that lookup may fail or, worse,
-return something besides the ``Enum`` member you were looking for
-(changed in version 1.1.1)::
+``Enum`` members are instances of an ``Enum`` class, but are not
+accessible as `EnumClass.member1.member2`.
+(changed in version 1.1.1 to be accessible)
+(changed in version 2.2.4 to be inaccessible)::
 
     >>> class FieldTypes(Enum):
     ...     name = 1
     ...     value = 2
     ...     size = 3
     ...
-    >>> FieldTypes.value.size
-    <FieldTypes.size: 3>
     >>> FieldTypes.size.value
     3
+    >>> FieldTypes.size
+    <FieldTypes.size: 3>
+    >>> FieldTypes.value.size
+    Traceback (most recent call last):
+    ...
+    AttributeError: 'size' not found in <FieldTypes.value: 2>
 
 The ``__members__`` attribute is only available on the class.
 

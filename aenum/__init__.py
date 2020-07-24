@@ -106,15 +106,10 @@ class enum_property(object):
     through the enum class will look in the class' _member_map_.
     """
 
-    def __init__(self, fget=None, doc=None, name=None, method=None):
-        # fget is for normal property behavior
-        # fmethod is a fuction higher up the mro
-        if fget is method is None:
-            raise ValueError('either fget or method must be specified')
+    def __init__(self, fget=None, doc=None, name=None):
         self.fget = fget
         self.__doc__ = doc or fget.__doc__
         self.name = name
-        self.fmethod = method
 
     def __call__(self, func, doc=None):
         self.fget = func
@@ -125,23 +120,41 @@ class enum_property(object):
             try:
                 return ownerclass._member_map_[self.name]
             except KeyError:
-                # search through mro
-                # for base in ownerclass.__mro__[1:]:
-                #     if self.name in base.__dict__:
-                #         obj = base.__dict__[self.name]
-                        # check if descriptor or callable
-
-                raise AttributeError(self.name)
+                raise AttributeError('%r not found in %r' % (self.name, ownerclass.__name__))
         else:
             if self.fget is not None:
                 return self.fget(instance)
-            # else:
-            #     return super(ownerclass, instance).__getattribute__(self.name)
-            elif self.fmethod is not None:
-                return lambda : self.fmethod(instance)
+            else:
+                # search through mro
+                for base in ownerclass.__mro__[1:]:
+                    if self.name in base.__dict__:
+                        attr = base.__dict__[self.name]
+                        break
+                else:
+                    raise AttributeError('%r not found in %r' % (self.name, instance))
+                if isinstance(attr, classmethod):
+                    attr = attr.__func__
+                    return lambda *args, **kwds: attr(ownerclass, *args, **kwds)
+                elif isinstance(attr, staticmethod):
+                    return attr.__func__
+                elif isinstance(attr, (property, enum_property)):
+                    return attr.__get__(instance, ownerclass)
+                elif callable(attr):
+                    return lambda *arg, **kwds: attr(instance, *arg, **kwds)
+                else:
+                    return attr
 
     def __set__(self, instance, value):
-        raise AttributeError("can't set attribute %r" % (self.name, ))
+        ownerclass = instance.__class__
+        for base in ownerclass.__mro__[1:]:
+            if self.name in base.__dict__:
+                attr = base.__dict__[self.name]
+                if isinstance(attr, property):
+                    setter = attr.__set__
+                    if setter is not None:
+                        return setter(instance, value)
+        else:
+            raise AttributeError("can't set attribute %r" % (self.name, ))
 
     def __delete__(self, instance):
         raise AttributeError("can't delete attribute %r" % (self.name, ))
@@ -1932,19 +1945,8 @@ class EnumMeta(StdlibEnumMeta or type):
                             'duplicate names found in %r: %s' %
                                 (cls, ';  '.join(message))
                             )
-            # members are either added directly to the class or, if naming conflicts,
-            # added as enum_property's
-            for parent in enum_class.mro()[1:]:
-                if member_name in parent.__dict__:
-                    obj = parent.__dict__[member_name]
-                    if isinstance(obj, enum_property):
-                        setattr(enum_class, member_name, enum_property(obj.fget, name=member_name))
-                    else:
-                        setattr(enum_class, member_name, enum_property(name=member_name, method=obj))
-                    # we're good
-                    break
-            else:
-                setattr(enum_class, member_name, enum_member)
+            # members are added as enum_property's
+            setattr(enum_class, member_name, enum_property(name=member_name))
             # now add to _member_map_
             enum_class._member_map_[member_name] = enum_member
             values = (value, ) + extra_mv_args

@@ -30,6 +30,26 @@ add support for Constant to use other Constant values
 
 AutoNumber and auto() now work together
 
+Enum members are now added to the class as enum_property, which supports
+unshadowing of parent class attributes when called on an Enum member:
+
+    --> class StrEnum(str, Enum):
+    ...     lower = 'lower'
+    ...     upper = 'upper'
+    ...     mixed = 'mixed'
+    
+    --> StrEnum.lower
+    <StrEnum.lower: 'lower'>
+
+    --> StrEnum.lower.upper()
+    'LOWER'
+
+    --> StrEnum.upper
+    <StrEnum.upper: 'upper'>
+
+    --> StrEnum.upper.upper()
+    'UPPER'
+
 
 2.2.3
 =====
