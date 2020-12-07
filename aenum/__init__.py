@@ -47,7 +47,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 5, 1
+version = 2, 2, 5, 2
 
 try:
     any
@@ -1621,6 +1621,12 @@ class _EnumDict(dict):
         super(_EnumDict, self).__setitem__(key, value)
 
 
+class _NoInitSubclass(object):
+    @classmethod
+    def __init_subclass__(cls, **kwds):
+        pass
+
+
 no_arg = object()
 class EnumMeta(StdlibEnumMeta or type):
     """Metaclass for Enum"""
@@ -1693,7 +1699,7 @@ class EnumMeta(StdlibEnumMeta or type):
     def __init__(cls, *args , **kwds):
         super(EnumMeta, cls).__init__(*args)
 
-    def __new__(metacls, cls, bases, clsdict, init=None, start=None, settings=()):
+    def __new__(metacls, cls, bases, clsdict, init=None, start=None, settings=(), **mc_kwds):
         # handle py2 case first
         if type(clsdict) is not _EnumDict:
             # py2 ard/or functional API gyrations
@@ -1828,8 +1834,23 @@ class EnumMeta(StdlibEnumMeta or type):
         if invalid_names:
             raise ValueError('Invalid enum member name(s): %s' % (
                 ', '.join(invalid_names), ))
-        # create our new Enum type
-        enum_class = type.__new__(metacls, cls, bases, clsdict)
+        # check for invalid method values
+        if '__init_subclass__' in clsdict and clsdict['__init_subclass__'] is None:
+            raise TypeError('%s.__init_subclass__ cannot be None')
+        # remove current __init_subclass__ so previous one can be found with getattr
+        new_init_subclass = clsdict.pop('__init_subclass__', None)
+        # create our new Enum type, possibly with an extra do-nothing class
+        if pyver >= 3.6:
+            bases = (_NoInitSubclass, ) + bases
+            enum_class = type.__new__(metacls, cls, bases, clsdict)
+            enum_class.__bases__ = enum_class.__bases__[1:]
+        else:
+            enum_class = type.__new__(metacls, cls, bases, clsdict)
+        old_init_subclass = getattr(enum_class, '__init_subclass__', None)
+        # and restore the new one (if there was one)
+        if new_init_subclass is not None:
+            # staticmethod use is to preserve Python 2 compatibility
+            enum_class.__init_subclass__ = staticmethod(new_init_subclass)
         enum_class._member_names_ = []               # names in random order
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
@@ -2050,6 +2071,12 @@ class EnumMeta(StdlibEnumMeta or type):
                 _order_ = [m.name for m in sorted(enum_class, key=_order_)]
             if _order_ != enum_class._member_names_:
                 raise TypeError('member order does not match _order_: %r %r' % (enum_class._member_names_, enum_class._member_map_.items()))
+        # call parents' __init_subclass__
+        if Enum is not None and old_init_subclass is not None:
+            # if pyver < 3:
+            #     old_init_subclass.im_func(old_init_subclass.im_class, **mc_kwds)
+            # else:
+            old_init_subclass(enum_class, **mc_kwds)
         return enum_class
 
     def __bool__(cls):
@@ -2449,6 +2476,11 @@ def __new__(cls, value):
         raise exc
 temp_enum_dict['__new__'] = __new__
 del __new__
+
+# in Python 2 this has to be made a static method, which is done in EnumMeta
+def __init_subclass__(cls, **kwds):
+    pass
+temp_enum_dict['__init_subclass__'] = __init_subclass__
 
 @staticmethod
 def _generate_next_value_(name, start, count, last_values, *args, **kwds):

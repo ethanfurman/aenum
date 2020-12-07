@@ -10,7 +10,8 @@ import shutil
 import tempfile
 import unittest
 import warnings
-from aenum import EnumMeta, Enum, IntEnum, AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
+from aenum import EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
+from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from collections import OrderedDict
@@ -135,8 +136,6 @@ except Exception:
 
 # for pickle test and subclass tests
 try:
-    class StrEnum(str, Enum):
-        'members become strings'
     class Name(StrEnum):
         BDFL = 'Guido van Rossum'
         FLUFL = 'Barry Warsaw'
@@ -750,14 +749,6 @@ class TestEnum(TestCase):
 
     def test_strenum_from_scratch(self):
         class phy(str, Enum):
-            pi = 'Pi'
-            tau = 'Tau'
-        self.assertTrue(phy.pi < phy.tau)
-
-    def test_strenum_inherited(self):
-        class StrEnum(str, Enum):
-            pass
-        class phy(StrEnum):
             pi = 'Pi'
             tau = 'Tau'
         self.assertTrue(phy.pi < phy.tau)
@@ -3265,13 +3256,6 @@ class TestEnum(TestCase):
         self.assertTrue(issubclass(ReformedColor, int))
 
     def test_multiple_inherited_mixin(self):
-        class StrEnum(str, Enum):
-            def __new__(cls, *args, **kwargs):
-                for a in args:
-                    if not isinstance(a, str):
-                        raise TypeError("Enumeration '%s' (%s) is not"
-                                        " a string" % (a, type(a).__name__))
-                return str.__new__(cls, *args, **kwargs)
         @unique
         class Decision1(StrEnum):
             REVERT = "REVERT"
@@ -3413,54 +3397,6 @@ class TestEnum(TestCase):
         self.assertTrue(Color.red is Color(1))
         self.assertTrue(Color.black is Color())
 
-    def test_strict_strenum(self):
-        from aenum import StrEnum, LowerStrEnum, UpperStrEnum
-        with self.assertRaisesRegex(TypeError, 'only a single string value may be specified'):
-            class Huh(StrEnum):
-                huh = 'this', 'is', 'too', 'many'
-
-        for uhoh in (object, object(), [], Enum, 9):
-            with self.assertRaisesRegex(TypeError, 'values for StrEnum must be strings, not '):
-                class Huh(StrEnum):
-                    huh = uhoh
-
-        class Either(StrEnum):
-            _order_ = 'this that Those lower upper'
-            this = auto()
-            that = 'That'
-            Those = auto()
-            lower = 'lower'
-            upper = 'UPPER'
-
-        self.assertEqual([m.value for m in Either], ['this', 'That', 'Those', 'lower', 'UPPER'])
-
-        with self.assertRaisesRegex(ValueError, ' is not lower-case'):
-            class Huh(LowerStrEnum):
-                huh = 'What'
-
-        class Lower(LowerStrEnum):
-            _order_ = 'this that Those lower upper'
-            this = auto()
-            that = 'that'
-            Those = auto()
-            lower = 'lower'
-            upper = 'upper'
-
-        self.assertEqual([m.value for m in Lower], ['this', 'that', 'those', 'lower', 'upper'])
-
-        with self.assertRaisesRegex(ValueError, ' is not upper-case'):
-            class Huh(UpperStrEnum):
-                huh = 'What'
-
-        class Upper(UpperStrEnum):
-            _order_ = 'this that Those lower upper'
-            this = auto()
-            that = 'THAT'
-            Those = auto()
-            lower = 'LOWER'
-            upper = 'UPPER'
-
-        self.assertEqual([m.value for m in Upper], ['THIS', 'THAT', 'THOSE', 'LOWER', 'UPPER'])
 
     def test_enum_property(self):
         class SomeClass(object):
@@ -3507,6 +3443,143 @@ class TestEnum(TestCase):
         self.assertEqual(SE.a_class_method.attr, 99)
         self.assertEqual(SE.a_method.attr, None)
         self.assertEqual(SE.a_static_method.a_method(90), 7)
+
+    def test_init_subclass(self):
+        class MyEnum(Enum):
+            def __init_subclass__(cls, **kwds):
+                print('MyEnum.__init_subclass__ being called for %s' % cls)
+                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                self.assertFalse(cls.__dict__.get('_test', False))
+                cls._test1 = 'MyEnum'
+        #
+        class TheirEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('TheirEnum.__init_subclass__ being called for %s' % cls)
+                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                cls._test2 = 'TheirEnum'
+        class WhoseEnum(TheirEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NoEnum(WhoseEnum):
+            ONE = 1
+        self.assertEqual(TheirEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test2'], 'TheirEnum')
+        self.assertFalse(NoEnum.__dict__.get('_test1', False))
+        self.assertFalse(NoEnum.__dict__.get('_test2', False))
+        #
+        class OurEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('OurEnum.__init_subclass__ being called for %s' % cls)
+                cls._test2 = 'OurEnum'
+        class WhereEnum(OurEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhereEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NeverEnum(WhereEnum):
+            ONE = 'one'
+        self.assertEqual(OurEnum.__dict__['_test1'], 'MyEnum')
+        self.assertFalse(WhereEnum.__dict__.get('_test1', False))
+        self.assertEqual(WhereEnum.__dict__['_test2'], 'OurEnum')
+        self.assertFalse(NeverEnum.__dict__.get('_test1', False))
+        self.assertFalse(NeverEnum.__dict__.get('_test2', False))
+
+
+class TestStrEnum(TestCase):
+
+    def test_strenum_inherited_methods(self):
+        class phy(StrEnum):
+            pi = 'Pi'
+            tau = 'Tau'
+        self.assertTrue(phy.pi < phy.tau)
+        self.assertEqual(phy.pi.upper(), 'PI')
+        self.assertEqual(phy.tau.count('a'), 1)
+
+    def test_strict_strenum(self):
+        with self.assertRaisesRegex(TypeError, 'only a single string value may be specified'):
+            class Huh(StrEnum):
+                huh = 'this', 'is', 'too', 'many'
+        for uhoh in (object, object(), [], Enum, 9):
+            with self.assertRaisesRegex(TypeError, 'values for StrEnum must be strings, not '):
+                class Huh(StrEnum):
+                    huh = uhoh
+        #
+        class Either(StrEnum):
+            _order_ = 'this that Those lower upper'
+            this = auto()
+            that = 'That'
+            Those = auto()
+            lower = 'lower'
+            upper = 'UPPER'
+        self.assertEqual([m.value for m in Either], ['this', 'That', 'Those', 'lower', 'UPPER'])
+        #
+        with self.assertRaisesRegex(ValueError, ' is not lower-case'):
+            class Huh(LowerStrEnum):
+                huh = 'What'
+        #
+        class Lower(LowerStrEnum):
+            _order_ = 'this that Those lower upper'
+            this = auto()
+            that = 'that'
+            Those = auto()
+            lower = 'lower'
+            upper = 'upper'
+        self.assertEqual([m.value for m in Lower], ['this', 'that', 'those', 'lower', 'upper'])
+        #
+        with self.assertRaisesRegex(ValueError, ' is not upper-case'):
+            class Huh(UpperStrEnum):
+                huh = 'What'
+        #
+        class Upper(UpperStrEnum):
+            _order_ = 'this that Those lower upper'
+            this = auto()
+            that = 'THAT'
+            Those = auto()
+            lower = 'LOWER'
+            upper = 'UPPER'
+        self.assertEqual([m.value for m in Upper], ['THIS', 'THAT', 'THOSE', 'LOWER', 'UPPER'])
+
+    def test_init_subclass(self):
+        class MyEnum(StrEnum):
+            def __init_subclass__(cls, **kwds):
+                print('MyEnum.__init_subclass__ being called for %s' % cls)
+                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                self.assertFalse(cls.__dict__.get('_test', False))
+                cls._test1 = 'MyEnum'
+        #
+        class TheirEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('TheirEnum.__init_subclass__ being called for %s' % cls)
+                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                cls._test2 = 'TheirEnum'
+        class WhoseEnum(TheirEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NoEnum(WhoseEnum):
+            ONE = 'one'
+        self.assertEqual(TheirEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test2'], 'TheirEnum')
+        self.assertFalse(NoEnum.__dict__.get('_test1', False))
+        self.assertFalse(NoEnum.__dict__.get('_test2', False))
+        #
+        class OurEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('OurEnum.__init_subclass__ being called for %s' % cls)
+                cls._test2 = 'OurEnum'
+        class WhereEnum(OurEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhereEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NeverEnum(WhereEnum):
+            ONE = 'one'
+        self.assertEqual(OurEnum.__dict__['_test1'], 'MyEnum')
+        self.assertFalse(WhereEnum.__dict__.get('_test1', False))
+        self.assertEqual(WhereEnum.__dict__['_test2'], 'OurEnum')
+        self.assertFalse(NeverEnum.__dict__.get('_test1', False))
+        self.assertFalse(NeverEnum.__dict__.get('_test2', False))
 
 
 class TestFlag(TestCase):
@@ -4404,6 +4477,48 @@ class TestFlag(TestCase):
         self.assertEqual(Purple.code, '45;34')
         self.assertIs(Purple.name, None)
 
+    def test_init_subclass(self):
+        class MyEnum(Flag):
+            def __init_subclass__(cls, **kwds):
+                print('MyEnum.__init_subclass__ being called for %s' % cls)
+                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                self.assertFalse(cls.__dict__.get('_test', False))
+                cls._test1 = 'MyEnum'
+        #
+        class TheirEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('TheirEnum.__init_subclass__ being called for %s' % cls)
+                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                cls._test2 = 'TheirEnum'
+        class WhoseEnum(TheirEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NoEnum(WhoseEnum):
+            ONE = 1
+        self.assertEqual(TheirEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test2'], 'TheirEnum')
+        self.assertFalse(NoEnum.__dict__.get('_test1', False))
+        self.assertFalse(NoEnum.__dict__.get('_test2', False))
+        #
+        class OurEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('OurEnum.__init_subclass__ being called for %s' % cls)
+                cls._test2 = 'OurEnum'
+        class WhereEnum(OurEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhereEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NeverEnum(WhereEnum):
+            ONE = 1
+        self.assertEqual(OurEnum.__dict__['_test1'], 'MyEnum')
+        self.assertFalse(WhereEnum.__dict__.get('_test1', False))
+        self.assertEqual(WhereEnum.__dict__['_test2'], 'OurEnum')
+        self.assertFalse(NeverEnum.__dict__.get('_test1', False))
+        self.assertFalse(NeverEnum.__dict__.get('_test2', False))
+
+
 
 class TestIntFlag(TestCase):
     """Tests of the IntFlags."""
@@ -4822,6 +4937,47 @@ class TestIntFlag(TestCase):
                 failed[0],
                 'at least one thread failed while creating composite members')
         self.assertEqual(256, len(seen), 'too many composite members created')
+
+    def test_init_subclass(self):
+        class MyEnum(IntEnum):
+            def __init_subclass__(cls, **kwds):
+                print('MyEnum.__init_subclass__ being called for %s' % cls)
+                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                self.assertFalse(cls.__dict__.get('_test', False))
+                cls._test1 = 'MyEnum'
+        #
+        class TheirEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('TheirEnum.__init_subclass__ being called for %s' % cls)
+                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                cls._test2 = 'TheirEnum'
+        class WhoseEnum(TheirEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NoEnum(WhoseEnum):
+            ONE = 1
+        self.assertEqual(TheirEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test1'], 'MyEnum')
+        self.assertEqual(WhoseEnum.__dict__['_test2'], 'TheirEnum')
+        self.assertFalse(NoEnum.__dict__.get('_test1', False))
+        self.assertFalse(NoEnum.__dict__.get('_test2', False))
+        #
+        class OurEnum(MyEnum):
+            def __init_subclass__(cls, **kwds):
+                print('OurEnum.__init_subclass__ being called for %s' % cls)
+                cls._test2 = 'OurEnum'
+        class WhereEnum(OurEnum):
+            def __init_subclass__(cls, **kwds):
+                print('WhereEnum.__init_subclass__ being called for %s' % cls)
+                pass
+        class NeverEnum(WhereEnum):
+            ONE = 1
+        self.assertEqual(OurEnum.__dict__['_test1'], 'MyEnum')
+        self.assertFalse(WhereEnum.__dict__.get('_test1', False))
+        self.assertEqual(WhereEnum.__dict__['_test2'], 'OurEnum')
+        self.assertFalse(NeverEnum.__dict__.get('_test1', False))
+        self.assertFalse(NeverEnum.__dict__.get('_test2', False))
 
 
 class TestEmptyAndNonLatinStrings(unittest.TestCase):
@@ -5355,6 +5511,7 @@ class TestNamedConstant(TestCase):
             ABA = 'aba2'
         self.assertEqual(Foo.BLA, Bar.BLA)
         self.assertFalse(Foo.BLA is Bar.BLA)
+
 
 # These are unordered here on purpose to ensure that declaration order
 # makes no difference.
