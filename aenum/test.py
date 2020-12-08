@@ -5552,6 +5552,8 @@ class TestNamedConstant(TestCase):
             del K.PI
         with self.assertRaisesRegex(AttributeError, 'cannot rebind constant'):
             K('PI', 3)
+        self.assertTrue(K.PI in K)
+        self.assertTrue(K.TAU in K)
 
     def test_duplicates(self):
         class CardNumber(NamedConstant):
@@ -5582,6 +5584,7 @@ class TestNamedConstant(TestCase):
         stars = CardSuit('STARS', 5)
         self.assertIs(stars, CardSuit.STARS)
         self.assertEqual(CardSuit.STARS, 5)
+        self.assertTrue(CardSuit.STARS in CardSuit)
 
     def test_constant_with_docstring(self):
         class Stuff(NamedConstant):

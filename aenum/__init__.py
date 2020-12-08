@@ -47,7 +47,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 5, 4
+version = 2, 2, 5, 5
 
 try:
     any
@@ -180,6 +180,10 @@ class Member(object):
         self.value = value
 member = Member
 
+class _NoInitSubclass(object):
+    @classmethod
+    def __init_subclass__(cls, **kwds):
+        pass
 
 def _is_descriptor(obj):
     """Returns True if obj is a descriptor, False otherwise."""
@@ -417,15 +421,31 @@ class NamedConstantMeta(type):
             newdict[name] = obj
         newcls = super(NamedConstantMeta, metacls).__new__(metacls, cls, bases, newdict)
         newcls._named_constant_cache_ = {}
+        newcls._members_ = {}
         for name, obj in constants.items():
-            newcls.__new__(newcls, name, obj)
+            new_k = newcls.__new__(newcls, name, obj)
+            newcls._members_[name] = new_k
         return newcls
+
+    def __bool__(cls):
+        return True
 
     def __delattr__(cls, attr):
         cur_obj = cls.__dict__.get(attr)
         if NamedConstant is not None and isinstance(cur_obj, NamedConstant):
             raise AttributeError('cannot delete constant <%s.%s>' % (cur_obj.__class__.__name__, cur_obj._name_))
         super(NamedConstantMeta, cls).__delattr__(attr)
+
+    def __iter__(cls):
+        return (k for k in cls._members_.values())
+
+    def __reversed__(cls):
+        return (k for k in reversed(cls._members_.values()))
+
+    def __len__(cls):
+        return len(cls._members_)
+
+    __nonzero__ = __bool__
 
     def __setattr__(cls, name, value):
         """Block attempts to reassign NamedConstants.
@@ -466,6 +486,7 @@ def __new__(cls, name, value=None, doc=None):
     obj._name_ = name
     obj._value_ = value
     obj.__doc__ = doc
+    cls._members_[name] = obj
     metacls.__setattr__(cls, name, obj)
     return obj
 temp_constant_dict['__new__'] = __new__
@@ -1633,12 +1654,6 @@ class _EnumDict(dict):
             else:
                 self._last_values.append(value)
         super(_EnumDict, self).__setitem__(key, value)
-
-
-class _NoInitSubclass(object):
-    @classmethod
-    def __init_subclass__(cls, **kwds):
-        pass
 
 
 no_arg = object()
