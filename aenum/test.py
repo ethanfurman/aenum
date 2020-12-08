@@ -5754,6 +5754,26 @@ class TestStackoverflowAnswers(TestCase):
                 data,
                 )
 
+    def test_lowercase_compare(self):
+        # https://stackoverflow.com/q/65139026/208880
+        class CompareLowerCase(Enum):
+            def __init_subclass__(cls, **kwds):
+                super(CompareLowerCase, cls).__init_subclass__(cls, **kwds)
+                cls.lowered_names = set([m.name.lower() for m in cls])
+            @classmethod
+            def has_name(cls, name):
+                return name.lower() in cls.lowered_names
+        #
+        class LabelEnum(CompareLowerCase, StrEnum):
+            ENUM_ONE = "Enum One"
+            ENUM_TWO = "Enum Two"
+            ENUM_THREE = "Enum Three"
+            FOUR = "FOUR"
+            FIVE = "FIVE"
+            SIX = "SIX"
+        #
+        self.assertTrue(LabelEnum.has_name('Enum_Three'))
+
 
 if __name__ == '__main__':
     tempdir = tempfile.mkdtemp()
