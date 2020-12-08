@@ -6,6 +6,8 @@ from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 from unittest import TestCase, main
 
+import tempfile
+import textwrap
 import sys
 pyver = float('%s.%s' % sys.version_info[:2])
 
@@ -1024,5 +1026,124 @@ class TestNamedTupleV3(TestCase):
         self.assertRaises(TypeError, Book, author='Steven Brust')
 
 
+
+class TestStackoverflowAnswersV3(TestCase):
+
+    def test_self_referential_directions(self):
+        # https://stackoverflow.com/a/64000706/208880
+        class Directions(Enum):
+            #
+            NORTH = 1, 0
+            WEST = 0, 1
+            SOUTH = -1, 0
+            EAST = 0, -1
+            #
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+                if len(self.__class__):
+                    # make links
+                    all = list(self.__class__)
+                    left, right = all[0], all[-1]
+                    self.left = left
+                    self.right = right
+                    left.right = self
+                    right.left = self
+        #
+        D = Directions
+        self.assertEqual(D.NORTH.value, (1, 0))
+        self.assertTrue(D.NORTH.left is D.WEST)
+        self.assertTrue(D.SOUTH.right is D.WEST)
+
+    def test_self_referential_rock_paper_scissors(self):
+        # https://stackoverflow.com/a/57085357/208880
+        class RPS(Enum):
+            #
+            Rock = "rock"
+            Paper = "paper"
+            Scissors = "scissors"
+            #
+            def __init__(self, value):
+                if len(self.__class__):
+                    # make links
+                    all = list(self.__class__)
+                    first, previous = all[0], all[-1]
+                    first.beats = self
+                    self.beats = previous
+        #
+        self.assertTrue(RPS.Rock.beats is RPS.Scissors)
+        self.assertTrue(RPS.Scissors.beats is RPS.Paper)
+        self.assertTrue(RPS.Paper.beats is RPS.Rock)
+
+    def test_arduino_headers(self):
+        # https://stackoverflow.com/q/65048495/208880
+        class CHeader(Enum):
+            def __init_subclass__(cls, **kwds):
+                # write Enums to C header file
+                cls_name = cls.__name__
+                header_path = getattr(cls, '_%s__header' % cls_name)
+                with open(header_path, 'w') as fh:
+                    fh.write('initial header stuff here\n')
+                    for enum in cls:
+                        fh.write('#define %s %r\n' % (enum.name, enum.value))
+        class Arduino(CHeader):
+            __header = os.path.join(tempdir, 'arduino.h')
+            ONE = 1
+            TWO = 2
+        with open(os.path.join(tempdir, 'arduino.h')) as fh:
+                data = fh.read()
+        self.assertEqual(textwrap.dedent("""\
+                initial header stuff here
+                #define ONE 1
+                #define TWO 2
+                """),
+                data,
+                )
+
+    def test_create_C_like_Enum(self):
+        # https://stackoverflow.com/a/35965438/208880
+        class Id(Enum, start=0):
+            #
+            NONE  # 0x0
+            HEARTBEAT  # 0x1
+            FLUID_TRANSFER_REQUEST
+            FLUID_TRANSFER_STATUS_MSG
+            FLUID_TRANSFER_ERROR_MSG
+            # ...
+            #
+            # Camera App Messages
+            START_SENDING_PICTURES = 0x010000
+            STOP_SENDING_PICTURES
+            START_RECORDING_VIDEO_REQ
+            STOP_RECORDING_VIDEO_REQ
+            # ...
+            #
+            # Sensor Calibration
+            VOLUME_REQUEST = 0x020000
+            START_CAL
+            CLI_COMMAND_REQUEST
+            CLI_COMMAND_RESPONSE
+            #
+            # File Mananger
+            NEW_DELIVERY_REQ = 0x30000
+            GET_DELIVERY_FILE_REQ
+            GET_FILE_REQ
+            #
+            ACK_NACK
+            RESPONSE
+            #
+            LAST_ID
+        #
+        self.assertEqual(Id.NONE.value, 0)
+        self.assertEqual(Id.FLUID_TRANSFER_ERROR_MSG.value, 4)
+        self.assertEqual(Id.START_SENDING_PICTURES.value, 0x010000)
+        self.assertEqual(Id.STOP_RECORDING_VIDEO_REQ.Value, 0x010003)
+        self.assertEqual(Id.START_CAL.value, 0x020001)
+        self.assertEqual(Id.LAST_ID.value, 0x30005)
+
 if __name__ == '__main__':
-    main()
+    tempdir = tempfile.mkdtemp()
+    try:
+        unittest.main()
+    finally:
+        shutil.rmtree(tempdir, True)

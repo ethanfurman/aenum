@@ -8,6 +8,7 @@ import doctest
 import os
 import shutil
 import tempfile
+import textwrap
 import unittest
 import warnings
 from aenum import EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
@@ -5673,6 +5674,82 @@ class TestStarImport(TestCase):
         scope = {}
         exec('from aenum import *', scope, scope)
         self.assertIn('Enum', scope)
+
+class TestStackoverflowAnswers(TestCase):
+
+    def test_self_referential_directions(self):
+        # https://stackoverflow.com/a/64000706/208880
+        class Directions(Enum):
+            _order_ = 'NORTH WEST SOUTH EAST'
+            #
+            NORTH = 1, 0
+            WEST = 0, 1
+            SOUTH = -1, 0
+            EAST = 0, -1
+            #
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+                if len(self.__class__):
+                    # make links
+                    all = list(self.__class__)
+                    left, right = all[0], all[-1]
+                    self.left = left
+                    self.right = right
+                    left.right = self
+                    right.left = self
+        #
+        D = Directions
+        self.assertEqual(D.NORTH.value, (1, 0))
+        self.assertTrue(D.NORTH.left is D.WEST)
+        self.assertTrue(D.SOUTH.right is D.WEST)
+
+    def test_self_referential_rock_paper_scissors(self):
+        # https://stackoverflow.com/a/57085357/208880
+        class RPS(Enum):
+            _order_ = 'Rock, Paper, Scissors'
+            #
+            Rock = "rock"
+            Paper = "paper"
+            Scissors = "scissors"
+            #
+            def __init__(self, value):
+                if len(self.__class__):
+                    # make links
+                    all = list(self.__class__)
+                    first, previous = all[0], all[-1]
+                    first.beats = self
+                    self.beats = previous
+        #
+        self.assertTrue(RPS.Rock.beats is RPS.Scissors)
+        self.assertTrue(RPS.Scissors.beats is RPS.Paper)
+        self.assertTrue(RPS.Paper.beats is RPS.Rock)
+
+    def test_arduino_headers(self):
+        # https://stackoverflow.com/q/65048495/208880
+        class CHeader(Enum):
+            def __init_subclass__(cls, **kwds):
+                # write Enums to C header file
+                cls_name = cls.__name__
+                header_path = getattr(cls, '_%s__header' % cls_name)
+                with open(header_path, 'w') as fh:
+                    fh.write('initial header stuff here\n')
+                    for enum in cls:
+                        fh.write('#define %s %r\n' % (enum.name, enum.value))
+        class Arduino(CHeader):
+            _order_ = 'ONE TWO'
+            __header = os.path.join(tempdir, 'arduino.h')
+            ONE = 1
+            TWO = 2
+        with open(os.path.join(tempdir, 'arduino.h')) as fh:
+                data = fh.read()
+        self.assertEqual(textwrap.dedent("""\
+                initial header stuff here
+                #define ONE 1
+                #define TWO 2
+                """),
+                data,
+                )
 
 
 if __name__ == '__main__':
