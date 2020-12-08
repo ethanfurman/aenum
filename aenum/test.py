@@ -182,14 +182,8 @@ def test_pickle_dump_load(assertion, source, target=None, protocol=(0, HIGHEST_P
     for protocol in range(start, stop+1):
         try:
             if target is None:
-                # if isinstance(source, Enum):
-                #     print('tpdl 1')
-                #     assertion(loads(dumps(source, protocol=protocol)) is source)
-                # else:
-                    # print('tpdl 2')
-                    assertion(loads(dumps(source, protocol=protocol)), source)
+                assertion(loads(dumps(source, protocol=protocol)), source)
             else:
-                # print('tpdl 3')
                 assertion(loads(dumps(source, protocol=protocol)), target)
         except Exception:
             exc, tb = sys.exc_info()[1:]
@@ -414,6 +408,29 @@ class TestEnum(TestCase):
             NEW_YEAR = 2013, 1, 1
             IDES_OF_MARCH = 2013, 3, 15
         self.Holiday = Holiday
+
+    def test_set_name(self):
+        class Descriptor(object):
+            name = None
+            def __get__(self, instance, owner_class=None):
+                if instance is None:
+                    return self
+                else:
+                    return instance.__dict__[self.name]
+            def __set__(self, instance, value):
+                instance.__dict__[self.name] = value
+            def __set_name__(self, owner, name):
+                self.name = name
+        #
+        class AnEnum(Enum):
+            ONE = 'one'
+            two = Descriptor()
+        #
+        self.assertEqual(list(AnEnum), [AnEnum.ONE])
+        self.assertEqual(AnEnum.two.name, 'two')
+        AnEnum.ONE.two = 'three'
+        self.assertEqual(AnEnum.ONE.two, 'three')
+        self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
 
     def test_members_is_ordereddict_if_ordered(self):
         class Ordered(Enum):
@@ -3180,10 +3197,6 @@ class TestEnum(TestCase):
             RED = auto()
             GREEN = auto()
             BLUE = auto()
-        # print('-' * 15)
-        # print(list(Color))
-        # print(Color.__mro__)
-        # print('-' * 15)
         self.assertEqual(Color.RED.value, 1)
         self.assertEqual(Color.GREEN.value, 2)
         self.assertEqual(Color.BLUE.value, 3)
@@ -3447,19 +3460,16 @@ class TestEnum(TestCase):
     def test_init_subclass(self):
         class MyEnum(Enum):
             def __init_subclass__(cls, **kwds):
-                print('MyEnum.__init_subclass__ being called for %s' % cls)
                 super(MyEnum, cls).__init_subclass__(cls, **kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('TheirEnum.__init_subclass__ being called for %s' % cls)
                 super(TheirEnum, cls).__init_subclass__(cls, **kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NoEnum(WhoseEnum):
             ONE = 1
@@ -3471,11 +3481,9 @@ class TestEnum(TestCase):
         #
         class OurEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('OurEnum.__init_subclass__ being called for %s' % cls)
                 cls._test2 = 'OurEnum'
         class WhereEnum(OurEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhereEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NeverEnum(WhereEnum):
             ONE = 'one'
@@ -3487,6 +3495,29 @@ class TestEnum(TestCase):
 
 
 class TestStrEnum(TestCase):
+
+    def test_set_name(self):
+        class Descriptor(object):
+            name = None
+            def __get__(self, instance, owner_class=None):
+                if instance is None:
+                    return self
+                else:
+                    return instance.__dict__[self.name]
+            def __set__(self, instance, value):
+                instance.__dict__[self.name] = value
+            def __set_name__(self, owner, name):
+                self.name = name
+        #
+        class AnEnum(Enum):
+            ONE = 'one'
+            two = Descriptor()
+        #
+        self.assertEqual(list(AnEnum), [AnEnum.ONE])
+        self.assertEqual(AnEnum.two.name, 'two')
+        AnEnum.ONE.two = 'three'
+        self.assertEqual(AnEnum.ONE.two, 'three')
+        self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
 
     def test_strenum_inherited_methods(self):
         class phy(StrEnum):
@@ -3543,19 +3574,16 @@ class TestStrEnum(TestCase):
     def test_init_subclass(self):
         class MyEnum(StrEnum):
             def __init_subclass__(cls, **kwds):
-                print('MyEnum.__init_subclass__ being called for %s' % cls)
                 super(MyEnum, cls).__init_subclass__(cls, **kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('TheirEnum.__init_subclass__ being called for %s' % cls)
                 super(TheirEnum, cls).__init_subclass__(cls, **kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NoEnum(WhoseEnum):
             ONE = 'one'
@@ -3567,11 +3595,9 @@ class TestStrEnum(TestCase):
         #
         class OurEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('OurEnum.__init_subclass__ being called for %s' % cls)
                 cls._test2 = 'OurEnum'
         class WhereEnum(OurEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhereEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NeverEnum(WhereEnum):
             ONE = 'one'
@@ -3659,6 +3685,29 @@ class TestFlag(TestCase):
         RW = 2
         AC = 3
         CE = 1<<19
+
+    def test_set_name(self):
+        class Descriptor(object):
+            name = None
+            def __get__(self, instance, owner_class=None):
+                if instance is None:
+                    return self
+                else:
+                    return instance.__dict__[self.name]
+            def __set__(self, instance, value):
+                instance.__dict__[self.name] = value
+            def __set_name__(self, owner, name):
+                self.name = name
+        #
+        class AnEnum(Enum):
+            ONE = 1
+            two = Descriptor()
+        #
+        self.assertEqual(list(AnEnum), [AnEnum.ONE])
+        self.assertEqual(AnEnum.two.name, 'two')
+        AnEnum.ONE.two = 'three'
+        self.assertEqual(AnEnum.ONE.two, 'three')
+        self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
 
     def test_str_is_str_str(self):
         red, white = self.TermColor.FG_Red, self.TermColor.BG_White
@@ -4480,19 +4529,16 @@ class TestFlag(TestCase):
     def test_init_subclass(self):
         class MyEnum(Flag):
             def __init_subclass__(cls, **kwds):
-                print('MyEnum.__init_subclass__ being called for %s' % cls)
                 super(MyEnum, cls).__init_subclass__(cls, **kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('TheirEnum.__init_subclass__ being called for %s' % cls)
                 super(TheirEnum, cls).__init_subclass__(cls, **kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NoEnum(WhoseEnum):
             ONE = 1
@@ -4504,11 +4550,9 @@ class TestFlag(TestCase):
         #
         class OurEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('OurEnum.__init_subclass__ being called for %s' % cls)
                 cls._test2 = 'OurEnum'
         class WhereEnum(OurEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhereEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NeverEnum(WhereEnum):
             ONE = 1
@@ -4542,6 +4586,29 @@ class TestIntFlag(TestCase):
         RW = 2
         AC = 3
         CE = 1<<19
+
+    def test_set_name(self):
+        class Descriptor(object):
+            name = None
+            def __get__(self, instance, owner_class=None):
+                if instance is None:
+                    return self
+                else:
+                    return instance.__dict__[self.name]
+            def __set__(self, instance, value):
+                instance.__dict__[self.name] = value
+            def __set_name__(self, owner, name):
+                self.name = name
+        #
+        class AnEnum(Enum):
+            ONE = 1
+            two = Descriptor()
+        #
+        self.assertEqual(list(AnEnum), [AnEnum.ONE])
+        self.assertEqual(AnEnum.two.name, 'two')
+        AnEnum.ONE.two = 'three'
+        self.assertEqual(AnEnum.ONE.two, 'three')
+        self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
 
     def test_membership(self):
         Color = self.Color
@@ -4941,19 +5008,16 @@ class TestIntFlag(TestCase):
     def test_init_subclass(self):
         class MyEnum(IntEnum):
             def __init_subclass__(cls, **kwds):
-                print('MyEnum.__init_subclass__ being called for %s' % cls)
                 super(MyEnum, cls).__init_subclass__(cls, **kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('TheirEnum.__init_subclass__ being called for %s' % cls)
                 super(TheirEnum, cls).__init_subclass__(cls, **kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhoseEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NoEnum(WhoseEnum):
             ONE = 1
@@ -4965,11 +5029,9 @@ class TestIntFlag(TestCase):
         #
         class OurEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                print('OurEnum.__init_subclass__ being called for %s' % cls)
                 cls._test2 = 'OurEnum'
         class WhereEnum(OurEnum):
             def __init_subclass__(cls, **kwds):
-                print('WhereEnum.__init_subclass__ being called for %s' % cls)
                 pass
         class NeverEnum(WhereEnum):
             ONE = 1

@@ -47,7 +47,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 5, 2
+version = 2, 2, 5, 3
 
 try:
     any
@@ -1839,13 +1839,17 @@ class EnumMeta(StdlibEnumMeta or type):
             raise TypeError('%s.__init_subclass__ cannot be None')
         # remove current __init_subclass__ so previous one can be found with getattr
         new_init_subclass = clsdict.pop('__init_subclass__', None)
-        # create our new Enum type, possibly with an extra do-nothing class
+        # create our new Enum type, possibly with an extra do-nothing class, and possibly
+        # calling __set_name__ ourselves
         if pyver >= 3.6:
             bases = (_NoInitSubclass, ) + bases
             enum_class = type.__new__(metacls, cls, bases, clsdict)
             enum_class.__bases__ = enum_class.__bases__[1:]
         else:
             enum_class = type.__new__(metacls, cls, bases, clsdict)
+            for name, obj in enum_class.__dict__.items():
+                if hasattr(obj, '__set_name__'):
+                    obj.__set_name__(enum_class, name)
         old_init_subclass = getattr(enum_class, '__init_subclass__', None)
         # and restore the new one (if there was one)
         if new_init_subclass is not None:
