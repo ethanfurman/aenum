@@ -47,7 +47,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 5, 3
+version = 2, 2, 5, 4
 
 try:
     any
@@ -212,6 +212,10 @@ def _is_internal_class(cls_name, obj):
         qualname = getattr(obj, '__qualname__', False)
         return not _is_descriptor(obj) and qualname and re.search(r"\.?%s\.\w+$" % cls_name, qualname)
 
+def _is_private_name(cls_name, name):
+    pattern = '^_%s__\w+[^_]_?$' % (cls_name, )
+    return re.search(pattern, name)
+
 def _make_class_unpicklable(cls):
     """Make the given class un-picklable."""
     def _break_on_call_reduce(self, protocol=None):
@@ -374,7 +378,10 @@ class _NamedConstantDict(dict):
         Single underscore (sunder) names are reserved.
         """
         if _is_sunder(key):
-            raise ValueError('_names_ are reserved for future NamedConstant use')
+            raise ValueError(
+                    '_sunder_ names, such as %r, are reserved for future NamedConstant use'
+                    % (key, )
+                    )
         elif _is_dunder(key):
             pass
         elif key in self._names:
@@ -501,7 +508,10 @@ class _NamedTupleDict(OrderedDict):
         """
         if _is_sunder(key):
             if key not in ('_size_', '_order_'):
-                raise ValueError('_names_ are reserved for future NamedTuple use')
+                raise ValueError(
+                        '_sunder_ names, such as %r, are reserved for future NamedTuple use'
+                        % (key, )
+                        )
         elif _is_dunder(key):
             if key == '__order__':
                 key = '_order_'
@@ -1372,6 +1382,8 @@ class _EnumDict(dict):
         """
         if _is_internal_class(self._cls_name, value):
             pass
+        elif _is_private_name(self._cls_name, key):
+            pass
         elif _is_sunder(key):
             if key not in (
                     '_init_', '_settings_', '_order_', '_ignore_', '_start_',
@@ -1379,7 +1391,9 @@ class _EnumDict(dict):
                     '_generate_next_value_',
                     '_missing_', '_missing_value_', '_missing_name_',
                     ):
-                raise ValueError('_names_ are reserved for  Enum use')
+                raise ValueError('_sunder_ names, such as %r, are reserved for future Enum use'
+                        % (key, )
+                        )
             elif not self._allow_init and key not in (
                     'create_pseudo_member_', '_missing_', '_missing_value_', '_missing_name_',
                 ):

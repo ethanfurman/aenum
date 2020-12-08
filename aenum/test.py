@@ -432,6 +432,16 @@ class TestEnum(TestCase):
         self.assertEqual(AnEnum.ONE.two, 'three')
         self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
 
+    def test_private_names(self):
+        class Private(Enum):
+            __corporal = 'Radar'
+            __major_ = 'Hoolihan'
+        self.assertEqual(len(Private), 0)
+        self.assertEqual(Private._Private__corporal, 'Radar')
+        self.assertFalse(isinstance(Private._Private__corporal, Enum))
+        self.assertEqual(Private._Private__major_, 'Hoolihan')
+        self.assertFalse(isinstance(Private._Private__major_, Enum))
+
     def test_members_is_ordereddict_if_ordered(self):
         class Ordered(Enum):
             __order__ = 'first second third'
@@ -3519,6 +3529,16 @@ class TestStrEnum(TestCase):
         self.assertEqual(AnEnum.ONE.two, 'three')
         self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
 
+    def test_private_names(self):
+        class Private(Enum):
+            __corporal = 'Radar'
+            __major_ = 'Hoolihan'
+        self.assertEqual(len(Private), 0)
+        self.assertEqual(Private._Private__corporal, 'Radar')
+        self.assertFalse(isinstance(Private._Private__corporal, Enum))
+        self.assertEqual(Private._Private__major_, 'Hoolihan')
+        self.assertFalse(isinstance(Private._Private__major_, Enum))
+
     def test_strenum_inherited_methods(self):
         class phy(StrEnum):
             pi = 'Pi'
@@ -3708,6 +3728,16 @@ class TestFlag(TestCase):
         AnEnum.ONE.two = 'three'
         self.assertEqual(AnEnum.ONE.two, 'three')
         self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
+
+    def test_private_names(self):
+        class Private(Enum):
+            __corporal = 'Radar'
+            __major_ = 'Hoolihan'
+        self.assertEqual(len(Private), 0)
+        self.assertEqual(Private._Private__corporal, 'Radar')
+        self.assertFalse(isinstance(Private._Private__corporal, Enum))
+        self.assertEqual(Private._Private__major_, 'Hoolihan')
+        self.assertFalse(isinstance(Private._Private__major_, Enum))
 
     def test_str_is_str_str(self):
         red, white = self.TermColor.FG_Red, self.TermColor.BG_White
@@ -4609,6 +4639,16 @@ class TestIntFlag(TestCase):
         AnEnum.ONE.two = 'three'
         self.assertEqual(AnEnum.ONE.two, 'three')
         self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
+
+    def test_private_names(self):
+        class Private(Enum):
+            __corporal = 'Radar'
+            __major_ = 'Hoolihan'
+        self.assertEqual(len(Private), 0)
+        self.assertEqual(Private._Private__corporal, 'Radar')
+        self.assertFalse(isinstance(Private._Private__corporal, Enum))
+        self.assertEqual(Private._Private__major_, 'Hoolihan')
+        self.assertFalse(isinstance(Private._Private__major_, Enum))
 
     def test_membership(self):
         Color = self.Color
