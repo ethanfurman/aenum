@@ -3471,13 +3471,13 @@ class TestEnum(TestCase):
     def test_init_subclass(self):
         class MyEnum(Enum):
             def __init_subclass__(cls, **kwds):
-                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                super(MyEnum, cls).__init_subclass__(**kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                super(TheirEnum, cls).__init_subclass__(**kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
@@ -3595,13 +3595,13 @@ class TestStrEnum(TestCase):
     def test_init_subclass(self):
         class MyEnum(StrEnum):
             def __init_subclass__(cls, **kwds):
-                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                super(MyEnum, cls).__init_subclass__(**kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                super(TheirEnum, cls).__init_subclass__(**kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
@@ -4560,13 +4560,13 @@ class TestFlag(TestCase):
     def test_init_subclass(self):
         class MyEnum(Flag):
             def __init_subclass__(cls, **kwds):
-                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                super(MyEnum, cls).__init_subclass__(**kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                super(TheirEnum, cls).__init_subclass__(**kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
@@ -5049,13 +5049,13 @@ class TestIntFlag(TestCase):
     def test_init_subclass(self):
         class MyEnum(IntEnum):
             def __init_subclass__(cls, **kwds):
-                super(MyEnum, cls).__init_subclass__(cls, **kwds)
+                super(MyEnum, cls).__init_subclass__(**kwds)
                 self.assertFalse(cls.__dict__.get('_test', False))
                 cls._test1 = 'MyEnum'
         #
         class TheirEnum(MyEnum):
             def __init_subclass__(cls, **kwds):
-                super(TheirEnum, cls).__init_subclass__(cls, **kwds)
+                super(TheirEnum, cls).__init_subclass__(**kwds)
                 cls._test2 = 'TheirEnum'
         class WhoseEnum(TheirEnum):
             def __init_subclass__(cls, **kwds):
@@ -5758,7 +5758,7 @@ class TestStackoverflowAnswers(TestCase):
         # https://stackoverflow.com/q/65139026/208880
         class CompareLowerCase(Enum):
             def __init_subclass__(cls, **kwds):
-                super(CompareLowerCase, cls).__init_subclass__(cls, **kwds)
+                super(CompareLowerCase, cls).__init_subclass__(**kwds)
                 cls.lowered_names = set([m.name.lower() for m in cls])
             @classmethod
             def has_name(cls, name):

@@ -47,7 +47,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 5
+version = 2, 2, 6, 3
 
 try:
     any
@@ -1883,7 +1883,7 @@ class EnumMeta(StdlibEnumMeta or type):
         # and restore the new one (if there was one)
         if new_init_subclass is not None:
             # staticmethod use is to preserve Python 2 compatibility
-            enum_class.__init_subclass__ = staticmethod(new_init_subclass)
+            enum_class.__init_subclass__ = classmethod(new_init_subclass)
         enum_class._member_names_ = []               # names in random order
         enum_class._member_map_ = OrderedDict()
         enum_class._member_type_ = member_type
@@ -2106,10 +2106,7 @@ class EnumMeta(StdlibEnumMeta or type):
                 raise TypeError('member order does not match _order_: %r %r' % (enum_class._member_names_, enum_class._member_map_.items()))
         # call parents' __init_subclass__
         if Enum is not None and old_init_subclass is not None:
-            # if pyver < 3:
-            #     old_init_subclass.im_func(old_init_subclass.im_class, **mc_kwds)
-            # else:
-            old_init_subclass(enum_class, **mc_kwds)
+            old_init_subclass(**mc_kwds)
         return enum_class
 
     def __bool__(cls):
@@ -2510,9 +2507,13 @@ def __new__(cls, value):
 temp_enum_dict['__new__'] = __new__
 del __new__
 
-# in Python 2 this has to be made a static method, which is done in EnumMeta
 def __init_subclass__(cls, **kwds):
-    pass
+    if pyver < 3.6:
+        # end of the line
+        if kwds:
+            raise TypeError('unconsumed keyword arguments: %r' % (kwds, ))
+    else:
+        super(Enum, cls).__init_subclass__(**kwds)
 temp_enum_dict['__init_subclass__'] = __init_subclass__
 
 @staticmethod
