@@ -15,6 +15,7 @@ from aenum import EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
 from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
+from aenum import basestring, baseinteger, unicode
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -31,25 +32,9 @@ except ImportError:
     threading = None
 
 try:
-    basestring
-except NameError:
-    # In Python 2 basestring is the ancestor of both str and unicode
-    # in Python 3 it's just str, but was missing in 3.1
-    basestring = str
-
-try:
     any
 except NameError:
-    def any(iterable):
-        for element in iterable:
-            if element:
-                return True
-        return False
-
-try:
-    unicode
-except NameError:
-    unicode = str
+    from aenum import any
 
 try:
     from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum
@@ -3746,7 +3731,7 @@ class TestFlag(TestCase):
         self.assertEqual(barber, '\x1b[47;31m')
         self.assertEqual(barber.value, red.value | white.value)
         self.assertEqual(barber.code, ';'.join([white.code, red.code]))
-        self.assertEqual(repr(barber), '<TermColor: BG_White|FG_Red>')
+        self.assertEqual(repr(barber), '<TermColor.BG_White|FG_Red>')
         self.assertEqual(str(barber), '\x1b[47;31m')
 
     def test_membership(self):
@@ -3895,6 +3880,43 @@ class TestFlag(TestCase):
         for f in Open:
             self.assertEqual(bool(f.value), bool(f))
 
+    def test_doc_flag(self):
+        class DocFlag(Flag):
+            _settings_ = AutoValue
+            def __new__(cls, value, doc=None):
+                if doc is None and isinstance(value, basestring):
+                    value, doc = doc, value
+                if value is None:
+                    if not len(cls):
+                        value = 0
+                    else:
+                        value = 2 ** (len(cls) -1)
+                if not isinstance(value, baseinteger):
+                    raise TypeError("%r is not a valid %s value" % (value, cls.__name__))
+                obj = object.__new__(cls)
+                obj._value_ = value
+                obj.__doc__ = doc
+                return obj
+        #
+        class AddressSegment(DocFlag):
+            _order_ = 'UNKNOWN PO PO_TYPE NUMBER PREORD NAME STREET POSTORD SECONDARY_TYPE SECONDARY_NUMBER AND'
+            UNKNOWN = "unable to determine address element type"
+            PO = "post office delivery"
+            PO_TYPE = "box or drawer"
+            NUMBER = "main unit designator"
+            PREORD = "N S E W etc"
+            NAME = "street name"
+            STREET = "st ave blvd etc"
+            POSTORD = "N S E W etc"
+            SECONDARY_TYPE = "apt bldg floor etc"
+            SECONDARY_NUMBER = "secondary unit designator"
+            AND = "& indicates a corner address"
+        AS = AddressSegment
+        self.assertEqual(AS.NAME._value_, 16)
+        self.assertEqual(AS.STREET._value_, 32)
+        self.assertEqual(AS.SECONDARY_TYPE._value_, 128)
+        self.assertEqual((AS.NAME | AS.STREET)._value_, 48)
+                
     def test_iteration(self):
         C = self.Color
         self.assertEqual(list(C), [C.BLACK, C.RED, C.GREEN, C.BLUE, C.PURPLE])
@@ -4415,10 +4437,7 @@ class TestFlag(TestCase):
             BG_White = '47'           # ESC [ 37 m      # white
             #
             def __repr__(self):
-                if self._name_ is not None:
-                    return '<%s.%s>' % (self.__class__.__name__, self._name_)
-                else:
-                    return '<%s: %s>' % (self.__class__.__name__, '|'.join([m.name for m in Flag.__iter__(self)]))
+                return '<%s.%s>' % (self.__class__.__name__, self._name_)
         self.assertTrue(isinstance(Color.FG_Black, Color))
         self.assertTrue(isinstance(Color.FG_Black, str))
         self.assertEqual(Color.FG_Black, '\x1b[30m')
@@ -4428,7 +4447,7 @@ class TestFlag(TestCase):
         self.assertTrue(isinstance(colors, str))
         self.assertEqual(colors, '\x1b[45;30m')
         self.assertEqual(colors.code, '45;30')
-        self.assertEqual(repr(colors), '<Color: BG_Magenta|FG_Black>')
+        self.assertEqual(repr(colors), '<Color.BG_Magenta|FG_Black>')
 
     def test_sub_subclass_with_new_new(self):
         class StrFlag(str, Flag):

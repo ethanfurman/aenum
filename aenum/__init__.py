@@ -47,7 +47,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 2, 2, 6
+version = 2, 2, 7, 4
 
 try:
     any
@@ -3087,10 +3087,17 @@ class Flag(Enum):
             members, extra_flags = _decompose(cls, value)
             if extra_flags:
                 raise ValueError("%r is not a valid %s" % (value, cls.__name__))
-            # give subclasses a chance to modify values for new pseudo-member
-            values = cls._create_pseudo_member_values_(members, *values)
-            # construct a singleton enum pseudo-member
-            pseudo_member = extend_enum(cls, None, *values, create_only=True)
+            # normal Flag?
+            __new__ = getattr(cls, '__new_member__', None)
+            if cls._member_type_ is object and not __new__:
+                # construct a singleton enum pseudo-member
+                pseudo_member = object.__new__(cls)
+                pseudo_member._value_ = value
+            else:
+                # give subclasses a chance to modify values for new pseudo-member
+                values = cls._create_pseudo_member_values_(members, *values)
+                pseudo_member = (__new__ or cls._member_type_)(cls, *values)
+            pseudo_member._name_ = '|'.join([n._name_ for n in members])
             # use setdefault in case another thread already created a composite
             # with this value
             pseudo_member = cls._value2member_map_.setdefault(value, pseudo_member)
@@ -3098,6 +3105,9 @@ class Flag(Enum):
 
     @classmethod
     def _create_pseudo_member_values_(cls, members, *values):
+        """
+        Return values to be fed to __new__ to create new member.
+        """
         return values
 
     def __contains__(self, other):
