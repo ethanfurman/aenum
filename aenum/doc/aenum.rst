@@ -663,21 +663,42 @@ It is also possible to name the combinations::
     >>> Perm.RWX
     <Perm.RWX: 7>
     >>> ~Perm.RWX
-    <Perm.-8: -8>
+    <Perm: 0>
 
 Another important difference between ``IntFlag`` and ``Enum`` is that
 if no flags are set (the value is 0), its boolean evaluation is ``False``::
 
     >>> Perm.R & Perm.X
-    <Perm.0: 0>
+    <Perm: 0>
     >>> bool(Perm.R & Perm.X)
     False
 
 Because ``IntFlag`` members are also subclasses of ``int`` they can
 be combined with them::
 
+    >>> Perm.X | 4
+    <Perm.R|X: 5>
+
+If the result is not a ``Flag`` then, depending on the ``_boundary_`` setting,
+an exception is raised (``STRICT``), the extra bits are lost (``CONFORM``), or
+it reverts to an int (``EJECT``):
+
+    >>> from aenum import STRICT, CONFORM, EJECT
+    >>> # the default is STRICT
     >>> Perm.X | 8
-    <Perm.8|X: 9>
+    Traceback (most recent call last):
+    ...
+    ValueError: Perm: invalid value 9
+        given 1001
+      allowed 0111
+
+    >>> Perm._boundary_ = EJECT
+    >>> Perm.X | 8
+    9
+
+    >>> Perm._boundary_ = CONFORM
+    >>> Perm.X | 8
+    <Perm.X: 1>
 
 
 Flag
@@ -700,7 +721,7 @@ flags being set, the boolean evaluation is ``False``::
     ...     GREEN = auto()
     ...
     >>> Color.RED & Color.GREEN
-    <Color.0: 0>
+    <Color: 0>
     >>> bool(Color.RED & Color.GREEN)
     False
 

@@ -16,6 +16,7 @@ from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag,
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode
+from aenum import StdlibEnumMeta, StdlibEnum
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -35,15 +36,6 @@ try:
     any
 except NameError:
     from aenum import any
-
-try:
-    from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum
-    import enum as enum_module
-    if hasattr(enum_module, 'version'):
-        StdlibEnumMeta = StdlibEnum = None
-    del enum_module
-except ImportError:
-    StdlibEnumMeta = StdlibEnum = None
 
 def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite(aenum))
@@ -2617,11 +2609,12 @@ class TestEnum(TestCase):
 
     def test_auto_and_enum(self):
         class Foo(aenum.Flag):
-            _order_ = 'a b'
+            _order_ = 'a b c'
             a = aenum.auto()
             b = a | aenum.auto()
+            c = 2
 
-        self.assertEqual([Foo.a, Foo.b], list(Foo))
+        self.assertEqual([Foo.a, Foo.c], list(Foo))
         self.assertEqual(Foo.a.value, 1)
         self.assertEqual(Foo.b.value, 3)
 
@@ -3534,11 +3527,11 @@ class TestStrEnum(TestCase):
         self.assertEqual(phy.tau.count('a'), 1)
 
     def test_strict_strenum(self):
-        with self.assertRaisesRegex(TypeError, 'only a single string value may be specified'):
+        with self.assertRaisesRegex(TypeError, 'too many arguments for str'):
             class Huh(StrEnum):
                 huh = 'this', 'is', 'too', 'many'
         for uhoh in (object, object(), [], Enum, 9):
-            with self.assertRaisesRegex(TypeError, 'values for StrEnum must be strings, not '):
+            with self.assertRaisesRegex(TypeError, 'values must be str'):
                 class Huh(StrEnum):
                     huh = uhoh
         #
@@ -3549,7 +3542,7 @@ class TestStrEnum(TestCase):
             Those = auto()
             lower = 'lower'
             upper = 'UPPER'
-        self.assertEqual([m.value for m in Either], ['this', 'That', 'Those', 'lower', 'UPPER'])
+        self.assertEqual([m.value for m in Either], ['this', 'That', 'those', 'lower', 'UPPER'])
         #
         with self.assertRaisesRegex(ValueError, ' is not lower-case'):
             class Huh(LowerStrEnum):
@@ -3626,6 +3619,17 @@ class TestFlag(TestCase):
         GREEN = 2
         BLUE = 4
         PURPLE = RED|BLUE
+
+    class Fun(Flag):
+        _order_ = 'ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT'
+        ONE = auto()
+        TWO = auto()
+        THREE = ONE | TWO
+        FOUR = auto()
+        FIVE = FOUR | ONE
+        SIX = FOUR | TWO
+        SEVEN = FOUR | TWO | ONE
+        EIGHT = auto()
 
     class TermColor(str, Flag):
         _settings_ = AutoValue
@@ -3725,6 +3729,16 @@ class TestFlag(TestCase):
         self.assertEqual(Private._Private__major_, 'Hoolihan')
         self.assertFalse(isinstance(Private._Private__major_, Enum))
 
+    def test_auto_alias(self):
+        Fun = self.Fun
+        self.assertEqual(
+                list(Fun),
+                [Fun.ONE, Fun.TWO, Fun.FOUR, Fun.EIGHT],
+                )
+        self.assertEqual(Fun.THREE._value_, 3)
+        self.assertEqual(repr(Fun.SEVEN), '<Fun.SEVEN: 7>')
+        self.assertEqual(list(Fun.SEVEN), [Fun.FOUR, Fun.TWO, Fun.ONE])
+
     def test_str_is_str_str(self):
         red, white = self.TermColor.FG_Red, self.TermColor.BG_White
         barber = red | white
@@ -3760,12 +3774,13 @@ class TestFlag(TestCase):
         self.assertEqual(str(Perm.X), 'Perm.X')
         self.assertEqual(str(Perm.R | Perm.W), 'Perm.R|W')
         self.assertEqual(str(Perm.R | Perm.W | Perm.X), 'Perm.R|W|X')
-        self.assertEqual(str(Perm(0)), 'Perm.0')
+        self.assertEqual(str(Perm(0)), 'Perm(0)')
         self.assertEqual(str(~Perm.R), 'Perm.W|X')
         self.assertEqual(str(~Perm.W), 'Perm.R|X')
         self.assertEqual(str(~Perm.X), 'Perm.R|W')
         self.assertEqual(str(~(Perm.R | Perm.W)), 'Perm.X')
-        self.assertEqual(str(~(Perm.R | Perm.W | Perm.X)), 'Perm.0')
+        self.assertEqual(str(~(Perm.R | Perm.W | Perm.X)), 'Perm(0)')
+        self.assertEqual(str(Perm(-1)), 'Perm.R|W|X')
         self.assertEqual(str(Perm(~0)), 'Perm.R|W|X')
 
         Open = self.Open
@@ -3774,7 +3789,7 @@ class TestFlag(TestCase):
         self.assertEqual(str(Open.AC), 'Open.AC')
         self.assertEqual(str(Open.RO | Open.CE), 'Open.CE')
         self.assertEqual(str(Open.WO | Open.CE), 'Open.CE|WO')
-        self.assertEqual(str(~Open.RO), 'Open.CE|AC|RW|WO')
+        self.assertEqual(str(~Open.RO), 'Open.CE|RW|WO')
         self.assertEqual(str(~Open.WO), 'Open.CE|RW')
         self.assertEqual(str(~Open.AC), 'Open.CE')
         self.assertEqual(str(~(Open.RO | Open.CE)), 'Open.AC')
@@ -3787,12 +3802,12 @@ class TestFlag(TestCase):
         self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
         self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
         self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
-        self.assertEqual(repr(Perm(0)), '<Perm.0: 0>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
         self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
         self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
         self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
-        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm.0: 0>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
         self.assertEqual(repr(Perm(~0)), '<Perm.R|W|X: 7>')
 
         Open = self.Open
@@ -3801,7 +3816,7 @@ class TestFlag(TestCase):
         self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
         self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
         self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
-        self.assertEqual(repr(~Open.RO), '<Open.CE|AC|RW|WO: 524291>')
+        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
         self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
@@ -3884,16 +3899,19 @@ class TestFlag(TestCase):
         class DocFlag(Flag):
             _settings_ = AutoValue
             def __new__(cls, value, doc=None):
-                if doc is None and isinstance(value, basestring):
-                    value, doc = doc, value
-                if value is None:
-                    if not len(cls):
-                        value = 0
-                    else:
-                        value = 2 ** (len(cls) -1)
-                if not isinstance(value, baseinteger):
-                    raise TypeError("%r is not a valid %s value" % (value, cls.__name__))
+                # if doc is None and isinstance(value, basestring):
+                #     value, doc = doc, value
+                # if value is None:
+                #     if not len(cls):
+                #         value = 0
+                #     else:
+                #         value = 2 ** (len(cls) -1)
+                # if not isinstance(value, baseinteger):
+                #     raise TypeError("%r is not a valid %s value" % (value, cls.__name__))
                 obj = object.__new__(cls)
+                # if doc is None, don't mess with the value
+                if doc is not None:
+                    value = value >> 1
                 obj._value_ = value
                 obj.__doc__ = doc
                 return obj
@@ -3915,11 +3933,12 @@ class TestFlag(TestCase):
         self.assertEqual(AS.NAME._value_, 16)
         self.assertEqual(AS.STREET._value_, 32)
         self.assertEqual(AS.SECONDARY_TYPE._value_, 128)
-        self.assertEqual((AS.NAME | AS.STREET)._value_, 48)
+        self.assertEqual((AS.NAME | AS.STREET)._value_, 48, "%r is not 48" % (AS.NAME | AS.STREET))
                 
     def test_iteration(self):
         C = self.Color
-        self.assertEqual(list(C), [C.BLACK, C.RED, C.GREEN, C.BLUE, C.PURPLE])
+        self.assertEqual(list(C), [C.BLACK, C.RED, C.GREEN, C.BLUE])
+        self.assertEqual(list(C.PURPLE), [C.BLUE, C.RED])
 
     def test_member_iteration(self):
         C = self.Color
@@ -4074,19 +4093,6 @@ class TestFlag(TestCase):
         self.assertEqual(Required.FROM_S.value, 2)
         self.assertEqual(Required.BOTH.value, 3)
 
-    def test_cascading_failure(self):
-        class Bizarre(Flag):
-            c = 3
-            d = 4
-            f = 6
-        # Bizarre.c | Bizarre.d
-        self.assertRaisesRegex(ValueError, "5 is not a valid Bizarre", Bizarre, 5)
-        self.assertRaisesRegex(ValueError, "5 is not a valid Bizarre", Bizarre, 5)
-        self.assertRaisesRegex(ValueError, "2 is not a valid Bizarre", Bizarre, 2)
-        self.assertRaisesRegex(ValueError, "2 is not a valid Bizarre", Bizarre, 2)
-        self.assertRaisesRegex(ValueError, "1 is not a valid Bizarre", Bizarre, 1)
-        self.assertRaisesRegex(ValueError, "1 is not a valid Bizarre", Bizarre, 1)
-
     def test_duplicate_auto(self):
         class Dupes(Enum):
             _order_ = 'first second third'
@@ -4096,11 +4102,11 @@ class TestFlag(TestCase):
         self.assertEqual([Dupes.first, Dupes.second, Dupes.third], list(Dupes))
 
     def test_bizarre(self):
-        class Bizarre(Flag):
-            b = 3
-            c = 4
-            d = 6
-        self.assertEqual(repr(Bizarre(7)), '<Bizarre.d|c|b: 7>')
+        with self.assertRaisesRegex(TypeError, "invalid Flag 'Bizarre' -- missing values: 1, 2"):
+            class Bizarre(Flag):
+                b = 3
+                c = 4
+                d = 6
 
     def test_multiple_mixin(self):
         class AllMixin(object):
@@ -4211,11 +4217,9 @@ class TestFlag(TestCase):
             # TODO: actually test _create_pseudo_member
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    members, _ = aenum._decompose(cls, value)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value)
-                    pseudo_member.code = ';'.join(m.code for m in members)
+                members, _ = aenum._decompose(cls, value)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value)
+                pseudo_member.code = ';'.join(m.code for m in members)
                 return pseudo_member
             AllReset = '0'           # ESC [ 0 m       # reset all (colors and brightness)
             Bright = '1'          # ESC [ 1 m       # bright
@@ -4240,12 +4244,10 @@ class TestFlag(TestCase):
             # TODO: actually test _create_pseudo_member
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    # calculate the code
-                    members, _ = aenum._decompose(cls, value)
-                    code = ';'.join(m.code for m in members)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                # calculate the code
+                members, _ = aenum._decompose(cls, value)
+                code = ';'.join(m.code for m in members)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
             #
                                       # # FOREGROUND - 30s  BACKGROUND - 40s:
@@ -4275,12 +4277,10 @@ class TestFlag(TestCase):
                 return (2 ** count, ) + args
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    # calculate the code
-                    members, _ = aenum._decompose(cls, value)
-                    code = ';'.join(m.code for m in members)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                # calculate the code
+                members, _ = aenum._decompose(cls, value)
+                code = ';'.join(m.code for m in members)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
             #
                                       # # FOREGROUND - 30s  BACKGROUND - 40s:
@@ -4299,6 +4299,7 @@ class TestFlag(TestCase):
         self.assertEqual(Color.FG_Black.code, '30')
 
     def test_sub_subclass_1(self):
+        # print('\nStrFlag')
         class StrFlag(str, Flag):
             _settings_ = AutoValue
             def __new__(cls, value, code):
@@ -4309,14 +4310,16 @@ class TestFlag(TestCase):
                 return obj
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    # calculate the code
-                    members, _ = aenum._decompose(cls, value)
-                    code = ';'.join(m.code for m in members)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                # calculate the code
+                members, _ = aenum._decompose(cls, value)
+                code = ';'.join(m.code for m in members)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
+        # print(' ', StrFlag._settings_)
+        # print(' ', StrFlag._auto_init_)
+        # print(' ', StrFlag._generate_next_value_)
             #
+        # print('\nColor')
         class Color(StrFlag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
                                       # # FOREGROUND - 30s  BACKGROUND - 40s:
@@ -4342,12 +4345,10 @@ class TestFlag(TestCase):
                 return (2 ** count, ) + args
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    # calculate the code
-                    members, _ = aenum._decompose(cls, value)
-                    code = ';'.join(m.code for m in members)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                # calculate the code
+                members, _ = aenum._decompose(cls, value)
+                code = ';'.join(m.code for m in members)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
             #
         class Color(StrFlag):
@@ -4383,12 +4384,10 @@ class TestFlag(TestCase):
                 return obj
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    # calculate the code
-                    members, _ = aenum._decompose(cls, value)
-                    code = ';'.join(m.code for m in members)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                # calculate the code
+                members, _ = aenum._decompose(cls, value)
+                code = ';'.join(m.code for m in members)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
             #
         class Color(StrFlag):
@@ -4459,12 +4458,10 @@ class TestFlag(TestCase):
                 return obj
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    # calculate the code
-                    members, _ = aenum._decompose(cls, value)
-                    code = ';'.join(m.code for m in members)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                # calculate the code
+                members, _ = aenum._decompose(cls, value)
+                code = ';'.join(m.code for m in members)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
             #
         class Color(StrFlag):
@@ -4543,12 +4540,10 @@ class TestFlag(TestCase):
                 return (2 ** count, ) + args
             @classmethod
             def _create_pseudo_member_(cls, value):
-                pseudo_member = cls._value2member_map_.get(value, None)
-                if pseudo_member is None:
-                    # calculate the code
-                    members, _ = aenum._decompose(cls, value)
-                    code = ';'.join(m.code for m in members)
-                    pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                # calculate the code
+                members, _ = aenum._decompose(cls, value)
+                code = ';'.join(m.code for m in members)
+                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
             #
                                       # # FOREGROUND - 30s  BACKGROUND - 40s:
@@ -4574,7 +4569,7 @@ class TestFlag(TestCase):
         self.assertIs(Purple, Color.BG_Magenta | Color.FG_Blue)
         self.assertEqual(Purple, '\x1b[45;34m')
         self.assertEqual(Purple.code, '45;34')
-        self.assertIs(Purple.name, None)
+        self.assertEqual(Purple.name, 'BG_Magenta|FG_Blue')
 
     def test_init_subclass(self):
         class MyEnum(Flag):
@@ -4617,25 +4612,31 @@ class TestFlag(TestCase):
 class TestIntFlag(TestCase):
     """Tests of the IntFlags."""
 
-    class Perm(IntFlag):
-        X = 1 << 0
-        W = 1 << 1
-        R = 1 << 2
-
-    class Color(IntFlag):
-        BLACK = 0
-        RED = 1
-        GREEN = 2
-        BLUE = 4
-        PURPLE = RED|BLUE
-
-    class Open(IntFlag):
-        "not a good flag candidate"
-        RO = 0
-        WO = 1
-        RW = 2
-        AC = 3
-        CE = 1<<19
+    def setUp(self):
+        #
+        class Perm(IntFlag):
+            X = 1 << 0
+            W = 1 << 1
+            R = 1 << 2
+        #
+        class Color(IntFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+            PURPLE = RED|BLUE
+        #
+        class Open(IntFlag):
+            "not a good flag candidate"
+            RO = 0
+            WO = 1
+            RW = 2
+            AC = 3
+            CE = 1<<19
+        #
+        self.Perm = Perm
+        self.Color = Color
+        self.Open = Open
 
     def test_set_name(self):
         class Descriptor(object):
@@ -4717,17 +4718,13 @@ class TestIntFlag(TestCase):
         self.assertEqual(str(Perm.X), 'Perm.X')
         self.assertEqual(str(Perm.R | Perm.W), 'Perm.R|W')
         self.assertEqual(str(Perm.R | Perm.W | Perm.X), 'Perm.R|W|X')
-        self.assertEqual(str(Perm.R | 8), 'Perm.8|R')
-        self.assertEqual(str(Perm(0)), 'Perm.0')
-        self.assertEqual(str(Perm(8)), 'Perm.8')
+        self.assertEqual(str(Perm(0)), 'Perm(0)')
         self.assertEqual(str(~Perm.R), 'Perm.W|X')
         self.assertEqual(str(~Perm.W), 'Perm.R|X')
         self.assertEqual(str(~Perm.X), 'Perm.R|W')
         self.assertEqual(str(~(Perm.R | Perm.W)), 'Perm.X')
-        self.assertEqual(str(~(Perm.R | Perm.W | Perm.X)), 'Perm.-8')
-        self.assertEqual(str(~(Perm.R | 8)), 'Perm.W|X')
+        self.assertEqual(str(~(Perm.R | Perm.W | Perm.X)), 'Perm(0)')
         self.assertEqual(str(Perm(~0)), 'Perm.R|W|X')
-        self.assertEqual(str(Perm(~8)), 'Perm.R|W|X')
 
         Open = self.Open
         self.assertEqual(str(Open.RO), 'Open.RO')
@@ -4735,46 +4732,146 @@ class TestIntFlag(TestCase):
         self.assertEqual(str(Open.AC), 'Open.AC')
         self.assertEqual(str(Open.RO | Open.CE), 'Open.CE')
         self.assertEqual(str(Open.WO | Open.CE), 'Open.CE|WO')
-        self.assertEqual(str(Open(4)), 'Open.4')
-        self.assertEqual(str(~Open.RO), 'Open.CE|AC|RW|WO')
+        self.assertEqual(str(~Open.RO), 'Open.CE|RW|WO')
         self.assertEqual(str(~Open.WO), 'Open.CE|RW')
         self.assertEqual(str(~Open.AC), 'Open.CE')
-        self.assertEqual(str(~(Open.RO | Open.CE)), 'Open.AC|RW|WO')
+        self.assertEqual(str(~(Open.RO | Open.CE)), 'Open.AC')
         self.assertEqual(str(~(Open.WO | Open.CE)), 'Open.RW')
-        self.assertEqual(str(Open(~4)), 'Open.CE|AC|RW|WO')
 
-    def test_repr(self):
-        Perm = self.Perm
+    def test_repr_strict(self):
+        class Perm(IntFlag):
+            X = 1 << 0
+            W = 1 << 1
+            R = 1 << 2
+        Perm._boundary_ = aenum.STRICT
         self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
         self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
         self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
         self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
         self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
-        self.assertEqual(repr(Perm.R | 8), '<Perm.8|R: 12>')
-        self.assertEqual(repr(Perm(0)), '<Perm.0: 0>')
-        self.assertEqual(repr(Perm(8)), '<Perm.8: 8>')
-        self.assertEqual(repr(~Perm.R), '<Perm.W|X: -5>')
-        self.assertEqual(repr(~Perm.W), '<Perm.R|X: -3>')
-        self.assertEqual(repr(~Perm.X), '<Perm.R|W: -2>')
-        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: -7>')
-        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm.-8: -8>')
-        self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: -13>')
-        self.assertEqual(repr(Perm(~0)), '<Perm.R|W|X: -1>')
-        self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: -9>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        #
+        with self.assertRaisesRegex(ValueError, 'invalid value 12'):
+            repr(Perm.R | 8)
+        with self.assertRaisesRegex(ValueError, 'invalid value 12'):
+            repr(~(Perm.R | 8))
+        with self.assertRaisesRegex(ValueError, 'invalid value -9'):
+            repr(Perm(~8))
 
-        Open = self.Open
+    def test_repr_conform(self):
+        class Perm(IntFlag):
+            X = 1 << 0
+            W = 1 << 1
+            R = 1 << 2
+        Perm._boundary_ = aenum.CONFORM
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 0>')
+        self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+
+    def test_repr_eject(self):
+        class Perm(IntFlag):
+            X = 1 << 0
+            W = 1 << 1
+            R = 1 << 2
+        Perm._boundary_ = aenum.EJECT
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '12')
+        self.assertEqual(repr(Perm(8)), '8')
+        self.assertEqual(repr(~(Perm.R | 8)), '-13')
+        self.assertEqual(repr(Perm(~8)), '-9')
+
+    def test_repr_open(self):
+        class Open(IntFlag):
+            "not a good flag candidate"
+            RO = 0
+            WO = 1
+            RW = 2
+            AC = 3
+            CE = 1<<19
+        Open._boundary_ = aenum.STRICT
         self.assertEqual(repr(Open.RO), '<Open.RO: 0>')
         self.assertEqual(repr(Open.WO), '<Open.WO: 1>')
         self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
         self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
         self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
-        self.assertEqual(repr(Open(4)), '<Open.4: 4>')
-        self.assertEqual(repr(~Open.RO), '<Open.CE|AC|RW|WO: -1>')
-        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: -2>')
-        self.assertEqual(repr(~Open.AC), '<Open.CE: -4>')
-        self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC|RW|WO: -524289>')
-        self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: -524290>')
-        self.assertEqual(repr(Open(~4)), '<Open.CE|AC|RW|WO: -5>')
+        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
+        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
+        self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
+        self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
+        self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
+        with self.assertRaisesRegex(ValueError, 'invalid value -5'):
+            repr(Open(~4))
+        with self.assertRaisesRegex(ValueError, 'invalid value 4'):
+            repr(Open(4))
+        #
+        class Open(IntFlag):
+            "not a good flag candidate"
+            RO = 0
+            WO = 1
+            RW = 2
+            AC = 3
+            CE = 1<<19
+        Open._boundary_ = aenum.CONFORM
+        self.assertEqual(repr(Open.RO), '<Open.RO: 0>')
+        self.assertEqual(repr(Open.WO), '<Open.WO: 1>')
+        self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
+        self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
+        self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
+        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
+        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
+        self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
+        self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
+        self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
+        self.assertEqual(repr(Open(~4)), '<Open.CE|RW|WO: 524291>')
+        self.assertEqual(repr(Open(4)), '<Open.RO: 0>')
+        #
+        class Open(IntFlag):
+            "not a good flag candidate"
+            RO = 0
+            WO = 1
+            RW = 2
+            AC = 3
+            CE = 1<<19
+        Open._boundary_ = aenum.EJECT
+        self.assertEqual(repr(Open.RO), '<Open.RO: 0>')
+        self.assertEqual(repr(Open.WO), '<Open.WO: 1>')
+        self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
+        self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
+        self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
+        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
+        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
+        self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
+        self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
+        self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
+        self.assertEqual(repr(Open(~4)), '-5')
+        self.assertEqual(repr(Open(4)), '4')
 
     def test_or(self):
         Perm = self.Perm
@@ -4852,8 +4949,7 @@ class TestIntFlag(TestCase):
         RWX = Perm.R | Perm.W | Perm.X
         values = list(Perm) + [RW, RX, WX, RWX, Perm(0)]
         for i in values:
-            self.assertEqual(~i, ~i.value)
-            self.assertEqual((~i).value, ~i.value)
+            self.assertEqual(~i, (~i).value)
             self.assertIs(type(~i), Perm)
             self.assertEqual(~~i, i)
         for i in Perm:
