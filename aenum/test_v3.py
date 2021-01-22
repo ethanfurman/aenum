@@ -11,9 +11,6 @@ import textwrap
 import sys
 pyver = float('%s.%s' % sys.version_info[:2])
 
-class MagicAutoNumberEnum(Enum, settings=AutoNumber):
-    pass
-
 class TestEnumV3(TestCase):
 
     def setUp(self):
@@ -105,14 +102,14 @@ class TestEnumV3(TestCase):
     #     self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
     #     self.assertEqual(Color.red.value, 1)
 
-    def test_ignore_not_overridden(self):
-        with self.assertRaisesRegex(TypeError, 'object is not callable'):
-            class Color(Flag):
-                _ignore_ = 'irrelevent'
-                _settings_ = AutoValue
-                @property
-                def shade(self):
-                    print('I am light', self.name.lower())
+    # def test_ignore_not_overridden(self):
+    #     with self.assertRaisesRegex(TypeError, 'object is not callable'):
+    #         class Color(Flag):
+    #             _ignore_ = 'irrelevent'
+    #             _settings_ = AutoValue
+    #             @property
+    #             def shade(self):
+    #                 print('I am light', self.name.lower())
 
     # def test_magic_start(self):
     #     class Color(Enum, start=0):
@@ -276,19 +273,8 @@ class TestEnumV3(TestCase):
                 green = 2, 'green'
                 blue = 3, 'blue', 'red'
 
-    def test_multivalue_and_auto(self):
-        class Color(Enum, settings=(MultiValue, AutoValue)):
-            red
-            green = 3, 'green'
-            blue
-        self.assertEqual(Color.red.value, 1)
-        self.assertEqual(Color.green.value, 3)
-        self.assertEqual(Color.blue.value, 4)
-        self.assertIs(Color('green'), Color.green)
-        self.assertIs(Color['green'], Color.green)
-
     def test_auto_and_init(self):
-        class Field(IntEnum, settings=AutoNumber, init='__doc__'):
+        class Field(IntEnum, settings=AutoValue, init='value __doc__'):
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
         self.assertEqual(Field.TYPE, 1)
@@ -307,7 +293,7 @@ class TestEnumV3(TestCase):
         self.assertEqual(Field.START.__doc__, 'Field offset in record')
 
     def test_auto_and_init_and_some_values(self):
-        class Field(IntEnum, init='__doc__', settings=AutoNumber):
+        class Field(IntEnum, init='value __doc__', settings=AutoValue):
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
             BLAH = 5, "test blah"
@@ -320,59 +306,6 @@ class TestEnumV3(TestCase):
         self.assertEqual(Field.START.__doc__, 'Field offset in record')
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
-
-    def test_autonumber_sans_init(self):
-        class Color(MagicAutoNumberEnum):
-            red = ()
-            green = ()
-            blue = ()
-        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-        self.assertEqual([m.value for m in Color], [1, 2, 3])
-        self.assertEqual([m.name for m in Color], ['red', 'green', 'blue'])
-
-    def test_autonumber_with_irregular_values(self):
-        class Point(MagicAutoNumberEnum, init='x y'):
-            first = 7, 9
-            second = 3, 11, 13
-        self.assertEqual(Point.first.value, 1)
-        self.assertEqual(Point.first.x, 7)
-        self.assertEqual(Point.first.y, 9)
-        self.assertEqual(Point.second.value, 3)
-        self.assertEqual(Point.second.x, 11)
-        self.assertEqual(Point.second.y, 13)
-        with self.assertRaisesRegex(TypeError, 'number of fields provided do not match init'):
-            class Color(MagicAutoNumberEnum, init='__doc__'):
-                red = ()
-                green = 'red'
-                blue = ()
-        with self.assertRaisesRegex(TypeError, 'number of fields provided do not match init'):
-            class Color(MagicAutoNumberEnum, init='__doc__ x y'):
-                red = 'red', 7, 9
-                green = 'green', 8
-                blue = 'blue', 11, 13
-        with self.assertRaisesRegex(TypeError, 'number of fields provided do not match init'):
-            class Color(MagicAutoNumberEnum, init='__doc__ x y'):
-                red = 'red', 7, 9
-                green = 8, 'green'
-                blue = 'blue', 11, 13
-
-    def test_autonumber_and_tuple(self):
-        class Color(MagicAutoNumberEnum):
-            red = ()
-            green = ()
-            blue = ()
-        self.assertEqual(Color.blue.value, 3)
-
-    def test_autonumber_and_property(self):
-        with self.assertRaises(TypeError):
-            class Color(MagicAutoNumberEnum):
-                _ignore_ = ()
-                red = ()
-                green = ()
-                blue = ()
-                @property
-                def cap_name(self) -> str:
-                    return self.name.title()
 
     # def test_autoenum(self):
     #     class Color(AutoEnum):
@@ -403,28 +336,6 @@ class TestEnumV3(TestCase):
     #         def cap_name(self):
     #             return self.name.title()
     #     self.assertEqual(Color.blue.cap_name, 'Blue')
-
-    # def test_autonumber_and_overridden_ignore(self):
-    #     with self.assertRaises(TypeError):
-    #         class Color(MagicAutoNumberEnum):
-    #             _ignore_ = 'staticmethod'
-    #             red
-    #             green
-    #             blue
-    #             @property
-    #             def cap_name(self) -> str:
-    #                 return self.name.title()
-
-    # def test_autonumber_and_multiple_assignment(self):
-    #     class Color(MagicAutoNumberEnum):
-    #         _ignore_ = 'property'
-    #         red
-    #         green
-    #         blue = cyan
-    #         @property
-    #         def cap_name(self) -> str:
-    #             return self.name.title()
-    #     self.assertEqual(Color.blue.cap_name, 'Cyan')
 
     # def test_combine_new_settings_with_old_settings(self):
     #     class Auto(Enum, settings=Unique):
@@ -752,13 +663,13 @@ class TestEnumV3(TestCase):
             try:
                 Color('bad return')
             except TypeError as exc:
-                self.assertTrue(isinstance(exc.__context__, ValueError))
+                self.assertTrue(isinstance(exc.__cause__, ValueError))
             else:
                 raise Exception('Exception not raised.')
             try:
                 Color('error out')
             except ZeroDivisionError as exc:
-                self.assertTrue(isinstance(exc.__context__, ValueError))
+                self.assertTrue(isinstance(exc.__cause__, ValueError))
             else:
                 raise Exception('Exception not raised.')
 
@@ -909,6 +820,9 @@ class TestEnumV3(TestCase):
 
 
 class TestOrderV3(TestCase):
+    """
+    Test definition order versus _order_ order.
+    """
 
     def test_same_members(self):
         class Color(Enum):
@@ -967,6 +881,65 @@ class TestOrderV3(TestCase):
                 green = 2
                 blue = 3
                 purple = 4
+                verde = green
+
+    def test_same_members_flag(self):
+        class Color(Flag):
+            _order_ = 'red green blue'
+            red = 1
+            green = 2
+            blue = 4
+
+    def test_same_members_with_aliases_flag(self):
+        class Color(Flag):
+            _order_ = 'red green blue'
+            red = 1
+            green = 2
+            blue = 4
+            verde = green
+
+    def test_same_members_wrong_order_falg(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue'
+                red = 1
+                blue = 4
+                green = 2
+
+    def test_order_has_extra_members_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue purple'
+                red = 1
+                green = 2
+                blue = 4
+
+    def test_order_has_extra_members_with_aliases_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue purple'
+                red = 1
+                green = 2
+                blue = 4
+                verde = green
+
+    def test_enum_has_extra_members_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue'
+                red = 1
+                green = 2
+                blue = 4
+                purple = 8
+
+    def test_enum_has_extra_members_with_aliases_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue'
+                red = 1
+                green = 2
+                blue = 4
+                purple = 8
                 verde = green
 
 

@@ -44,31 +44,25 @@ rebound to other values.
 Base class for creating enumerated constants.  See section `Enum Functional API`_
 for an alternate construction syntax.
 
-``AutoNumber``
+``AutoValue``
 
-Flag to Enum constructor specifying auto numbering.
-
-.. note::
-
-    In Python 3 this turns on auto-attribute creation; use _ignore_ to
-    shield objects outside the Enum that you want access to during creation
-    (property, classmethod, and staticmethod are shielded by default, but
-    only if a custom _ignore_ is not specified).
+Flag specifying that a single missing value should be generated with
+``_generate_next_value_``.  Use ``init`` (``_init_`` in Python 2) to specify
+the number of items.
 
 ``MultiValue``
 
-Flag to Enum constructor specifying that each item of tuple value is a separate
-value for that member; the first tuple item is the canonical one.
+Flag specifying that each item of tuple value is a separate value for that
+member; the first tuple item is the canonical one.
 
 ``NoAlias``
 
-Flag to Enum Constructor specifying that duplicate valued members are distinct
-and not aliases; by-value lookups are disabled.
+Flag specifying that duplicate valued members are distinct and not aliases;
+by-value lookups are disabled.
 
 ``Unique``
 
-Flag to Enum constructor specifying that duplicate valued members are not
-allowed.
+Flag specifying that duplicate valued members are not allowed.
 
 .. note::
     The flags are inherited by the enumeration's subclasses.  To use them in
@@ -120,7 +114,7 @@ Helper for specifying keyword arguments when creating ``Enum`` members.
 
 ``export``
 
-Helper for inserting ``Enum`` members ``NamedConstant`` constants into a
+Helper for inserting ``Enum`` members and ``NamedConstant`` constants into a
 namespace (usually ``globals()``.
 
 ``extend_enum``
@@ -641,6 +635,7 @@ Sample ``IntFlag`` class::
 
     >>> from aenum import IntFlag
     >>> class Perm(IntFlag):
+    ...     _order_ = 'R W X'
     ...     R = 4
     ...     W = 2
     ...     X = 1
@@ -656,6 +651,7 @@ Sample ``IntFlag`` class::
 It is also possible to name the combinations::
 
     >>> class Perm(IntFlag):
+    ...     _order_ = 'R W X'
     ...     R = 4
     ...     W = 2
     ...     X = 1
@@ -684,13 +680,13 @@ an exception is raised (``STRICT``), the extra bits are lost (``CONFORM``), or
 it reverts to an int (``EJECT``):
 
     >>> from aenum import STRICT, CONFORM, EJECT
-    >>> # the default is STRICT
+    >>> Perm._boundary_ = STRICT
     >>> Perm.X | 8
     Traceback (most recent call last):
     ...
-    ValueError: Perm: invalid value 9
-        given 1001
-      allowed 0111
+    ValueError: Perm: invalid value: 9
+        given 0b0 1001
+      allowed 0b0 0111
 
     >>> Perm._boundary_ = EJECT
     >>> Perm.X | 8
@@ -764,7 +760,7 @@ Flags can be iterated over to retrieve the individual truthy flags in the value:
     >>> list(Color.GREEN)
     [<Color.GREEN: 4>]
     >>> list(Color.WHITE)
-    [<Color.GREEN: 4>, <Color.BLUE: 2>, <Color.RED: 1>]
+    [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 4>]
 
 .. note::
 
@@ -795,20 +791,23 @@ Some rules:
    ``Enum`` itself in the sequence of bases, as in the ``IntEnum``
    example above.
 2. While ``Enum`` can have members of any type, once you mix in an
-   additional type, all the members must have values of that type, e.g.
-   ``int`` above.  This restriction does not apply to mix-ins which only
-   add methods and don't specify another data type such as ``int`` or
-   ``str``.
+   additional type, all the members must have values of that type or be
+   convertible into that type.  This restriction does not apply to mix-ins
+   which only add methods and don't specify another data type.
 3. When another data type is mixed in, the ``value`` attribute is *not the
    same* as the enum member itself, although it is equivalant and will compare
    equal.
 4. %-style formatting:  ``%s`` and ``%r`` call ``Enum``'s ``__str__`` and
    ``__repr__`` respectively; other codes (such as ``%i`` or ``%h`` for
    IntEnum) treat the enum member as its mixed-in type.
-
 5. ``str.__format__`` (or ``format``) will use the mixed-in
-   type's ``__format__``.  If the ``Enum``'s ``str`` or
-   ``repr`` is desired use the ``!s`` or ``!r`` ``str`` format codes.
+   type's ``__format__``.  If the ``Enum``'s ``str`` or ``repr`` is desired
+   use the ``!s`` or ``!r`` ``str`` format codes.
+
+.. note::
+
+   If you override the ``__str__`` method, then it will be used to provide the
+   string portion of the ``format()`` call.
 
 .. note::
 
@@ -927,9 +926,9 @@ member, use ``skip``::
 start
 ^^^^^
 
-When using Python 3 you have the option of turning on auto-numbering
-(useful for when you don't care which numbers are assigned as long as
-they are consistent and in order)::
+``start`` can be used to turn on auto-numbering (useful for when you don't
+care which numbers are assigned as long as they are consistent and in order)
+The Python 3 version can look like this::
 
     >>> class Color(Enum, start=1):                # doctest: +SKIP
     ...     red, green, blue
@@ -937,7 +936,8 @@ they are consistent and in order)::
     >>> Color.blue
     <Color.blue: 3>
 
-This can also be done in Python 2, albeit not as elegantly::
+This can also be done in Python 2, albeit not as elegantly (this also works in
+Python 3)::
 
     >>> class Color(Enum):                         # doctest: +SKIP
     ...     _start_ = 1
@@ -947,8 +947,6 @@ This can also be done in Python 2, albeit not as elegantly::
     ...
     >>> Color.blue
     <Color.blue: 3>
-
-.. note:: auto-numbering turns off when a non-member is defined
 
 init
 ^^^^
@@ -971,6 +969,11 @@ arguments, ``init`` is for you::
     (1.9e+27, 71492000.0)
     >>> Planet.JUPITER.mass
     1.9e+27
+
+.. note::
+
+   Just as with ``start`` above, in Python 2 you must put the keyword as a
+   _sunder_ in the class body -- ``_init_ = 'mass radius'``.
 
 combining init and AutoValue
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1005,6 +1008,10 @@ is the Python 2 version::
     <NotificationType.blank: ('', '')>
     >>> NotificationType.B
     <NotificationType.B: ('B', 'Both')>
+    >>> NotificationType.B.db
+    'B'
+    >>> NotificationType.B.user
+    'Both'
 
 combining Flag with other data types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1034,9 +1041,14 @@ with the members in a composite flag.  You may also need to provide a custom
     ...
     >>> color = AnsiFlag.BG_White | AnsiFlag.FG_Red
     >>> repr(color)
-    '<AnsiFlag.BG_White|FG_Red: 9>'
+    '<AnsiFlag.FG_Red|BG_White: 9>'
     >>> str.__repr__(color)
-    "'\\x1b[47;31m'"
+    "'\\x1b[31;47m'"
+
+.. note::
+
+   If you do not provide your own ``_create_pseudo_member_values_`` the flags
+   may still combine, but may be missing functionality.
 
 
 Decorators
@@ -1246,7 +1258,7 @@ accessible as `EnumClass.member1.member2`.
     >>> FieldTypes.value.size
     Traceback (most recent call last):
     ...
-    AttributeError: 'size' not found in <FieldTypes.value: 2>
+    AttributeError: FieldTypes: no attribute 'size'
 
 The ``__members__`` attribute is only available on the class.
 
@@ -1313,6 +1325,11 @@ present in the final enumeration as neither attributes nor members.
 
     except for __dunder__ attributes/methods, all _sunder_ attributes must
     be before any thing else in the class body
+
+.. note::
+
+    all _sunder_ attributes that affect member creation are only looked up in
+    the last ``Enum`` class listed in the class header
 
 
 Creating NamedTuples

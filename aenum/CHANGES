@@ -1,3 +1,40 @@
+3.0.0
+=====
+
+standard Enum usage is unchanged
+
+BREAKING CHANGES
+
+Enum
+- the more esoteric method of creating Enums have been modified or removed
+  - AutoNumber setting is gone, inherit from AutoNumberEnum instead
+  - creating members without specifying anything is removed (if you don't
+    know what this means, you weren't doing it)
+
+Flag
+- unique flags are canonical (i.e. flags with powers of two values such as
+  1, 2, 4, 8, 16, etc.)
+- non-unique flags are aliases (i.e. values such as 3 or 7)
+- iteration of Flag and flag members only uses canonical flags
+
+
+ENHANCEMENTS
+
+Member creation has been redone to match Python 3.10's methods.  This also
+allows all supported Pythons (2.7, 3.3+) to use the __set_name__ and
+__init_subclass__ protocols (more robustly than in aenum 2.2.5)
+
+
+CHANGES
+
+enum_property() has been renamed to property() (old name still available, but
+deprecated).
+
+bin() replacement shows negative integers in twos-complement
+
+
+
+
 2.2.5
 =====
 

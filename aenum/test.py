@@ -14,6 +14,7 @@ import warnings
 from aenum import EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
 from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
+from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode
 from aenum import StdlibEnumMeta, StdlibEnum
@@ -207,6 +208,554 @@ class classproperty(object):
 
 
 # tests
+class TestOrder(TestCase):
+    """
+    Test _order_ extra/missing members.
+    """
+
+    def test_same_members(self):
+        class Color(Enum):
+            _order_ = 'red green blue'
+            red = 1
+            green = 2
+            blue = 3
+
+    def test_same_members_with_aliases(self):
+        class Color(Enum):
+            _order_ = 'red green blue'
+            red = 1
+            green = 2
+            blue = 3
+            verde = green
+
+    def test_order_has_extra_members(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Enum):
+                _order_ = 'red green blue purple'
+                red = 1
+                green = 2
+                blue = 3
+
+    def test_order_has_extra_members_with_aliases(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Enum):
+                _order_ = 'red green blue purple'
+                red = 1
+                green = 2
+                blue = 3
+                verde = green
+
+    def test_enum_has_extra_members(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Enum):
+                _order_ = 'red green blue'
+                red = 1
+                green = 2
+                blue = 3
+                purple = 4
+
+    def test_enum_has_extra_members_with_aliases(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Enum):
+                _order_ = 'red green blue'
+                red = 1
+                green = 2
+                blue = 3
+                purple = 4
+                verde = green
+
+    def test_same_members_flag(self):
+        class Color(Flag):
+            _order_ = 'red green blue'
+            red = 1
+            green = 2
+            blue = 4
+
+    def test_same_members_with_aliases_flag(self):
+        class Color(Flag):
+            _order_ = 'red green blue'
+            red = 1
+            green = 2
+            blue = 4
+            verde = green
+
+    def test_order_has_extra_members_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue purple'
+                red = 1
+                green = 2
+                blue = 4
+
+    def test_order_has_extra_members_with_aliases_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue purple'
+                red = 1
+                green = 2
+                blue = 4
+                verde = green
+
+    def test_enum_has_extra_members_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue'
+                red = 1
+                green = 2
+                blue = 4
+                purple = 8
+
+    def test_enum_has_extra_members_with_aliases_flag(self):
+        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+            class Color(Flag):
+                _order_ = 'red green blue'
+                red = 1
+                green = 2
+                blue = 4
+                purple = 8
+                verde = green
+
+
+class TestAutoValue(TestCase):
+
+    def test_bare(self):
+        #
+        class BareEnum(Enum):
+            _settings_ = AutoValue
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(BareEnum.THREE.value, 3)
+        #
+        class BareIntEnum(IntEnum):
+            _settings_ = AutoValue
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(BareIntEnum.THREE, 3)
+        #
+        class BareFlag(Flag):
+            _settings_ = AutoValue
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(BareFlag.THREE.value, 4)
+        #
+        class BareIntFlag(IntFlag):
+            _settings_ = AutoValue
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(BareIntFlag.THREE, 4)
+
+    def test_init_only_final(self):
+        #
+        class InitEnumValue(Enum):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitEnumValue.THREE.value, 3)
+        self.assertEqual(InitEnumValue.THREE.description, 'a triangle')
+        #
+        class InitEnum(Enum):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitEnum.THREE.value, 3)
+        self.assertEqual(InitEnum.THREE.description, 'a triangle')
+        #
+        class InitIntEnum(IntEnum):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitIntEnum.THREE, 3)
+        self.assertEqual(InitIntEnum.THREE.description, 'a triangle')
+        #
+        class InitFlag(Flag):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitFlag.THREE.value, 4)
+        self.assertEqual(InitFlag.THREE.description, 'a triangle')
+        #
+        class InitIntFlag(IntFlag):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitIntFlag.THREE, 4)
+        self.assertEqual(InitIntFlag.THREE.description, 'a triangle')
+
+    def test_init_only_inherit(self):
+        #
+        class InitInheritEnum(Enum):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+        #
+        class InitEnum(InitInheritEnum):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitEnum.THREE.value, 3)
+        self.assertEqual(InitEnum.THREE.description, 'a triangle')
+        #
+        #
+        class InitInheritValueEnum(Enum):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+        #
+        class InitEnum(InitInheritValueEnum):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitEnum.THREE.value, 3)
+        self.assertEqual(InitEnum.THREE.description, 'a triangle')
+        #
+        class InitIntEnum(int, InitInheritValueEnum):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitIntEnum.THREE, 3)
+        self.assertEqual(InitIntEnum.THREE.description, 'a triangle')
+        #
+        class InitInheritValueFlag(Flag):
+            _settings_ = AutoValue
+            _init_ = 'value description'
+        #
+        class InitFlag(InitInheritValueFlag):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitFlag.THREE.value, 4)
+        self.assertEqual(InitFlag.THREE.description, 'a triangle')
+        #
+        class InitIntFlag(int, InitInheritValueFlag):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitIntFlag.THREE, 4)
+        self.assertEqual(InitIntFlag.THREE.description, 'a triangle')
+
+    def test_new_only_final(self):
+        #
+        class NewFinalEnum(Enum):
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value):
+                member = object.__new__(cls)
+                member._value_ = value
+                member.proof = 'NFE1'
+                return member
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalEnum.THREE.value, 3)
+        self.assertEqual(NewFinalEnum.TWO.proof, 'NFE1')
+        #
+        class NewFinalIntEnum(IntEnum):
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value):
+                member = int.__new__(cls, value)
+                member._value_ = value
+                member.proof = 'NFE2'
+                return member
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalIntEnum.THREE, 3)
+        self.assertEqual(NewFinalIntEnum.TWO.proof, 'NFE2')
+        #
+        class NewFinalFlag(Flag):
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value):
+                member = object.__new__(cls)
+                member._value_ = value
+                member.proof = 'NFE3'
+                return member
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalFlag.THREE.value, 4)
+        self.assertEqual(NewFinalFlag.TWO.proof, 'NFE3')
+        #
+        class NewFinalIntFlag(IntFlag):
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value):
+                member = int.__new__(cls, value)
+                member._value_ = value
+                member.proof = 'NFE4'
+                return member
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalIntFlag.THREE, 4)
+        self.assertEqual(NewFinalIntFlag.TWO.proof, 'NFE4')
+        #
+        class NewFinalStrEnum(str, Enum):
+            #
+            _settings_ = AutoValue
+            _order_ = "AllReset Bright FG_Cyan BG_Black"
+            #
+            def __new__(cls, value, code, description):
+                str_value = '\x1b[%sm' % code
+                obj = str.__new__(cls, str_value)
+                obj._value_ = value
+                obj.code = code
+                obj.description = description
+                return obj
+            #
+            __str__ = str.__str__
+            #
+            AllReset = '0', 'reset all (colors and brightness)'
+            Bright = '1', 'bright lights!'
+            FG_Cyan = '36', 'cyan'
+            BG_Black = '40', 'black'
+        self.assertEqual(NewFinalStrEnum.FG_Cyan.value, 3)
+        self.assertEqual(NewFinalStrEnum.BG_Black.value, 4)
+        self.assertEqual(NewFinalStrEnum.AllReset.code, '0')
+        self.assertEqual(NewFinalStrEnum.Bright.description, 'bright lights!')
+        #
+        class NewFinalStrFlag(str, Flag):
+            #
+            _settings_ = AutoValue
+            _order_ = "AllReset Bright FG_Cyan BG_Black"
+            #
+            def __new__(cls, value, code, description):
+                str_value = '\x1b[%sm' % code
+                obj = str.__new__(cls, str_value)
+                obj._value_ = value
+                obj.code = code
+                obj.description = description
+                return obj
+            #
+            __str__ = str.__str__
+            #
+            AllReset = '0', 'reset all (colors and brightness)'
+            Bright = '1', 'bright lights!'
+            FG_Cyan = '36', 'cyan'
+            BG_Black = '40', 'black'
+        self.assertEqual(NewFinalStrFlag.FG_Cyan.value, 4)
+        self.assertEqual(NewFinalStrFlag.BG_Black.value, 8)
+        self.assertEqual(NewFinalStrFlag.AllReset.code, '0')
+        self.assertEqual(NewFinalStrFlag.Bright.description, 'bright lights!')
+
+    def test_new_only_inherited(self):
+        #
+        class NewInheritEnum(Enum):
+            def __new__(cls, value):
+                if cls._member_type_ is int:
+                    member = int.__new__(cls, value*2)
+                else:
+                    member = object.__new__(cls)
+                member._value_ = value * 2
+                member.proof = 'NIE'
+                return member
+        #
+        class NewFinalEnum(NewInheritEnum):
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalEnum.THREE.value, 6)
+        self.assertEqual(NewFinalEnum.TWO.proof, 'NIE')
+        #
+        class NewFinalIntEnum(int, NewInheritEnum):
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalIntEnum.THREE, 6)
+        self.assertEqual(NewFinalIntEnum.TWO.proof, 'NIE')
+        #
+        class NewInheritFlag(Flag):
+            def __new__(cls, value):
+                if cls._member_type_ is int:
+                    member = int.__new__(cls, value*2)
+                else:
+                    member = object.__new__(cls)
+                member._value_ = value * 2
+                member.proof = 'NIE'
+                return member
+        #
+        class NewFinalFlag(NewInheritFlag):
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalFlag.THREE.value, 8)
+        self.assertEqual(NewFinalFlag.TWO.proof, 'NIE')
+        #
+        class NewFinalIntFlag(int, NewInheritFlag):
+            _order_ = 'ONE TWO THREE'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+        self.assertEqual(NewFinalIntFlag.THREE, 8)
+        self.assertEqual(NewFinalIntFlag.TWO.proof, 'NIE')
+
+    def test_init_new_only(self):
+        #
+        class InitNewEnum(Enum):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value, *args):
+                member = object.__new__(cls)
+                member._value_ = value
+                member.proof = 'INE1'
+                return member
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewEnum.THREE.value, 3)
+        self.assertEqual(InitNewEnum.THREE.description, 'a triangle')
+        self.assertEqual(InitNewEnum.TWO.proof, 'INE1')
+        #
+        class InitNewIntEnum(IntEnum):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value, *args):
+                member = int.__new__(cls, value)
+                member._value_ = value
+                member.proof = 'INE2'
+                return member
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewIntEnum.THREE, 3)
+        self.assertEqual(InitNewIntEnum.THREE.description, 'a triangle')
+        self.assertEqual(InitNewIntEnum.TWO.proof, 'INE2')
+        #
+        class InitNewFlag(Flag):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value, *args):
+                member = object.__new__(cls)
+                member._value_ = value
+                member.proof = 'INE3'
+                return member
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewFlag.THREE.value, 4)
+        self.assertEqual(InitNewFlag.THREE.description, 'a triangle')
+        self.assertEqual(InitNewFlag.TWO.proof, 'INE3')
+        #
+        class InitNewIntFlag(IntFlag):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            _order_ = 'ONE TWO THREE'
+            def __new__(cls, value, *args):
+                member = int.__new__(cls, value)
+                member._value_ = value
+                member.proof = 'INE4'
+                return member
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewIntFlag.THREE, 4)
+        self.assertEqual(InitNewIntFlag.THREE.description, 'a triangle')
+        self.assertEqual(InitNewIntFlag.TWO.proof, 'INE4')
+
+    def test_init_new_inherit(self):
+        #
+        class InitNew(Enum):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            def __new__(cls, value, *args):
+                member = object.__new__(cls)
+                member._value_ = value
+                member.proof = 'IN'
+                return member
+        #
+        class InitNewEnum(InitNew):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewEnum.THREE.value, 3)
+        self.assertEqual(InitNewEnum.THREE.description, 'a triangle')
+        self.assertEqual(InitNewEnum.TWO.proof, 'IN')
+        #
+        class InitNewInt(Enum):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            def __new__(cls, value, *args):
+                member = int.__new__(cls, value)
+                member._value_ = value
+                member.proof = 'IN'
+                return member
+        #
+        class InitNewIntEnum(int, InitNewInt):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewIntEnum.THREE, 3)
+        self.assertEqual(InitNewIntEnum.THREE.description, 'a triangle')
+        self.assertEqual(InitNewIntEnum.TWO.proof, 'IN')
+        #
+        class InitNewFlagBase(Flag):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            def __new__(cls, value, *args):
+                member = object.__new__(cls)
+                member._value_ = value
+                member.proof = 'IN'
+                return member
+        #
+        class InitNewFlag(InitNewFlagBase):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewFlag.THREE.value, 4)
+        self.assertEqual(InitNewFlag.THREE.description, 'a triangle')
+        self.assertEqual(InitNewFlag.TWO.proof, 'IN')
+        #
+        class InitNewIntFlagBase(int, Flag):
+            _settings_ = AutoValue
+            _init_ = "value description"
+            def __new__(cls, value, *args):
+                member = int.__new__(cls, value)
+                member._value_ = value
+                member.proof = 'IN'
+                return member
+        #
+        class InitNewIntFlag(InitNewIntFlagBase):
+            _order_ = 'ONE TWO THREE'
+            ONE = 'the loneliest number'
+            TWO = 'the number with you'
+            THREE = 'a triangle'
+        self.assertEqual(InitNewIntFlag.THREE, 4)
+        self.assertEqual(InitNewIntFlag.THREE.description, 'a triangle')
+        self.assertEqual(InitNewIntFlag.TWO.proof, 'IN')
+
+
 class TestHelpers(TestCase):
     # _is_descriptor, _is_sunder, _is_dunder
 
@@ -1986,23 +2535,6 @@ class TestEnum(TestCase):
             yellow = 6
         self.assertEqual(MoreColor.magenta.hex(), '5 hexlified!')
 
-    def test_extending4(self):
-        class hohum(object):
-            def cyan(self):
-                "cyanize a color"
-                return self.value * 7
-        class Color(hohum, Enum):
-            red = 1
-            green = 2
-            blue = 3
-            cyan = 4
-        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue, Color.cyan])
-        self.assertEqual(Color.red.cyan(), 7)
-        self.assertEqual(Color.green.cyan(), 14)
-        self.assertEqual(Color.blue.cyan(), 21)
-        self.assertEqual(Color.cyan.cyan(), 28)
-
-
     def test_extending5(self):
         class Color(Enum):
             _order_ = 'red green blue value'
@@ -2261,35 +2793,6 @@ class TestEnum(TestCase):
         def test_init_and_autonumber_and_value(self):
             pass
 
-    def test_no_init_and_autonumber(self):
-        class DocEnum(str, Enum):
-            """
-            compares equal to all cased versions of its name
-            accepts a docstring for each member
-            """
-            _settings_ = AutoNumber
-            def __init__(self, value, doc=None):
-                # first, fix _value_
-                self._value_ = self._name_.lower()
-                self.__doc__ = doc
-            def __eq__(self, other):
-                if isinstance(other, basestring):
-                    return self._value_ == other.lower()
-                elif isinstance(other, self.__class__):
-                    return self is other
-                else:
-                    return False
-            def __ne__(self, other):
-                return not self == other
-            REQUIRED = "required value"
-            OPTION = "single value per name"
-            MULTI = "multiple values per name (list form, no whitespace)"
-            FLAG = "boolean/trivalent value per name"
-            KEYWORD = 'unknown options'
-        self.assertEqual(DocEnum.REQUIRED, 'required')
-        self.assertEqual(DocEnum.REQUIRED, 'Required')
-        self.assertEqual(DocEnum.REQUIRED, 'REQUIRED')
-
     def test_nonhash_value(self):
         class AutoNumberInAList(Enum):
             def __new__(cls):
@@ -2305,6 +2808,23 @@ class TestEnum(TestCase):
         self.assertEqual(list(ColorInAList), [ColorInAList.red, ColorInAList.green, ColorInAList.blue])
         self.assertEqual(ColorInAList.red.value, [1])
         self.assertEqual(ColorInAList([1]), ColorInAList.red)
+
+    def test_number_reset_and_order_cleanup(self):
+        class Confused(Enum):
+            _settings_ = AutoValue
+            _order_ = 'ONE TWO THREE UNO DOS TRES FOUR'
+            ONE = auto()
+            TWO = auto()
+            THREE = auto()
+            UNO = 1
+            DOS = auto()
+            TRES = auto()
+            FOUR = auto()
+        self.assertEqual(list(Confused), [Confused.ONE, Confused.TWO, Confused.THREE, Confused.FOUR])
+        self.assertIs(Confused.TWO, Confused.DOS)
+        self.assertEqual(Confused.DOS._value_, 2)
+        self.assertEqual(Confused.TRES._value_, 3)
+        self.assertEqual(Confused.FOUR._value_, 4)
 
     def test_conflicting_types_resolved_in_new(self):
         class LabelledIntEnum(int, Enum):
@@ -2496,10 +3016,10 @@ class TestEnum(TestCase):
         self.assertRaises(TypeError, Settings, 1)
 
     def test_auto_and_init(self):
-        class Field(IntEnum):
+        class Field(int, Enum):
+            _settings_ = AutoValue
             _order_ = 'TYPE START'
-            _init_ = '__doc__'
-            _settings_ = AutoNumber
+            _init_ = 'value __doc__'
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
         self.assertEqual(Field.TYPE, 1)
@@ -2510,8 +3030,9 @@ class TestEnum(TestCase):
     def test_auto_and_start(self):
         class Field(IntEnum):
             _order_ = 'TYPE START'
+            _settings_ = AutoValue
             _start_ = 0
-            _init_ = '__doc__'
+            _init_ = 'value __doc__'
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
         self.assertEqual(Field.TYPE, 0)
@@ -2520,10 +3041,10 @@ class TestEnum(TestCase):
         self.assertEqual(Field.START.__doc__, 'Field offset in record')
 
     def test_auto_and_init_and_some_values(self):
-        class Field(IntEnum):
+        class Field(int, Enum):
+            _settings_ = AutoValue
             _order_ = 'TYPE START BLAH BELCH'
-            _init_ = '__doc__'
-            _settings_ = AutoNumber
+            _init_ = 'value __doc__'
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
             BLAH = 5, "test blah"
@@ -2537,40 +3058,22 @@ class TestEnum(TestCase):
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
-    def test_auto_and_init_w_value_and_some_values(self):
-        class Field(IntEnum):
-            _order_ = 'TYPE START BLAH BELCH'
-            _init_ = 'value __doc__'
-            _settings_ = AutoNumber
-            TYPE = 1, "Char, Date, Logical, etc."
-            START = 2, "Field offset in record"
-            BLAH = 5, "test blah"
-            BELCH = 7, 'test belch'
-        self.assertEqual(Field.TYPE, 1)
-        self.assertEqual(Field.START, 2)
-        self.assertEqual(Field.BLAH, 5)
-        self.assertEqual(Field.BELCH, 7)
-        self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
-        self.assertEqual(Field.START.__doc__, 'Field offset in record')
-        self.assertEqual(Field.BLAH.__doc__, 'test blah')
-        self.assertEqual(Field.BELCH.__doc__, 'test belch')
-
     def test_auto_and_init_w_value_and_too_many_values(self):
-        with self.assertRaisesRegex(TypeError, 'BLAH: number of fields provided do not match init'):
-            class Field(IntEnum):
+        with self.assertRaisesRegex(TypeError, 'Field\.BLAH: number of fields provided do not match init'):
+            class Field(int, Enum):
+                _settings_ = AutoValue
                 _order_ = 'TYPE START BLAH BELCH'
                 _init_ = 'value __doc__'
-                _settings_ = AutoNumber
                 TYPE = 1, "Char, Date, Logical, etc."
                 START = 2, "Field offset in record"
                 BLAH = 5, 6, "test blah"
                 BELCH = 7, 'test belch'
 
     def test_auto_and_init_and_some_complex_values(self):
-        class Field(IntEnum):
+        class Field(int, Enum):
+            _settings_ = AutoValue
             _order_ = 'TYPE START BLAH BELCH'
-            _init_ = '__doc__ help'
-            _settings_ = AutoNumber
+            _init_ = 'value __doc__ help'
             TYPE = "Char, Date, Logical, etc.", "fields composed of character data"
             START = "Field offset in record", "where the data starts in the record"
             BLAH = 5, "test blah", "some help"
@@ -2590,8 +3093,9 @@ class TestEnum(TestCase):
 
     def test_auto_and_init_inherited(self):
         class AutoEnum(IntEnum):
+            _settings_ = AutoValue
             _start_ = 0
-            _init_ = '__doc__'
+            _init_ = 'value __doc__'
         class Field(AutoEnum):
             _order_ = 'TYPE START BLAH BELCH'
             TYPE = "Char, Date, Logical, etc."
@@ -2709,10 +3213,10 @@ class TestEnum(TestCase):
         self.assertIs(Color(9), Color.blue)
 
     def test_MultiValue_with_init_wo_value_w_autonumber(self):
-        class Color(Enum):
+        class Color(AutoNumberEnum):
             _init_ = 'color r g b'
             _order_ = 'red green blue'
-            _settings_ = MultiValue, AutoNumber
+            _settings_ = MultiValue
             red = 'red', 10, 20, 30
             green = 'green', 40, 50, 60
             blue = 'blue', 70, 80, 90
@@ -2747,72 +3251,9 @@ class TestEnum(TestCase):
         self.assertIs(Color(80), Color.blue)
         self.assertIs(Color(90), Color.blue)
 
-    def test_MultiValue_with_init_wo_value_w_autonumber_and_value(self):
-        class Color(Enum):
-            _init_ = 'color r g b'
-            _order_ = 'red green blue chartruese'
-            _settings_ = MultiValue, AutoNumber
-            red = 'red', 10, 20, 30
-            green = 'green', 40, 50, 60
-            blue = 5, 'blue', 70, 80, 90
-            chartruese = 'chartruese', 100, 110, 120
-        self.assertEqual(Color.red.value, 1)
-        self.assertEqual(Color.red.color, 'red')
-        self.assertEqual(Color.red.r, 10)
-        self.assertEqual(Color.red.g, 20)
-        self.assertEqual(Color.red.b, 30)
-        self.assertEqual(Color.green.value, 2)
-        self.assertEqual(Color.green.color, 'green')
-        self.assertEqual(Color.green.r, 40)
-        self.assertEqual(Color.green.g, 50)
-        self.assertEqual(Color.green.b, 60)
-        self.assertEqual(Color.blue.value, 5)
-        self.assertEqual(Color.blue.color, 'blue')
-        self.assertEqual(Color.blue.r, 70)
-        self.assertEqual(Color.blue.g, 80)
-        self.assertEqual(Color.blue.b, 90)
-        self.assertEqual(Color.chartruese.value, 6)
-        self.assertEqual(Color.chartruese.color, 'chartruese')
-        self.assertEqual(Color.chartruese.r, 100)
-        self.assertEqual(Color.chartruese.g, 110)
-        self.assertEqual(Color.chartruese.b, 120)
-        self.assertIs(Color(1), Color.red)
-        self.assertIs(Color('red'), Color.red)
-        self.assertIs(Color(10), Color.red)
-        self.assertIs(Color(20), Color.red)
-        self.assertIs(Color(30), Color.red)
-        self.assertIs(Color(2), Color.green)
-        self.assertIs(Color('green'), Color.green)
-        self.assertIs(Color(40), Color.green)
-        self.assertIs(Color(50), Color.green)
-        self.assertIs(Color(60), Color.green)
-        self.assertIs(Color(5), Color.blue)
-        self.assertIs(Color('blue'), Color.blue)
-        self.assertIs(Color(70), Color.blue)
-        self.assertIs(Color(80), Color.blue)
-        self.assertIs(Color(90), Color.blue)
-        self.assertIs(Color(6), Color.chartruese)
-        self.assertIs(Color('chartruese'), Color.chartruese)
-        self.assertIs(Color(100), Color.chartruese)
-        self.assertIs(Color(110), Color.chartruese)
-        self.assertIs(Color(120), Color.chartruese)
-
-    def test_multivalue_and_autonumber_wo_init_wo_value(self):
-        class Day(Enum):
-            _settings_ = MultiValue, AutoNumber
-            _order_ = 'one two three'
-            _start_ = 1
-            one = "21", "one"
-            two = "22", "two"
-            three = "23", "three"
-        self.assertEqual(Day.one.value, 1)
-        self.assertEqual(Day.two.value, 2)
-        self.assertEqual(Day.three.value, 3)
-        self.assertEqual(Day('one'), Day.one)
-
     def test_multivalue_and_autonumber_wo_init_w_some_value(self):
         class Color(Enum):
-            _settings_ = AutoNumber, MultiValue, Unique
+            _settings_ = MultiValue, Unique
             _order_ = 'BLACK RED BLUE YELLOW GREEN MAGENTA'
             _init_ = "value description"
             BLACK = -1, "Text0"
@@ -2835,9 +3276,9 @@ class TestEnum(TestCase):
             _settings_ = Unique
         with self.assertRaises(ValueError):
             class AutoUnique(Auto):
-                _settings_ = AutoNumber
-                BLAH = ()
-                BLUH = ()
+                _settings_ = AutoValue
+                BLAH = auto()
+                BLUH = auto()
                 ICK = 1
 
     def test_timedelta(self):
@@ -2950,7 +3391,7 @@ class TestEnum(TestCase):
             orange = auto()
             CitrusTypes = constant(lemon | orange)
         self.assertEqual(list(Fruit), [Fruit.apple, Fruit.banana, Fruit.lemon, Fruit.orange])
-        self.assertEqual(list(Fruit.CitrusTypes), [Fruit.orange, Fruit.lemon])
+        self.assertEqual(list(Fruit.CitrusTypes), [Fruit.lemon, Fruit.orange])
         self.assertTrue(Fruit.orange in Fruit.CitrusTypes)
 
     def test_constant_with_enum_is_updated(self):
@@ -2962,7 +3403,7 @@ class TestEnum(TestCase):
             orange = auto()
             CitrusTypes = constant(lemon | orange)
         self.assertEqual(list(Fruit), [Fruit.apple, Fruit.banana, Fruit.lemon, Fruit.orange])
-        self.assertEqual(list(Fruit.CitrusTypes), [Fruit.orange, Fruit.lemon])
+        self.assertEqual(list(Fruit.CitrusTypes), [Fruit.lemon, Fruit.orange])
         self.assertTrue(Fruit.orange in Fruit.CitrusTypes)
 
     def test_order_as_function(self):
@@ -3399,53 +3840,6 @@ class TestEnum(TestCase):
         self.assertTrue(Color.red is Color(1))
         self.assertTrue(Color.black is Color())
 
-
-    def test_enum_property(self):
-        class SomeClass(object):
-            #
-            an_attr = 97
-            _attr_x = None
-            #
-            def a_method(self, some_number):
-                return self.an_attr - some_number
-            #
-            @property
-            def attr(self):
-                return self._attr_x
-            @attr.setter
-            def attr(self, value):
-                self._attr_x = value
-            #
-            @classmethod
-            def a_class_method(cls, another_number, a_string=None):
-                return a_string * (9 - another_number)
-            #
-            @staticmethod
-            def a_static_method(a, b):
-                return a * b
-        #
-        class SomeEnum(SomeClass, Enum):
-            _order_ = 'an_attr a_method attr a_class_method a_static_method'
-            an_attr = 1
-            a_method = 2
-            attr = 3
-            a_class_method = 4
-            a_static_method = 5
-        #
-        SE = SomeEnum
-        self.assertEqual(
-                list(SomeEnum),
-                [SE.an_attr, SE.a_method, SE.attr, SE.a_class_method, SE.a_static_method],
-                )
-        self.assertEqual(SE.an_attr.a_static_method(2, 3), 6)
-        self.assertEqual(SE.a_method.an_attr, 97)
-        self.assertEqual(SE.attr.a_class_method(6, 'x'), 'xxx')
-        self.assertEqual(SE.a_class_method.attr, None)
-        SE.a_class_method.attr = 99
-        self.assertEqual(SE.a_class_method.attr, 99)
-        self.assertEqual(SE.a_method.attr, None)
-        self.assertEqual(SE.a_static_method.a_method(90), 7)
-
     def test_init_subclass(self):
         class MyEnum(Enum):
             def __init_subclass__(cls, **kwds):
@@ -3610,91 +4004,100 @@ class TestStrEnum(TestCase):
 class TestFlag(TestCase):
     """Tests of the Flags."""
 
-    class Perm(Flag):
-        R, W, X = 4, 2, 1
-
-    class Color(Flag):
-        BLACK = 0
-        RED = 1
-        GREEN = 2
-        BLUE = 4
-        PURPLE = RED|BLUE
-
-    class Fun(Flag):
-        _order_ = 'ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT'
-        ONE = auto()
-        TWO = auto()
-        THREE = ONE | TWO
-        FOUR = auto()
-        FIVE = FOUR | ONE
-        SIX = FOUR | TWO
-        SEVEN = FOUR | TWO | ONE
-        EIGHT = auto()
-
-    class TermColor(str, Flag):
-        _settings_ = AutoValue
-
-        def __new__(cls, value, code):
-            str_value = '\x1b[%sm' % code
-            obj = str.__new__(cls, str_value)
-            obj._value_ = value
-            obj.code = code
-            return obj
-
-        @classmethod
-        def _create_pseudo_member_values_(cls, members, *values):
-            code = ';'.join(m.code for m in members)
-            return values + (code, )
-
-        AllReset = '0'           # ESC [ 0 m       # reset all (colors and brightness)
-        Bright = '1'          # ESC [ 1 m       # bright
-        Dim = '2'             # ESC [ 2 m       # dim (looks same as normal brightness)
-        Underline = '4'
-        Normal = '22'         # ESC [ 22 m      # normal brightness
-                            #
-                            # # FOREGROUND - 30s  BACKGROUND - 40s:
-        FG_Black = '30'           # ESC [ 30 m      # black
-        FG_Red = '31'             # ESC [ 31 m      # red
-        FG_Green = '32'           # ESC [ 32 m      # green
-        FG_Yellow = '33'          # ESC [ 33 m      # yellow
-        FG_Blue = '34'            # ESC [ 34 m      # blue
-        FG_Magenta = '35'         # ESC [ 35 m      # magenta
-        FG_Cyan = '36'            # ESC [ 36 m      # cyan
-        FG_White = '37'           # ESC [ 37 m      # white
-        FG_Reset = '39'           # ESC [ 39 m      # reset
+    def setUp(self):
+        class Perm(Flag):
+            _order_ = 'R W X'
+            R, W, X = 4, 2, 1
+        self.Perm = Perm
+        #
+        class Color(Flag):
+            BLACK = 0
+            RED = 1
+            ROJO = 1
+            GREEN = 2
+            BLUE = 4
+            PURPLE = RED|BLUE
+            WHITE = RED|GREEN|BLUE
+            BLANCO = RED|GREEN|BLUE
+        self.Color = Color
+        #
+        class Fun(Flag):
+            _order_ = 'ONE TWO FOUR EIGHT'
+            ONE = auto()
+            TWO = auto()
+            THREE = ONE | TWO
+            FOUR = auto()
+            FIVE = FOUR | ONE
+            SIX = FOUR | TWO
+            SEVEN = FOUR | TWO | ONE
+            EIGHT = auto()
+        self.Fun = Fun
+        #
+        class TermColor(str, Flag):
+            _settings_ = AutoValue
+            #
+            def __new__(cls, value, code):
+                str_value = '\x1b[%sm' % code
+                obj = str.__new__(cls, str_value)
+                obj._value_ = value
+                obj.code = code
+                return obj
+            #
+            @classmethod
+            def _create_pseudo_member_values_(cls, members, *values):
+                code = ';'.join(m.code for m in members)
+                return values + (code, )
+            #
+            AllReset = '0'           # ESC [ 0 m       # reset all (colors and brightness)
+            Bright = '1'          # ESC [ 1 m       # bright
+            Dim = '2'             # ESC [ 2 m       # dim (looks same as normal brightness)
+            Underline = '4'
+            Normal = '22'         # ESC [ 22 m      # normal brightness
                                 #
-        BG_Black = '40'           # ESC [ 30 m      # black
-        BG_Red = '41'             # ESC [ 31 m      # red
-        BG_Green = '42'           # ESC [ 32 m      # green
-        BG_Yellow = '43'          # ESC [ 33 m      # yellow
-        BG_Blue = '44'            # ESC [ 34 m      # blue
-        BG_Magenta = '45'         # ESC [ 35 m      # magenta
-        BG_Cyan = '46'            # ESC [ 36 m      # cyan
-        BG_White = '47'           # ESC [ 37 m      # white
-        BG_Reset = '49'           # ESC [ 39 m      # reset
-
-        __str__ = str.__str__
-
-        def __repr__(self):
-            if self._name_ is not None:
-                return '<%s.%s>' % (self.__class__.__name__, self._name_)
-            else:
-                return '<%s: %s>' % (self.__class__.__name__, '|'.join([m.name for m in Flag.__iter__(self)]))
-
-        def __enter__(self):
-            print(self.AllReset, end='', verbose=0)
-            return self
-
-        def __exit__(self, *args):
-            print(self.AllReset, end='', verbose=0)
-
-
-    class Open(Flag):
-        RO = 0
-        WO = 1
-        RW = 2
-        AC = 3
-        CE = 1<<19
+                                # # FOREGROUND - 30s  BACKGROUND - 40s:
+            FG_Black = '30'           # ESC [ 30 m      # black
+            FG_Red = '31'             # ESC [ 31 m      # red
+            FG_Green = '32'           # ESC [ 32 m      # green
+            FG_Yellow = '33'          # ESC [ 33 m      # yellow
+            FG_Blue = '34'            # ESC [ 34 m      # blue
+            FG_Magenta = '35'         # ESC [ 35 m      # magenta
+            FG_Cyan = '36'            # ESC [ 36 m      # cyan
+            FG_White = '37'           # ESC [ 37 m      # white
+            FG_Reset = '39'           # ESC [ 39 m      # reset
+                                    #
+            BG_Black = '40'           # ESC [ 30 m      # black
+            BG_Red = '41'             # ESC [ 31 m      # red
+            BG_Green = '42'           # ESC [ 32 m      # green
+            BG_Yellow = '43'          # ESC [ 33 m      # yellow
+            BG_Blue = '44'            # ESC [ 34 m      # blue
+            BG_Magenta = '45'         # ESC [ 35 m      # magenta
+            BG_Cyan = '46'            # ESC [ 36 m      # cyan
+            BG_White = '47'           # ESC [ 37 m      # white
+            BG_Reset = '49'           # ESC [ 39 m      # reset
+            #
+            __str__ = str.__str__
+            #
+            def __repr__(self):
+                if self._name_ is not None:
+                    return '<%s.%s>' % (self.__class__.__name__, self._name_)
+                else:
+                    return '<%s: %s>' % (self.__class__.__name__, '|'.join([m.name for m in Flag.__iter__(self)]))
+            #
+            def __enter__(self):
+                print(self.AllReset, end='', verbose=0)
+                return self
+            #
+            def __exit__(self, *args):
+                print(self.AllReset, end='', verbose=0)
+        self.TermColor = TermColor
+        #
+        class Open(Flag):
+            RO = 0
+            WO = 1
+            RW = 2
+            AC = 3
+            CE = 1<<19
+        self.Open = Open
 
     def test_set_name(self):
         class Descriptor(object):
@@ -3737,16 +4140,16 @@ class TestFlag(TestCase):
                 )
         self.assertEqual(Fun.THREE._value_, 3)
         self.assertEqual(repr(Fun.SEVEN), '<Fun.SEVEN: 7>')
-        self.assertEqual(list(Fun.SEVEN), [Fun.FOUR, Fun.TWO, Fun.ONE])
+        self.assertEqual(list(Fun.SEVEN), [Fun.ONE, Fun.TWO, Fun.FOUR])
 
     def test_str_is_str_str(self):
         red, white = self.TermColor.FG_Red, self.TermColor.BG_White
         barber = red | white
-        self.assertEqual(barber, '\x1b[47;31m')
+        self.assertEqual(barber, '\x1b[31;47m')
         self.assertEqual(barber.value, red.value | white.value)
-        self.assertEqual(barber.code, ';'.join([white.code, red.code]))
-        self.assertEqual(repr(barber), '<TermColor.BG_White|FG_Red>')
-        self.assertEqual(str(barber), '\x1b[47;31m')
+        self.assertEqual(barber.code, ';'.join([red.code, white.code]))
+        self.assertEqual(repr(barber), '<TermColor.FG_Red|BG_White>')
+        self.assertEqual(str(barber), '\x1b[31;47m')
 
     def test_membership(self):
         Color = self.Color
@@ -3766,6 +4169,30 @@ class TestFlag(TestCase):
         self.assertRaises(TypeError, lambda: 2 in Color.BLUE)
         self.assertTrue(Color.BLUE in Color.BLUE)
         self.assertTrue(Color.BLUE in Color['RED|GREEN|BLUE'])
+
+    def test_member_length(self):
+        self.assertEqual(self.Color.__len__(self.Color.BLACK), 0)
+        self.assertEqual(self.Color.__len__(self.Color.GREEN), 1)
+        self.assertEqual(self.Color.__len__(self.Color.PURPLE), 2)
+        self.assertEqual(self.Color.__len__(self.Color.BLANCO), 3)
+
+    def test_number_reset_and_order_cleanup(self):
+        class Confused(Flag):
+            _settings_ = AutoValue
+            _order_ = 'ONE TWO FOUR DOS EIGHT SIXTEEN'
+            ONE = auto()
+            TWO = auto()
+            FOUR = auto()
+            DOS = 2
+            EIGHT = auto()
+            SIXTEEN = auto()
+        self.assertEqual(
+                list(Confused),
+                [Confused.ONE, Confused.TWO, Confused.FOUR, Confused.EIGHT, Confused.SIXTEEN])
+        self.assertIs(Confused.TWO, Confused.DOS)
+        self.assertEqual(Confused.DOS._value_, 2)
+        self.assertEqual(Confused.EIGHT._value_, 8)
+        self.assertEqual(Confused.SIXTEEN._value_, 16)
 
     def test_str(self):
         Perm = self.Perm
@@ -3788,9 +4215,9 @@ class TestFlag(TestCase):
         self.assertEqual(str(Open.WO), 'Open.WO')
         self.assertEqual(str(Open.AC), 'Open.AC')
         self.assertEqual(str(Open.RO | Open.CE), 'Open.CE')
-        self.assertEqual(str(Open.WO | Open.CE), 'Open.CE|WO')
-        self.assertEqual(str(~Open.RO), 'Open.CE|RW|WO')
-        self.assertEqual(str(~Open.WO), 'Open.CE|RW')
+        self.assertEqual(str(Open.WO | Open.CE), 'Open.WO|CE')
+        self.assertEqual(str(~Open.RO), 'Open.WO|RW|CE')
+        self.assertEqual(str(~Open.WO), 'Open.RW|CE')
         self.assertEqual(str(~Open.AC), 'Open.CE')
         self.assertEqual(str(~(Open.RO | Open.CE)), 'Open.AC')
         self.assertEqual(str(~(Open.WO | Open.CE)), 'Open.RW')
@@ -3815,9 +4242,9 @@ class TestFlag(TestCase):
         self.assertEqual(repr(Open.WO), '<Open.WO: 1>')
         self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
         self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
-        self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
-        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
-        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
+        self.assertEqual(repr(Open.WO | Open.CE), '<Open.WO|CE: 524289>')
+        self.assertEqual(repr(~Open.RO), '<Open.WO|RW|CE: 524291>')
+        self.assertEqual(repr(~Open.WO), '<Open.RW|CE: 524290>')
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
@@ -3898,23 +4325,25 @@ class TestFlag(TestCase):
     def test_doc_flag(self):
         class DocFlag(Flag):
             _settings_ = AutoValue
-            def __new__(cls, value, doc=None):
-                # if doc is None and isinstance(value, basestring):
-                #     value, doc = doc, value
-                # if value is None:
-                #     if not len(cls):
-                #         value = 0
-                #     else:
-                #         value = 2 ** (len(cls) -1)
-                # if not isinstance(value, baseinteger):
-                #     raise TypeError("%r is not a valid %s value" % (value, cls.__name__))
-                obj = object.__new__(cls)
-                # if doc is None, don't mess with the value
-                if doc is not None:
-                    value = value >> 1
-                obj._value_ = value
-                obj.__doc__ = doc
-                return obj
+            _init_ = 'value __doc__'
+            _start_ = 0
+            # def __new__(cls, value, doc=None):
+            #     # if doc is None and isinstance(value, basestring):
+            #     #     value, doc = doc, value
+            #     # if value is None:
+            #     #     if not len(cls):
+            #     #         value = 0
+            #     #     else:
+            #     #         value = 2 ** (len(cls) -1)
+            #     # if not isinstance(value, baseinteger):
+            #     #     raise TypeError("%r is not a valid %s value" % (value, cls.__name__))
+            #     obj = object.__new__(cls)
+            #     # if doc is None, don't mess with the value
+            #     if doc:
+            #         value = value >> 1
+            #     obj._value_ = value
+            #     obj.__doc__ = doc
+            #     return obj
         #
         class AddressSegment(DocFlag):
             _order_ = 'UNKNOWN PO PO_TYPE NUMBER PREORD NAME STREET POSTORD SECONDARY_TYPE SECONDARY_NUMBER AND'
@@ -3937,14 +4366,14 @@ class TestFlag(TestCase):
                 
     def test_iteration(self):
         C = self.Color
-        self.assertEqual(list(C), [C.BLACK, C.RED, C.GREEN, C.BLUE])
-        self.assertEqual(list(C.PURPLE), [C.BLUE, C.RED])
+        self.assertEqual(list(C), [C.RED, C.GREEN, C.BLUE])
+        self.assertEqual(list(C.PURPLE), [C.RED, C.BLUE])
 
     def test_member_iteration(self):
         C = self.Color
         self.assertEqual(list(C.BLACK), [])
         self.assertEqual(list(C.RED), [C.RED])
-        self.assertEqual(list(C.PURPLE), [C.BLUE, C.RED])
+        self.assertEqual(list(C.PURPLE), [C.RED, C.BLUE])
 
     def test_programatic_function_string(self):
         Perm = Flag('Perm', 'R W X')
@@ -4084,7 +4513,7 @@ class TestFlag(TestCase):
 
     def test_auto_w_pending(self):
         class Required(Flag):
-            _order_ = 'NONE TO_S FROM_S BOTH'
+            _order_ = 'TO_S FROM_S'
             NONE = 0
             TO_S = auto()
             FROM_S = auto()
@@ -4203,8 +4632,7 @@ class TestFlag(TestCase):
                 if not count:
                     return ((1, start)[start is not None], ) + args
                 error = False
-                for last_value_pair in reversed(last_values):
-                    last_value, last_code = last_value_pair
+                for last_value in reversed(last_values):
                     try:
                         high_bit = aenum._high_bit(last_value)
                         break
@@ -4217,7 +4645,7 @@ class TestFlag(TestCase):
             # TODO: actually test _create_pseudo_member
             @classmethod
             def _create_pseudo_member_(cls, value):
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value)
                 pseudo_member.code = ';'.join(m.code for m in members)
                 return pseudo_member
@@ -4245,7 +4673,7 @@ class TestFlag(TestCase):
             @classmethod
             def _create_pseudo_member_(cls, value):
                 # calculate the code
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
@@ -4278,7 +4706,7 @@ class TestFlag(TestCase):
             @classmethod
             def _create_pseudo_member_(cls, value):
                 # calculate the code
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
@@ -4311,7 +4739,7 @@ class TestFlag(TestCase):
             @classmethod
             def _create_pseudo_member_(cls, value):
                 # calculate the code
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
@@ -4346,7 +4774,7 @@ class TestFlag(TestCase):
             @classmethod
             def _create_pseudo_member_(cls, value):
                 # calculate the code
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
@@ -4385,7 +4813,7 @@ class TestFlag(TestCase):
             @classmethod
             def _create_pseudo_member_(cls, value):
                 # calculate the code
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
@@ -4444,9 +4872,9 @@ class TestFlag(TestCase):
         colors = Color.BG_Magenta | Color.FG_Black
         self.assertTrue(isinstance(colors, Color))
         self.assertTrue(isinstance(colors, str))
-        self.assertEqual(colors, '\x1b[45;30m')
-        self.assertEqual(colors.code, '45;30')
-        self.assertEqual(repr(colors), '<Color.BG_Magenta|FG_Black>')
+        self.assertEqual(colors, '\x1b[30;45m')
+        self.assertEqual(colors.code, '30;45')
+        self.assertEqual(repr(colors), '<Color.FG_Black|BG_Magenta>')
 
     def test_sub_subclass_with_new_new(self):
         class StrFlag(str, Flag):
@@ -4459,7 +4887,7 @@ class TestFlag(TestCase):
             @classmethod
             def _create_pseudo_member_(cls, value):
                 # calculate the code
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
@@ -4467,8 +4895,8 @@ class TestFlag(TestCase):
         class Color(StrFlag):
             _settings_ = AutoValue
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
-            def __new__(cls, value, string, abbr):
-                str_value = abbr.title()
+            def __new__(cls, value, string, abbr=None):
+                str_value = (abbr or '').title()
                 obj = str.__new__(cls, str_value)
                 obj._value_ = value
                 obj.code = string
@@ -4525,7 +4953,7 @@ class TestFlag(TestCase):
         self.assertEqual(Color.PURPLE.value, 11)
         self.assertTrue(issubclass(Color, Flag))
 
-    def test_extend_flag_subclass(self):
+    def test_subclass_a_bunch(self):
         class Color(str, Flag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
             _settings_ = AutoValue
@@ -4541,7 +4969,7 @@ class TestFlag(TestCase):
             @classmethod
             def _create_pseudo_member_(cls, value):
                 # calculate the code
-                members, _ = aenum._decompose(cls, value)
+                members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
@@ -4567,9 +4995,9 @@ class TestFlag(TestCase):
         self.assertTrue(isinstance(Purple, Color))
         self.assertTrue(isinstance(Purple, str))
         self.assertIs(Purple, Color.BG_Magenta | Color.FG_Blue)
-        self.assertEqual(Purple, '\x1b[45;34m')
-        self.assertEqual(Purple.code, '45;34')
-        self.assertEqual(Purple.name, 'BG_Magenta|FG_Blue')
+        self.assertEqual(Purple, '\x1b[34;45m')
+        self.assertEqual(Purple.code, '34;45')
+        self.assertEqual(Purple.name, 'FG_Blue|BG_Magenta')
 
     def test_init_subclass(self):
         class MyEnum(Flag):
@@ -4615,9 +5043,10 @@ class TestIntFlag(TestCase):
     def setUp(self):
         #
         class Perm(IntFlag):
-            X = 1 << 0
-            W = 1 << 1
+            _order_ = 'R W X'
             R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
         #
         class Color(IntFlag):
             BLACK = 0
@@ -4731,18 +5160,19 @@ class TestIntFlag(TestCase):
         self.assertEqual(str(Open.WO), 'Open.WO')
         self.assertEqual(str(Open.AC), 'Open.AC')
         self.assertEqual(str(Open.RO | Open.CE), 'Open.CE')
-        self.assertEqual(str(Open.WO | Open.CE), 'Open.CE|WO')
-        self.assertEqual(str(~Open.RO), 'Open.CE|RW|WO')
-        self.assertEqual(str(~Open.WO), 'Open.CE|RW')
+        self.assertEqual(str(Open.WO | Open.CE), 'Open.WO|CE')
+        self.assertEqual(str(~Open.RO), 'Open.WO|RW|CE')
+        self.assertEqual(str(~Open.WO), 'Open.RW|CE')
         self.assertEqual(str(~Open.AC), 'Open.CE')
         self.assertEqual(str(~(Open.RO | Open.CE)), 'Open.AC')
         self.assertEqual(str(~(Open.WO | Open.CE)), 'Open.RW')
 
     def test_repr_strict(self):
         class Perm(IntFlag):
-            X = 1 << 0
-            W = 1 << 1
+            _order_ = 'R W X'
             R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
         Perm._boundary_ = aenum.STRICT
         self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
         self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
@@ -4756,18 +5186,19 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
         self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
         #
-        with self.assertRaisesRegex(ValueError, 'invalid value 12'):
+        with self.assertRaisesRegex(ValueError, 'invalid value: 12'):
             repr(Perm.R | 8)
-        with self.assertRaisesRegex(ValueError, 'invalid value 12'):
+        with self.assertRaisesRegex(ValueError, 'invalid value: 12'):
             repr(~(Perm.R | 8))
-        with self.assertRaisesRegex(ValueError, 'invalid value -9'):
+        with self.assertRaisesRegex(ValueError, 'invalid value: -9'):
             repr(Perm(~8))
 
     def test_repr_conform(self):
         class Perm(IntFlag):
-            X = 1 << 0
-            W = 1 << 1
+            _order_ = 'R W X'
             R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
         Perm._boundary_ = aenum.CONFORM
         self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
         self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
@@ -4787,10 +5218,11 @@ class TestIntFlag(TestCase):
 
     def test_repr_eject(self):
         class Perm(IntFlag):
-            X = 1 << 0
-            W = 1 << 1
+            _order_ = 'R W X'
+            _boundary_ = EJECT
             R = 1 << 2
-        Perm._boundary_ = aenum.EJECT
+            W = 1 << 1
+            X = 1 << 0
         self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
         self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
         self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
@@ -4820,15 +5252,15 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Open.WO), '<Open.WO: 1>')
         self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
         self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
-        self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
-        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
-        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
+        self.assertEqual(repr(Open.WO | Open.CE), '<Open.WO|CE: 524289>')
+        self.assertEqual(repr(~Open.RO), '<Open.WO|RW|CE: 524291>')
+        self.assertEqual(repr(~Open.WO), '<Open.RW|CE: 524290>')
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
-        with self.assertRaisesRegex(ValueError, 'invalid value -5'):
+        with self.assertRaisesRegex(ValueError, 'invalid value: -5'):
             repr(Open(~4))
-        with self.assertRaisesRegex(ValueError, 'invalid value 4'):
+        with self.assertRaisesRegex(ValueError, 'invalid value: 4'):
             repr(Open(4))
         #
         class Open(IntFlag):
@@ -4843,13 +5275,13 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Open.WO), '<Open.WO: 1>')
         self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
         self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
-        self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
-        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
-        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
+        self.assertEqual(repr(Open.WO | Open.CE), '<Open.WO|CE: 524289>')
+        self.assertEqual(repr(~Open.RO), '<Open.WO|RW|CE: 524291>')
+        self.assertEqual(repr(~Open.WO), '<Open.RW|CE: 524290>')
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
-        self.assertEqual(repr(Open(~4)), '<Open.CE|RW|WO: 524291>')
+        self.assertEqual(repr(Open(~4)), '<Open.WO|RW|CE: 524291>')
         self.assertEqual(repr(Open(4)), '<Open.RO: 0>')
         #
         class Open(IntFlag):
@@ -4864,9 +5296,9 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Open.WO), '<Open.WO: 1>')
         self.assertEqual(repr(Open.AC), '<Open.AC: 3>')
         self.assertEqual(repr(Open.RO | Open.CE), '<Open.CE: 524288>')
-        self.assertEqual(repr(Open.WO | Open.CE), '<Open.CE|WO: 524289>')
-        self.assertEqual(repr(~Open.RO), '<Open.CE|RW|WO: 524291>')
-        self.assertEqual(repr(~Open.WO), '<Open.CE|RW: 524290>')
+        self.assertEqual(repr(Open.WO | Open.CE), '<Open.WO|CE: 524289>')
+        self.assertEqual(repr(~Open.RO), '<Open.WO|RW|CE: 524291>')
+        self.assertEqual(repr(~Open.WO), '<Open.RW|CE: 524290>')
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
@@ -5749,7 +6181,7 @@ CONVERT_TEST_EBUS = 7    # and this one
 
 class TestIntEnumConvert(TestCase):
     def test_convert_value_lookup_priority(self):
-        test_type = IntEnum._convert(
+        test_type = IntEnum._convert_(
                 'UnittestConvert',
                 '__main__',
                 filter=lambda x: x.startswith('CONVERT_TEST_'))
@@ -5768,8 +6200,8 @@ class TestIntEnumConvert(TestCase):
                     ],
                 )
 
-    def test_convert(self):
-        test_type = IntEnum._convert(
+    def test_convert_(self):
+        test_type = IntEnum._convert_(
                 'UnittestConvert',
                 '__main__',
                 filter=lambda x: x.startswith('CONVERT_TEST_'))
