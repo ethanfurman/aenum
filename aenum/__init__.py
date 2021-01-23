@@ -1290,9 +1290,9 @@ class EnumConstants(NamedConstant):
     Unique = constant('unique', 'duplicate valued members are not allowed')
 
 
-    # Dummy value for Enum as EnumMeta explicity checks for it, but of course until
-    # EnumMeta finishes running the first time the Enum class doesn't exist.  This
-    # is also why there are checks in EnumMeta like `if Enum is not None`.
+    # Dummy value for Enum as EnumType explicity checks for it, but of course until
+    # EnumType finishes running the first time the Enum class doesn't exist.  This
+    # is also why there are checks in EnumType like `if Enum is not None`.
     #
     # Ditto for Flag.
 
@@ -1775,7 +1775,7 @@ class _proto_member:
 class _EnumDict(dict):
     """Track enum member order and ensure member names are not reused.
 
-    EnumMeta will use the names found in self._member_names as the
+    EnumType will use the names found in self._member_names as the
     enumeration member names.
     """
     def __init__(self, cls_name, settings, start, constructor_init, constructor_start, constructor_boundary):
@@ -2058,7 +2058,7 @@ class _EnumDict(dict):
 
 
 no_arg = object()
-class EnumMeta(StdlibEnumMeta or type):
+class EnumType(StdlibEnumMeta or type):
     """Metaclass for Enum"""
 
     @classmethod
@@ -2154,7 +2154,7 @@ class EnumMeta(StdlibEnumMeta or type):
         return enum_dict
 
     def __init__(cls, *args , **kwds):
-        super(EnumMeta, cls).__init__(*args)
+        super(EnumType, cls).__init__(*args)
 
     def __new__(metacls, cls, bases, clsdict, init=None, start=None, settings=(), boundary=None, **kwds):
         # handle py2 case first
@@ -2560,7 +2560,7 @@ class EnumMeta(StdlibEnumMeta or type):
             raise AttributeError(
                     "%s: cannot delete constant %r" % (cls.__name__, attr),
                     )
-        super(EnumMeta, cls).__delattr__(attr)
+        super(EnumType, cls).__delattr__(attr)
 
     def __dir__(self):
         return (['__class__', '__doc__', '__members__', '__module__'] +
@@ -2626,7 +2626,7 @@ class EnumMeta(StdlibEnumMeta or type):
             raise AttributeError(
                     '%s: cannot rebind constant %r' % (cls.__name__, name),
                     )
-        super(EnumMeta, cls).__setattr__(name, value)
+        super(EnumType, cls).__setattr__(name, value)
 
     def _convert(cls, *args, **kwds):
         import warnings
@@ -2819,8 +2819,10 @@ class EnumMeta(StdlibEnumMeta or type):
     # and then use the `type(name, bases, dict)` method to
     # create the class.
 
+EnumMeta = EnumType
+
 enum_dict = _Addendum(
-        dict=EnumMeta.__prepare__('Enum', (object, )),
+        dict=EnumType.__prepare__('Enum', (object, )),
         doc="Generic enumeration.\n\n    Derive from this class to define new enumerations.\n\n",
         ns=globals(),
         )
@@ -3066,7 +3068,7 @@ def values(self):
 def _reduce_ex_by_name(self, proto):
     return self.name
 
-Enum = EnumMeta('Enum', (object, ), enum_dict.resolve())
+Enum = EnumType('Enum', (object, ), enum_dict.resolve())
 del enum_dict
 
     # Enum has now been created
