@@ -56,7 +56,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 0, 0, 0
+version = 3, 0, 0, 2
 
 # shims
 try:
@@ -1675,7 +1675,12 @@ class _proto_member:
                 if enum_class._member_type_ is object:
                     enum_member._value_ = value
                 else:
-                    enum_member._value_ = enum_class._member_type_(*args, **kwds)
+                    try:
+                        enum_member._value_ = enum_class._member_type_(*args, **kwds)
+                    except Exception as exc:
+                        te = TypeError('_value_ not set in __new__, unable to create it')
+                        te.__cause__ = None
+                        raise te
         value = enum_member._value_
         enum_member._name_ = member_name
         enum_member.__objclass__ = enum_class

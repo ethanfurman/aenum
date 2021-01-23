@@ -65,7 +65,7 @@ Utility functions include:
 
 data = dict(
        name='aenum',
-       version='2.2.7a6',
+       version='3.0.0a2',
        url='https://github.com/ethanfurman/aenum',
        packages=['aenum'],
        package_data={

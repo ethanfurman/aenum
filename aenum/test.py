@@ -2785,14 +2785,6 @@ class TestEnum(TestCase):
         self.assertEqual(round(Planet.EARTH.surface_gravity, 2), 9.80)
         self.assertEqual(Planet.EARTH.value, (5.976e+24, 6.37814e6))
 
-        @unittest.skip
-        def test_init_and_autonumber(self):
-            pass
-
-        @unittest.skip
-        def test_init_and_autonumber_and_value(self):
-            pass
-
     def test_nonhash_value(self):
         class AutoNumberInAList(Enum):
             def __new__(cls):
@@ -3110,6 +3102,34 @@ class TestEnum(TestCase):
         self.assertEqual(Field.START.__doc__, 'Field offset in record')
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
+
+    def test_missing_value_error(self):
+        with self.assertRaisesRegex(TypeError, "_value_ not set in __new__"):
+            class Combined(str, Enum):
+                #
+                _init_ = 'value sequence'
+                _order_ = lambda m: m.sequence
+                #
+                def __new__(cls, value, *args):
+                    enum = str.__new__(cls, value)
+                    if '(' in value:
+                        fis_name, segment = value.split('(', 1)
+                        segment = segment.strip(' )')
+                    else:
+                        fis_name = value
+                        segment = None
+                    enum.fis_name = fis_name
+                    enum.segment = segment
+                    return enum
+                #
+                def __repr__(self):
+                    return "<%s.%s>" % (self.__class__.__name__, self._name_)
+                #
+                key_type      = 'An$(1,2)', 0
+                company_id    = 'An$(3,2)', 1
+                code          = 'An$(5,1)', 2
+                description   = 'Bn$',      3
+
 
     def test_auto_and_enum(self):
         class Foo(aenum.Flag):

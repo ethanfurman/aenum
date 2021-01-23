@@ -220,14 +220,13 @@ In Python 3 the class syntax has a few extra advancements::
 
     --> class Color(
     ...         Enum,
-    ...         settings=(AutoNumber, MultiValue, NoAlias, Unique),
+    ...         settings=(AutoValue, MultiValue, NoAlias, Unique),
     ...         init='field_name1 field_name2 ...',
     ...         start=7,
     ...         )
     ...
 
-``start`` is used to specify the starting value for ``AutoNumber``, and also
-enables ``AutoNumber``::
+``start`` is used to specify the starting value for the first member::
 
     --> class Count(Enum, start=11):
     ...     eleven
@@ -249,7 +248,6 @@ enables ``AutoNumber``::
 
 The various settings enable special behavior:
 
-- ``AutoNumber`` is the same as specifying ``start=1``
 - ``AutoValue`` calls a user supplied ``_generate_next_value_`` to provide
   missing/auto() values
 - ``MultiValue`` allows multiple values per member instead of the usual 1
@@ -1283,10 +1281,16 @@ A ``__new__`` method will only be used for the creation of the
 change how ``Enum`` members are looked up you either have to write a
 helper function or a ``classmethod``.
 
-If the stdlib ``enum`` is available (Python 3.4+ and it hasn't been shadowed
-by, for example, ``enum34``) then aenum will inherit from it.
+.. note::
 
-To use the ``AutoNumber``, ``MultiValue``, ``NoAlias``, and ``Unique`` flags
+    If you create your own ``__new__`` you should set the ``_value_`` in it;
+    if you do not, aenum will try to, but will raise a ``TypeError`` if it
+    cannot.
+
+If the stdlib ``enum`` is available (Python 3.4+ and it hasn't been shadowed
+by, for example, ``enum34``) then aenum will be a subclass of it.
+
+To use the ``AutoValue``, ``MultiValue``, ``NoAlias``, and ``Unique`` flags
 in Py2 or Py2/Py3 codebases, use ``_settings_ = ...`` in the class body.
 
 To use ``init`` in Py2 or Py2/Py3 codebases use ``_init_`` in the class body.
