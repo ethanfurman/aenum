@@ -56,7 +56,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 0, 0
+version = 3, 0, 1, 2
 
 # shims
 try:
@@ -3733,7 +3733,7 @@ if StdlibEnumMeta:
         Override for issubclass(subclass, cls).
         """
         if not isinstance(subclass, type):
-            raise TypeError('issubclass() arg 1 must be a class')
+            raise TypeError('issubclass() arg 1 must be a class (got %r)' % (subclass, ))
         # Check cache
         try:
             cls.__dict__['_subclass_cache_']

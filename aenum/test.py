@@ -11,7 +11,7 @@ import tempfile
 import textwrap
 import unittest
 import warnings
-from aenum import EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
+from aenum import EnumType, EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
 from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
 from aenum import STRICT, CONFORM, EJECT, KEEP
@@ -55,17 +55,6 @@ class TestCase(unittest.TestCase):
             self.assertRaisesRegex = getattr(self, 'assertRaisesRegexp')
         super(TestCase, self).__init__(*args, **kwds)
 
-    @classmethod
-    def setUpClass(cls, *args, **kwds):
-        super(TestCase, cls).setUpClass(*args, **kwds)
-        # filter warnings
-        warnings.filterwarnings(
-                'ignore',
-                'inspect\.getargspec\(\) is deprecated',
-                DeprecationWarning,
-                'aenum',
-                0,
-                )
 
 # for pickle tests
 try:
@@ -184,7 +173,7 @@ def test_pickle_exception(assertion, exception, obj,
         raise ValueError('Failed with protocols: %s' % ', '.join(failures))
 
 if pyver >= 3.0:
-    from aenum.test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3
+    from aenum.test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3, TestStackoverflowAnswersV3
     from aenum import test_v3
     test_v3.pyver = pyver
     test_v3.IntStooges = IntStooges
@@ -229,7 +218,7 @@ class TestOrder(TestCase):
             verde = green
 
     def test_order_has_extra_members(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Enum):
                 _order_ = 'red green blue purple'
                 red = 1
@@ -237,7 +226,7 @@ class TestOrder(TestCase):
                 blue = 3
 
     def test_order_has_extra_members_with_aliases(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Enum):
                 _order_ = 'red green blue purple'
                 red = 1
@@ -246,7 +235,7 @@ class TestOrder(TestCase):
                 verde = green
 
     def test_enum_has_extra_members(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Enum):
                 _order_ = 'red green blue'
                 red = 1
@@ -255,7 +244,7 @@ class TestOrder(TestCase):
                 purple = 4
 
     def test_enum_has_extra_members_with_aliases(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Enum):
                 _order_ = 'red green blue'
                 red = 1
@@ -280,7 +269,7 @@ class TestOrder(TestCase):
             verde = green
 
     def test_order_has_extra_members_flag(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Flag):
                 _order_ = 'red green blue purple'
                 red = 1
@@ -288,7 +277,7 @@ class TestOrder(TestCase):
                 blue = 4
 
     def test_order_has_extra_members_with_aliases_flag(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Flag):
                 _order_ = 'red green blue purple'
                 red = 1
@@ -297,7 +286,7 @@ class TestOrder(TestCase):
                 verde = green
 
     def test_enum_has_extra_members_flag(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Flag):
                 _order_ = 'red green blue'
                 red = 1
@@ -306,7 +295,7 @@ class TestOrder(TestCase):
                 purple = 8
 
     def test_enum_has_extra_members_with_aliases_flag(self):
-        with self.assertRaisesRegex(TypeError, 'member order does not match _order_'):
+        with self.assertRaisesRegex(TypeError, r'member order does not match _order_'):
             class Color(Flag):
                 _order_ = 'red green blue'
                 red = 1
@@ -2597,7 +2586,7 @@ class TestEnum(TestCase):
             red = 1
             green = 2
             blue = 3
-        self.assertRaisesRegex(ValueError, 'rojo is a duplicate of red', extend_enum, Color, 'rojo', 1)
+        self.assertRaisesRegex(ValueError, r'rojo is a duplicate of red', extend_enum, Color, 'rojo', 1)
         self.assertEqual(Color.red.name, 'red')
         self.assertEqual(Color.red.value, 1)
         self.assertTrue(Color.red in Color)
@@ -2661,7 +2650,7 @@ class TestEnum(TestCase):
             red = 1, 4, 7
             green = 2, 5, 8
             blue = 3, 6, 9
-        self.assertRaisesRegex(ValueError, 'rojo is a duplicate of red', extend_enum, Color, 'rojo', 7)
+        self.assertRaisesRegex(ValueError, r'rojo is a duplicate of red', extend_enum, Color, 'rojo', 7)
         self.assertEqual(Color.red.name, 'red')
         self.assertEqual(Color.red.value, 1)
         self.assertTrue(Color.red in Color)
@@ -3051,7 +3040,7 @@ class TestEnum(TestCase):
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
     def test_auto_and_init_w_value_and_too_many_values(self):
-        with self.assertRaisesRegex(TypeError, 'Field\.BLAH: number of fields provided do not match init'):
+        with self.assertRaisesRegex(TypeError, r'Field\.BLAH: number of fields provided do not match init'):
             class Field(int, Enum):
                 _settings_ = AutoValue
                 _order_ = 'TYPE START BLAH BELCH'
@@ -3104,7 +3093,7 @@ class TestEnum(TestCase):
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
     def test_missing_value_error(self):
-        with self.assertRaisesRegex(TypeError, "_value_ not set in __new__"):
+        with self.assertRaisesRegex(TypeError, r"_value_ not set in __new__"):
             class Combined(str, Enum):
                 #
                 _init_ = 'value sequence'
@@ -3392,8 +3381,8 @@ class TestEnum(TestCase):
             PI = constant(3.141596)
             G = constant(6.67300E-11)
         self.assertEqual(Universe.PI, 3.141596)
-        self.assertRaisesRegex(AttributeError, 'cannot rebind constant', setattr, Universe, 'PI', 9)
-        self.assertRaisesRegex(AttributeError, 'cannot delete constant', delattr, Universe, 'PI')
+        self.assertRaisesRegex(AttributeError, r'cannot rebind constant', setattr, Universe, 'PI', 9)
+        self.assertRaisesRegex(AttributeError, r'cannot delete constant', delattr, Universe, 'PI')
 
     def test_math_and_stuff_with_constants(self):
         class Universe(Enum):
@@ -3941,11 +3930,11 @@ class TestStrEnum(TestCase):
         self.assertEqual(phy.tau.count('a'), 1)
 
     def test_strict_strenum(self):
-        with self.assertRaisesRegex(TypeError, 'too many arguments for str'):
+        with self.assertRaisesRegex(TypeError, r'too many arguments for str'):
             class Huh(StrEnum):
                 huh = 'this', 'is', 'too', 'many'
         for uhoh in (object, object(), [], Enum, 9):
-            with self.assertRaisesRegex(TypeError, 'values must be str'):
+            with self.assertRaisesRegex(TypeError, r'values must be str'):
                 class Huh(StrEnum):
                     huh = uhoh
         #
@@ -3958,7 +3947,7 @@ class TestStrEnum(TestCase):
             upper = 'UPPER'
         self.assertEqual([m.value for m in Either], ['this', 'That', 'those', 'lower', 'UPPER'])
         #
-        with self.assertRaisesRegex(ValueError, ' is not lower-case'):
+        with self.assertRaisesRegex(ValueError, r' is not lower-case'):
             class Huh(LowerStrEnum):
                 huh = 'What'
         #
@@ -3971,7 +3960,7 @@ class TestStrEnum(TestCase):
             upper = 'upper'
         self.assertEqual([m.value for m in Lower], ['this', 'that', 'those', 'lower', 'upper'])
         #
-        with self.assertRaisesRegex(ValueError, ' is not upper-case'):
+        with self.assertRaisesRegex(ValueError, r' is not upper-case'):
             class Huh(UpperStrEnum):
                 huh = 'What'
         #
@@ -4525,7 +4514,7 @@ class TestFlag(TestCase):
         self.assertEqual(Color.green.value, 4)
 
     def test_auto_number_garbage(self):
-        with self.assertRaisesRegex(TypeError, 'invalid Flag value: .not an int.'):
+        with self.assertRaisesRegex(TypeError, r'invalid Flag value: .not an int.'):
             class Color(Flag):
                 _order_ = 'red blue'
                 red = 'not an int'
@@ -4551,7 +4540,7 @@ class TestFlag(TestCase):
         self.assertEqual([Dupes.first, Dupes.second, Dupes.third], list(Dupes))
 
     def test_bizarre(self):
-        with self.assertRaisesRegex(TypeError, "invalid Flag 'Bizarre' -- missing values: 1, 2"):
+        with self.assertRaisesRegex(TypeError, r"invalid Flag 'Bizarre' -- missing values: 1, 2"):
             class Bizarre(Flag):
                 b = 3
                 c = 4
@@ -5206,11 +5195,11 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
         self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
         #
-        with self.assertRaisesRegex(ValueError, 'invalid value: 12'):
+        with self.assertRaisesRegex(ValueError, r'invalid value: 12'):
             repr(Perm.R | 8)
-        with self.assertRaisesRegex(ValueError, 'invalid value: 12'):
+        with self.assertRaisesRegex(ValueError, r'invalid value: 12'):
             repr(~(Perm.R | 8))
-        with self.assertRaisesRegex(ValueError, 'invalid value: -9'):
+        with self.assertRaisesRegex(ValueError, r'invalid value: -9'):
             repr(Perm(~8))
 
     def test_repr_conform(self):
@@ -5278,9 +5267,9 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
-        with self.assertRaisesRegex(ValueError, 'invalid value: -5'):
+        with self.assertRaisesRegex(ValueError, r'invalid value: -5'):
             repr(Open(~4))
-        with self.assertRaisesRegex(ValueError, 'invalid value: 4'):
+        with self.assertRaisesRegex(ValueError, r'invalid value: 4'):
             repr(Open(4))
         #
         class Open(IntFlag):
@@ -6113,11 +6102,11 @@ class TestNamedConstant(TestCase):
             TAU = 2 * PI
         self.assertEqual(K.PI, 3.141596)
         self.assertEqual(K.TAU, 2 * K.PI)
-        with self.assertRaisesRegex(AttributeError, 'cannot rebind constant'):
+        with self.assertRaisesRegex(AttributeError, r'cannot rebind constant'):
             K.PI = 9
-        with self.assertRaisesRegex(AttributeError, 'cannot delete constant'):
+        with self.assertRaisesRegex(AttributeError, r'cannot delete constant'):
             del K.PI
-        with self.assertRaisesRegex(AttributeError, 'cannot rebind constant'):
+        with self.assertRaisesRegex(AttributeError, r'cannot rebind constant'):
             K('PI', 3)
         self.assertTrue(K.PI in K)
         self.assertTrue(K.TAU in K)
@@ -6345,6 +6334,8 @@ class TestStackoverflowAnswers(TestCase):
 if __name__ == '__main__':
     tempdir = tempfile.mkdtemp()
     try:
+        if pyver >= 3.0:
+            test_v3.tempdir = tempdir
         unittest.main()
     finally:
         shutil.rmtree(tempdir, True)

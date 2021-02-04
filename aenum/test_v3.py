@@ -1,4 +1,5 @@
-from aenum import Enum, IntEnum, Flag, UniqueEnum, AutoEnum, NamedTuple, TupleSize, AutoValue, AutoNumber, NoAlias, Unique, MultiValue
+from aenum import EnumMeta, Enum, IntEnum, Flag, UniqueEnum, AutoEnum
+from aenum import NamedTuple, TupleSize, AutoValue, AutoNumber, NoAlias, Unique, MultiValue
 from aenum import AutoNumberEnum, OrderedEnum, unique, skip, extend_enum
 
 from collections import OrderedDict
@@ -6,6 +7,7 @@ from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 from unittest import TestCase, main
 
+import os
 import tempfile
 import textwrap
 import sys
@@ -1077,6 +1079,8 @@ class TestStackoverflowAnswersV3(TestCase):
         # https://stackoverflow.com/a/35965438/208880
         class Id(Enum, start=0):
             #
+            _auto_on_
+            #
             NONE  # 0x0
             HEARTBEAT  # 0x1
             FLUID_TRANSFER_REQUEST
@@ -1110,9 +1114,127 @@ class TestStackoverflowAnswersV3(TestCase):
         self.assertEqual(Id.NONE.value, 0)
         self.assertEqual(Id.FLUID_TRANSFER_ERROR_MSG.value, 4)
         self.assertEqual(Id.START_SENDING_PICTURES.value, 0x010000)
-        self.assertEqual(Id.STOP_RECORDING_VIDEO_REQ.Value, 0x010003)
+        self.assertEqual(Id.STOP_RECORDING_VIDEO_REQ.value, 0x010003)
         self.assertEqual(Id.START_CAL.value, 0x020001)
         self.assertEqual(Id.LAST_ID.value, 0x30005)
+
+
+    if pyver >= 3.5:
+        def test_c_header_scanner(self):
+            # https://stackoverflow.com/questions/58732872/208880
+            with open(os.path.join(tempdir, 'c_plus_plus.h'), 'w') as fh:
+                fh.write("""
+                        stuff before
+                        enum hello {
+                            Zero,
+                            One,
+                            Two,
+                            Three,
+                            Five=5,
+                            Six,
+                            Ten=10
+                            };
+                        in the middle
+                        enum blah
+                            {
+                            alpha,
+                            beta,
+                            gamma = 10 ,
+                            zeta = 50
+                            };
+                        at the end
+                        """)
+            from pyparsing import Group, Optional, Suppress, Word, ZeroOrMore
+            from pyparsing import alphas, alphanums, nums
+            #
+            CPPEnum = None
+            class CPPEnumType(EnumMeta):
+                #
+                @classmethod
+                def __prepare__(metacls, clsname, bases, **kwds):
+                    # return a standard dictionary for the initial processing
+                    return {}
+                #
+                def __init__(clsname, *args , **kwds):
+                    super(CPPEnumType, clsname).__init__(*args)
+                #
+                def __new__(metacls, clsname, bases, clsdict, **kwds):
+                    if CPPEnum is None:
+                        # first time through, ignore the rest
+                        enum_dict = super(CPPEnumType, metacls).__prepare__(clsname, bases, **kwds)
+                        enum_dict.update(clsdict)
+                        return super(CPPEnumType, metacls).__new__(metacls, clsname, bases, enum_dict, **kwds)
+                    members = []
+                    #
+                    # remove _file and _name using `pop()` as they will cause problems in EnumMeta
+                    try:
+                        file = clsdict.pop('_file')
+                    except KeyError:
+                        raise TypeError('_file not specified')
+                    cpp_enum_name = clsdict.pop('_name', clsname.lower())
+                    with open(file) as fh:
+                        file_contents = fh.read()
+                    #
+                    # syntax we don't want to see in the final parse tree
+                    LBRACE, RBRACE, EQ, COMMA = map(Suppress, "{}=,")
+                    _enum = Suppress("enum")
+                    identifier = Word(alphas, alphanums + "_")
+                    integer = Word(nums)
+                    enumValue = Group(identifier("name") + Optional(EQ + integer("value")))
+                    enumList = Group(enumValue + ZeroOrMore(COMMA + enumValue))
+                    enum = _enum + identifier("enum") + LBRACE + enumList("names") + RBRACE
+                    #
+                    # find the cpp_enum_name ignoring other syntax and other enums
+                    for item, start, stop in enum.scanString(file_contents):
+                        if item.enum != cpp_enum_name:
+                            continue
+                        id = 0
+                        for entry in item.names:
+                            if entry.value != "":
+                                id = int(entry.value)
+                            members.append((entry.name.upper(), id))
+                            id += 1
+                    #
+                    # get the real EnumDict
+                    enum_dict = super(CPPEnumType, metacls).__prepare__(clsname, bases, **kwds)
+                    # transfer the original dict content, names starting with '_' first
+                    items = list(clsdict.items())
+                    items.sort(key=lambda p: (0 if p[0][0] == '_' else 1, p))
+                    for name, value in items:
+                        enum_dict[name] = value
+                    # add the members
+                    for name, value in members:
+                        enum_dict[name] = value
+                    return super(CPPEnumType, metacls).__new__(metacls, clsname, bases, enum_dict, **kwds)
+            #
+            class CPPEnum(IntEnum, metaclass=CPPEnumType):
+                pass
+            #
+            class Hello(CPPEnum):
+                _file = os.path.join(tempdir, 'c_plus_plus.h')
+            #
+            class Blah(CPPEnum):
+                _file = os.path.join(tempdir, 'c_plus_plus.h')
+                _name = 'blah'
+            #
+            self.assertEqual(
+                    list(Hello),
+                    [Hello.ZERO, Hello.ONE, Hello.TWO, Hello.THREE, Hello.FIVE, Hello.SIX, Hello.TEN],
+                    )
+            self.assertEqual(Hello.ZERO.value, 0)
+            self.assertEqual(Hello.THREE.value, 3)
+            self.assertEqual(Hello.SIX.value, 6)
+            self.assertEqual(Hello.TEN.value, 10)
+            #
+            self.assertEqual(
+                    list(Blah),
+                    [Blah.ALPHA, Blah.BETA, Blah.GAMMA, Blah.ZETA],
+                    )
+            self.assertEqual(Blah.ALPHA.value, 0)
+            self.assertEqual(Blah.BETA.value, 1)
+            self.assertEqual(Blah.GAMMA.value, 10)
+            self.assertEqual(Blah.ZETA.value, 50)
+
 
 if __name__ == '__main__':
     tempdir = tempfile.mkdtemp()
