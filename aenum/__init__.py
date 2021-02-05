@@ -642,6 +642,9 @@ class constant(object):
     def __rsub__(self, other):
         return _sub_(_value(other), self.value)
 
+    def __set_name__(self, ownerclass, name):
+        self.name = name
+        self.clsname = ownerclass.__name__
 
 
 NamedConstant = None
