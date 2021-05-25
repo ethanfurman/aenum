@@ -13,7 +13,7 @@ import unittest
 import warnings
 from aenum import EnumType, EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
 from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
-from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AutoNumber, AutoValue, Unique
+from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AddValue, Unique
 from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode
@@ -310,7 +310,6 @@ class TestAutoValue(TestCase):
     def test_bare(self):
         #
         class BareEnum(Enum):
-            _settings_ = AutoValue
             _order_ = 'ONE TWO THREE'
             ONE = auto()
             TWO = auto()
@@ -318,7 +317,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(BareEnum.THREE.value, 3)
         #
         class BareIntEnum(IntEnum):
-            _settings_ = AutoValue
             _order_ = 'ONE TWO THREE'
             ONE = auto()
             TWO = auto()
@@ -326,7 +324,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(BareIntEnum.THREE, 3)
         #
         class BareFlag(Flag):
-            _settings_ = AutoValue
             _order_ = 'ONE TWO THREE'
             ONE = auto()
             TWO = auto()
@@ -334,7 +331,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(BareFlag.THREE.value, 4)
         #
         class BareIntFlag(IntFlag):
-            _settings_ = AutoValue
             _order_ = 'ONE TWO THREE'
             ONE = auto()
             TWO = auto()
@@ -344,7 +340,6 @@ class TestAutoValue(TestCase):
     def test_init_only_final(self):
         #
         class InitEnumValue(Enum):
-            _settings_ = AutoValue
             _init_ = 'value description'
             _order_ = 'ONE TWO THREE'
             ONE = 'the loneliest number'
@@ -354,7 +349,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitEnumValue.THREE.description, 'a triangle')
         #
         class InitEnum(Enum):
-            _settings_ = AutoValue
             _init_ = 'value description'
             _order_ = 'ONE TWO THREE'
             ONE = 'the loneliest number'
@@ -364,7 +358,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitEnum.THREE.description, 'a triangle')
         #
         class InitIntEnum(IntEnum):
-            _settings_ = AutoValue
             _init_ = 'value description'
             _order_ = 'ONE TWO THREE'
             ONE = 'the loneliest number'
@@ -374,7 +367,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitIntEnum.THREE.description, 'a triangle')
         #
         class InitFlag(Flag):
-            _settings_ = AutoValue
             _init_ = 'value description'
             _order_ = 'ONE TWO THREE'
             ONE = 'the loneliest number'
@@ -384,7 +376,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitFlag.THREE.description, 'a triangle')
         #
         class InitIntFlag(IntFlag):
-            _settings_ = AutoValue
             _init_ = 'value description'
             _order_ = 'ONE TWO THREE'
             ONE = 'the loneliest number'
@@ -396,7 +387,6 @@ class TestAutoValue(TestCase):
     def test_init_only_inherit(self):
         #
         class InitInheritEnum(Enum):
-            _settings_ = AutoValue
             _init_ = 'value description'
         #
         class InitEnum(InitInheritEnum):
@@ -409,7 +399,6 @@ class TestAutoValue(TestCase):
         #
         #
         class InitInheritValueEnum(Enum):
-            _settings_ = AutoValue
             _init_ = 'value description'
         #
         class InitEnum(InitInheritValueEnum):
@@ -429,7 +418,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitIntEnum.THREE.description, 'a triangle')
         #
         class InitInheritValueFlag(Flag):
-            _settings_ = AutoValue
             _init_ = 'value description'
         #
         class InitFlag(InitInheritValueFlag):
@@ -504,7 +492,6 @@ class TestAutoValue(TestCase):
         #
         class NewFinalStrEnum(str, Enum):
             #
-            _settings_ = AutoValue
             _order_ = "AllReset Bright FG_Cyan BG_Black"
             #
             def __new__(cls, value, code, description):
@@ -528,7 +515,6 @@ class TestAutoValue(TestCase):
         #
         class NewFinalStrFlag(str, Flag):
             #
-            _settings_ = AutoValue
             _order_ = "AllReset Bright FG_Cyan BG_Black"
             #
             def __new__(cls, value, code, description):
@@ -607,7 +593,6 @@ class TestAutoValue(TestCase):
     def test_init_new_only(self):
         #
         class InitNewEnum(Enum):
-            _settings_ = AutoValue
             _init_ = "value description"
             _order_ = 'ONE TWO THREE'
             def __new__(cls, value, *args):
@@ -623,7 +608,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitNewEnum.TWO.proof, 'INE1')
         #
         class InitNewIntEnum(IntEnum):
-            _settings_ = AutoValue
             _init_ = "value description"
             _order_ = 'ONE TWO THREE'
             def __new__(cls, value, *args):
@@ -639,7 +623,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitNewIntEnum.TWO.proof, 'INE2')
         #
         class InitNewFlag(Flag):
-            _settings_ = AutoValue
             _init_ = "value description"
             _order_ = 'ONE TWO THREE'
             def __new__(cls, value, *args):
@@ -655,7 +638,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitNewFlag.TWO.proof, 'INE3')
         #
         class InitNewIntFlag(IntFlag):
-            _settings_ = AutoValue
             _init_ = "value description"
             _order_ = 'ONE TWO THREE'
             def __new__(cls, value, *args):
@@ -673,7 +655,6 @@ class TestAutoValue(TestCase):
     def test_init_new_inherit(self):
         #
         class InitNew(Enum):
-            _settings_ = AutoValue
             _init_ = "value description"
             def __new__(cls, value, *args):
                 member = object.__new__(cls)
@@ -691,7 +672,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitNewEnum.TWO.proof, 'IN')
         #
         class InitNewInt(Enum):
-            _settings_ = AutoValue
             _init_ = "value description"
             def __new__(cls, value, *args):
                 member = int.__new__(cls, value)
@@ -709,7 +689,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitNewIntEnum.TWO.proof, 'IN')
         #
         class InitNewFlagBase(Flag):
-            _settings_ = AutoValue
             _init_ = "value description"
             def __new__(cls, value, *args):
                 member = object.__new__(cls)
@@ -727,7 +706,6 @@ class TestAutoValue(TestCase):
         self.assertEqual(InitNewFlag.TWO.proof, 'IN')
         #
         class InitNewIntFlagBase(int, Flag):
-            _settings_ = AutoValue
             _init_ = "value description"
             def __new__(cls, value, *args):
                 member = int.__new__(cls, value)
@@ -1941,29 +1919,29 @@ class TestEnum(TestCase):
 
         AutoIntEnum = auto_enum('AutoIntEnum', (IntEnum,), {})
 
-        class TestAutoNumber(AutoNumberedEnum):
-            a = ()
-            b = 3
-            c = ()
-        self.assertEqual(TestAutoNumber.b.value, 3)
-
-        if pyver >= 3.0:
-            self.assertEqual(
-                [TestAutoNumber.a.value, TestAutoNumber.b.value, TestAutoNumber.c.value],
-                [0, 3, 4],
-                )
-
-        class TestAutoInt(AutoIntEnum):
-            a = ()
-            b = 3
-            c = ()
-        self.assertEqual(TestAutoInt.b, 3)
-
-        if pyver >= 3.0:
-            self.assertEqual(
-                [TestAutoInt.a.value, TestAutoInt.b.value, TestAutoInt.c.value],
-                [0, 3, 4],
-                )
+        # class TestAutoNumber(AutoNumberedEnum):
+        #     a = ()
+        #     b = 3
+        #     c = ()
+        # self.assertEqual(TestAutoNumber.b.value, 3)
+        #
+        # if pyver >= 3.0:
+        #     self.assertEqual(
+        #         [TestAutoNumber.a.value, TestAutoNumber.b.value, TestAutoNumber.c.value],
+        #         [0, 3, 4],
+        #         )
+        #
+        # class TestAutoInt(AutoIntEnum):
+        #     a = ()
+        #     b = 3
+        #     c = ()
+        # self.assertEqual(TestAutoInt.b, 3)
+        #
+        # if pyver >= 3.0:
+        #     self.assertEqual(
+        #         [TestAutoInt.a.value, TestAutoInt.b.value, TestAutoInt.c.value],
+        #         [0, 3, 4],
+        #         )
 
     def test_meta_reconfigure(self):
 
@@ -2346,21 +2324,21 @@ class TestEnum(TestCase):
         globals()['SomeTuple'] = SomeTuple
         test_pickle_dump_load(self.assertTrue, SomeTuple.first)
 
-    def test_duplicate_values_give_unique_enum_items(self):
-        class NumericEnum(AutoNumberEnum):
-            __order__ = 'enum_m enum_d enum_y'
-            enum_m = ()
-            enum_d = ()
-            enum_y = ()
-            def __int__(self):
-                return int(self._value_)
-        self.assertEqual(int(NumericEnum.enum_d), 2)
-        self.assertEqual(NumericEnum.enum_y.value, 3)
-        self.assertTrue(NumericEnum(1) is NumericEnum.enum_m)
-        self.assertEqual(
-            list(NumericEnum),
-            [NumericEnum.enum_m, NumericEnum.enum_d, NumericEnum.enum_y],
-            )
+    # def test_duplicate_values_give_unique_enum_items(self):
+    #     class NumericEnum(AutoNumberEnum):
+    #         __order__ = 'enum_m enum_d enum_y'
+    #         enum_m = ()
+    #         enum_d = ()
+    #         enum_y = ()
+    #         def __int__(self):
+    #             return int(self._value_)
+    #     self.assertEqual(int(NumericEnum.enum_d), 2)
+    #     self.assertEqual(NumericEnum.enum_y.value, 3)
+    #     self.assertTrue(NumericEnum(1) is NumericEnum.enum_m)
+    #     self.assertEqual(
+    #         list(NumericEnum),
+    #         [NumericEnum.enum_m, NumericEnum.enum_d, NumericEnum.enum_y],
+    #         )
 
     def test_inherited_new_from_enhanced_enum(self):
         class AutoNumber2(Enum):
@@ -2792,7 +2770,6 @@ class TestEnum(TestCase):
 
     def test_number_reset_and_order_cleanup(self):
         class Confused(Enum):
-            _settings_ = AutoValue
             _order_ = 'ONE TWO THREE UNO DOS TRES FOUR'
             ONE = auto()
             TWO = auto()
@@ -2926,7 +2903,6 @@ class TestEnum(TestCase):
 
         class SelectionEnum(Enum):
             _init_ = 'db user'
-            _settings_ = AutoValue
             def __new__(cls, *args, **kwds):
                 count = len(cls.__members__)
                 obj = object.__new__(cls)
@@ -2998,7 +2974,6 @@ class TestEnum(TestCase):
 
     def test_auto_and_init(self):
         class Field(int, Enum):
-            _settings_ = AutoValue
             _order_ = 'TYPE START'
             _init_ = 'value __doc__'
             TYPE = "Char, Date, Logical, etc."
@@ -3011,7 +2986,6 @@ class TestEnum(TestCase):
     def test_auto_and_start(self):
         class Field(IntEnum):
             _order_ = 'TYPE START'
-            _settings_ = AutoValue
             _start_ = 0
             _init_ = 'value __doc__'
             TYPE = "Char, Date, Logical, etc."
@@ -3023,7 +2997,6 @@ class TestEnum(TestCase):
 
     def test_auto_and_init_and_some_values(self):
         class Field(int, Enum):
-            _settings_ = AutoValue
             _order_ = 'TYPE START BLAH BELCH'
             _init_ = 'value __doc__'
             TYPE = "Char, Date, Logical, etc."
@@ -3042,7 +3015,6 @@ class TestEnum(TestCase):
     def test_auto_and_init_w_value_and_too_many_values(self):
         with self.assertRaisesRegex(TypeError, r'Field\.BLAH: number of fields provided do not match init'):
             class Field(int, Enum):
-                _settings_ = AutoValue
                 _order_ = 'TYPE START BLAH BELCH'
                 _init_ = 'value __doc__'
                 TYPE = 1, "Char, Date, Logical, etc."
@@ -3052,7 +3024,6 @@ class TestEnum(TestCase):
 
     def test_auto_and_init_and_some_complex_values(self):
         class Field(int, Enum):
-            _settings_ = AutoValue
             _order_ = 'TYPE START BLAH BELCH'
             _init_ = 'value __doc__ help'
             TYPE = "Char, Date, Logical, etc.", "fields composed of character data"
@@ -3074,7 +3045,6 @@ class TestEnum(TestCase):
 
     def test_auto_and_init_inherited(self):
         class AutoEnum(IntEnum):
-            _settings_ = AutoValue
             _start_ = 0
             _init_ = 'value __doc__'
         class Field(AutoEnum):
@@ -3131,26 +3101,59 @@ class TestEnum(TestCase):
         self.assertEqual(Foo.a.value, 1)
         self.assertEqual(Foo.b.value, 3)
 
-    def test_AutoNumberEnum_and_property(self):
-        class Color(aenum.AutoNumberEnum):
-            red = ()
-            green = ()
-            blue = ()
-            @property
-            def cap_name(self):
-                return self.name.title()
-        self.assertEqual(Color.blue.cap_name, 'Blue')
+    def test_multiple_arg_auto(self):
+        class AutoName(Enum):
+            def _generate_next_value_(name, start, count, last, *args, **kwds):
+                return (name, ) + args
+        #
+        class Planet(AutoName):
+            _init_ = 'value mass radius'
+            MERCURY = auto(3.303e+23, 2.4397e6)
+            VENUS = auto(4.869e+24, 6.0518e6)
+        self.assertEqual(Planet.MERCURY.value, 'MERCURY')
 
-    def test_AutoNumberEnum(self):
-        class Color(aenum.AutoNumberEnum):
-            _order_ = 'red green blue'
-            red = ()
-            green = ()
-            blue = ()
-        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-        self.assertEqual(Color.red.value, 1)
-        self.assertEqual(Color.green.value, 2)
-        self.assertEqual(Color.blue.value, 3)
+    def test_auto_w_multiple_arg(self):
+        class AutoName(Enum):
+            def _generate_next_value_(name, start, count, last, *args, **kwds):
+                return (name, ) + args
+        #
+        class Planet(AutoName):
+            _init_ = 'value mass radius'
+            MERCURY = auto(), 3.303e+23, 2.4397e6  # doesn't work
+            VENUS = auto(), 4.869e+24, 6.0518e6  # doesn't work
+        self.assertEqual(Planet.MERCURY.value, 'MERCURY')
+
+    def test_auto_gnv_and_init(self):
+        class AutoName(Enum):
+            def _generate_next_value_(name, start, count, last, *args, **kwds):
+                return (name, ) + args
+        #
+        class Planet(AutoName):
+            _init_ = 'value mass radius'
+            MERCURY = 3.303e+23, 2.4397e6  # doesn't work
+            VENUS = 4.869e+24, 6.0518e6  # doesn't work
+        self.assertEqual(Planet.MERCURY.value, 'MERCURY')
+
+    # def test_AutoNumberEnum_and_property(self):
+    #     class Color(aenum.AutoNumberEnum):
+    #         red = ()
+    #         green = ()
+    #         blue = ()
+    #         @property
+    #         def cap_name(self):
+    #             return self.name.title()
+    #     self.assertEqual(Color.blue.cap_name, 'Blue')
+
+    # def test_AutoNumberEnum(self):
+    #     class Color(aenum.AutoNumberEnum):
+    #         _order_ = 'red green blue'
+    #         red = ()
+    #         green = ()
+    #         blue = ()
+    #     self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+    #     self.assertEqual(Color.red.value, 1)
+    #     self.assertEqual(Color.green.value, 2)
+    #     self.assertEqual(Color.blue.value, 3)
 
     def test_MultiValue_with_init_wo_value(self):
         class Color(Enum):
@@ -3260,6 +3263,20 @@ class TestEnum(TestCase):
         self.assertIs(Color(80), Color.blue)
         self.assertIs(Color(90), Color.blue)
 
+    def test_multivalue_and_autonumber_wo_init_wo_value(self):
+        class Day(Enum):
+            _settings_ = MultiValue, AddValue
+            _order_ = 'one two three'
+            _start_ = 7
+            one = "21", "one"
+            two = "22", "two"
+            three = "23", "three"
+        self.assertEqual(Day.one.value, 7)
+        self.assertEqual(Day.two.value, 8)
+        self.assertEqual(Day.three.value, 9)
+        self.assertEqual(Day('21'), Day.one)
+        self.assertEqual(Day('one'), Day.one)
+
     def test_multivalue_and_autonumber_wo_init_w_some_value(self):
         class Color(Enum):
             _settings_ = MultiValue, Unique
@@ -3285,7 +3302,6 @@ class TestEnum(TestCase):
             _settings_ = Unique
         with self.assertRaises(ValueError):
             class AutoUnique(Auto):
-                _settings_ = AutoValue
                 BLAH = auto()
                 BLUH = auto()
                 ICK = 1
@@ -4043,8 +4059,6 @@ class TestFlag(TestCase):
         self.Fun = Fun
         #
         class TermColor(str, Flag):
-            _settings_ = AutoValue
-            #
             def __new__(cls, value, code):
                 str_value = '\x1b[%sm' % code
                 obj = str.__new__(cls, str_value)
@@ -4187,7 +4201,6 @@ class TestFlag(TestCase):
 
     def test_number_reset_and_order_cleanup(self):
         class Confused(Flag):
-            _settings_ = AutoValue
             _order_ = 'ONE TWO FOUR DOS EIGHT SIXTEEN'
             ONE = auto()
             TWO = auto()
@@ -4333,7 +4346,6 @@ class TestFlag(TestCase):
 
     def test_doc_flag(self):
         class DocFlag(Flag):
-            _settings_ = AutoValue
             _init_ = 'value __doc__'
             _start_ = 0
             # def __new__(cls, value, doc=None):
@@ -4635,7 +4647,6 @@ class TestFlag(TestCase):
 
     def test_init_with_autovalue_and_generate_next_value(self):
         class Color(Flag):
-            _settings_ = AutoValue
             _init_ = 'value code'
             def _generate_next_value_(name, start, count, last_values, *args, **kwds):
                 if not count:
@@ -4668,7 +4679,6 @@ class TestFlag(TestCase):
     def test_autovalue_and_generate_next_value(self):
         class Color(str, Flag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
-            _settings_ = AutoValue
             def __new__(cls, value, code):
                 str_value = '\x1b[%sm' % code
                 obj = str.__new__(cls, str_value)
@@ -4702,7 +4712,6 @@ class TestFlag(TestCase):
     def test_subclass(self):
         class Color(str, Flag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
-            _settings_ = AutoValue
             def __new__(cls, value, code):
                 str_value = '\x1b[%sm' % code
                 obj = str.__new__(cls, str_value)
@@ -4738,7 +4747,6 @@ class TestFlag(TestCase):
     def test_sub_subclass_1(self):
         # print('\nStrFlag')
         class StrFlag(str, Flag):
-            _settings_ = AutoValue
             def __new__(cls, value, code):
                 str_value = '\x1b[%sm' % code
                 obj = str.__new__(cls, str_value)
@@ -4776,7 +4784,6 @@ class TestFlag(TestCase):
 
     def test_sub_subclass_2(self):
         class StrFlag(str, Flag):
-            _settings_ = AutoValue
             @staticmethod
             def _generate_next_value_(name, start, count, values, *args, **kwds):
                 return (2 ** count, ) + args
@@ -4828,7 +4835,6 @@ class TestFlag(TestCase):
                 return pseudo_member
             #
         class Color(StrFlag):
-            _settings_ = AutoValue
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
                                       # # FOREGROUND - 30s  BACKGROUND - 40s:
             FG_Black = '30'           # ESC [ 30 m      # black
@@ -4859,7 +4865,6 @@ class TestFlag(TestCase):
                 return values + (code, )
             #
         class Color(StrFlag):
-            _settings_ = AutoValue
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
                                       # # FOREGROUND - 30s  BACKGROUND - 40s:
             FG_Black = '30'           # ESC [ 30 m      # black
@@ -4902,7 +4907,6 @@ class TestFlag(TestCase):
                 return pseudo_member
             #
         class Color(StrFlag):
-            _settings_ = AutoValue
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
             def __new__(cls, value, string, abbr=None):
                 str_value = (abbr or '').title()
@@ -4934,7 +4938,6 @@ class TestFlag(TestCase):
 
     def test_subclass_with_default_new(self):
         class MyFlag(str, Flag):
-            _settings_ = AutoValue
             _order_ = 'this these theother'
             this = 'that'
             these = 'those'
@@ -4965,7 +4968,6 @@ class TestFlag(TestCase):
     def test_subclass_a_bunch(self):
         class Color(str, Flag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
-            _settings_ = AutoValue
             def __new__(cls, value, code=None):
                 str_value = '\x1b[%sm' % code
                 obj = str.__new__(cls, str_value)
@@ -5044,6 +5046,21 @@ class TestFlag(TestCase):
         self.assertFalse(NeverEnum.__dict__.get('_test1', False))
         self.assertFalse(NeverEnum.__dict__.get('_test2', False))
 
+    def test_int_long_conversion(self):
+        class Perm(Flag):
+            EXEC    = 1 << 0
+            WRITE   = 1 << 1
+            READ    = 1 << 2
+            MSB32   = 1 << 31
+            MSB64   = 1 << 63
+
+        # 32-bit system test
+        self.assertEqual(Perm.MSB32, Perm(0x80000000))
+        self.assertEqual(Perm.WRITE|Perm.MSB32, Perm(0x80000002))
+
+        # 64-bit system test
+        self.assertEqual(Perm.MSB64, Perm(0x8000000000000000))
+        self.assertEqual(Perm.MSB64|Perm.WRITE, Perm(0x8000000000000002))
 
 
 class TestIntFlag(TestCase):
@@ -5637,6 +5654,7 @@ class TestIntFlag(TestCase):
         self.assertEqual(WhereEnum.__dict__['_test2'], 'OurEnum')
         self.assertFalse(NeverEnum.__dict__.get('_test1', False))
         self.assertFalse(NeverEnum.__dict__.get('_test2', False))
+
 
 
 class TestEmptyAndNonLatinStrings(unittest.TestCase):

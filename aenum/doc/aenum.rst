@@ -44,11 +44,10 @@ rebound to other values.
 Base class for creating enumerated constants.  See section `Enum Functional API`_
 for an alternate construction syntax.
 
-``AutoValue``
+``AddValue``
 
-Flag specifying that a single missing value should be generated with
-``_generate_next_value_``.  Use ``init`` (``_init_`` in Python 2) to specify
-the number of items.
+Flag specifying that ``_generate_next_value_`` should always be called to
+provide the initial value for an enum member.
 
 ``MultiValue``
 
@@ -220,7 +219,7 @@ In Python 3 the class syntax has a few extra advancements::
 
     --> class Color(
     ...         Enum,
-    ...         settings=(AutoValue, MultiValue, NoAlias, Unique),
+    ...         settings=(AddValue, MultiValue, NoAlias, Unique),
     ...         init='field_name1 field_name2 ...',
     ...         start=7,
     ...         )
@@ -248,8 +247,8 @@ In Python 3 the class syntax has a few extra advancements::
 
 The various settings enable special behavior:
 
-- ``AutoValue`` calls a user supplied ``_generate_next_value_`` to provide
-  missing/auto() values
+- ``AddValue`` calls a user supplied ``_generate_next_value_`` to provide
+  the initial value
 - ``MultiValue`` allows multiple values per member instead of the usual 1
 - ``NoAlias`` allows different members to have the same value
 - ``Unique`` disallows different members to have the same value
@@ -973,17 +972,15 @@ arguments, ``init`` is for you::
    Just as with ``start`` above, in Python 2 you must put the keyword as a
    _sunder_ in the class body -- ``_init_ = 'mass radius'``.
 
-combining init and AutoValue
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+init and missing values
+^^^^^^^^^^^^^^^^^^^^^^^
 
-When a member will have multiple values, and some of them have an easy to
-calculate default value, ``init`` and ``AutoValue`` can be combined.  Here
-is the Python 2 version::
+If ``_init_`` calls for values that are not supplied, ``_generate_next_value_``
+will be called in an effort to generate them.  Here is an example in Python 2::
 
-    >>> from aenum import AutoValue
+    >>> from aenum import Enum
     >>> class SelectionEnum(Enum):
     ...     _init_ = 'db user'
-    ...     _settings_ = AutoValue
     ...     def __new__(cls, *args, **kwds):
     ...         count = len(cls.__members__)
     ...         obj = object.__new__(cls)
@@ -1030,7 +1027,6 @@ with the members in a composite flag.  You may also need to provide a custom
     ...     def _create_pseudo_member_values_(cls, members, *values):
     ...         code = ';'.join(m.code for m in members)
     ...         return values + (code, )
-    ...     _settings_ = AutoValue
     ...     _order_ = 'FG_Red FG_Green BG_Magenta BG_White'
     ...     FG_Red = '31'             # ESC [ 31 m      # red
     ...     FG_Green = '32'           # ESC [ 32 m      # green
@@ -1290,7 +1286,7 @@ helper function or a ``classmethod``.
 If the stdlib ``enum`` is available (Python 3.4+ and it hasn't been shadowed
 by, for example, ``enum34``) then aenum will be a subclass of it.
 
-To use the ``AutoValue``, ``MultiValue``, ``NoAlias``, and ``Unique`` flags
+To use the ``AddValue``, ``MultiValue``, ``NoAlias``, and ``Unique`` flags
 in Py2 or Py2/Py3 codebases, use ``_settings_ = ...`` in the class body.
 
 To use ``init`` in Py2 or Py2/Py3 codebases use ``_init_`` in the class body.

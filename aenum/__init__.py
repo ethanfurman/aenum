@@ -20,9 +20,6 @@ try:
 except ImportError:
     sqlite3 = None
 
-if pyver >= 3:
-    from functools import reduce
-
 from operator import or_ as _or_, and_ as _and_, xor as _xor_, inv as _inv_
 from operator import abs as _abs_, add as _add_, floordiv as _floordiv_
 from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
@@ -46,17 +43,16 @@ __all__ = [
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
         'StrEnum', 'UpperStrEnum', 'LowerStrEnum',
         'Flag', 'IntFlag',
-        'AutoNumber', 'AutoValue', 'MultiValue', 'NoAlias', 'Unique',
+        'AddValue', 'MagicValue', 'MultiValue', 'NoAlias', 'Unique',
         'enum', 'extend_enum', 'unique', 'property',
         'NamedTuple', 'SqliteEnum',
-        'property',
         'FlagBoundary', 'STRICT', 'CONFORM', 'EJECT', 'KEEP',
         ]
 
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 0, 1, 2
+version = 3, 1, 0, 3
 
 # shims
 try:
@@ -81,13 +77,14 @@ try:
 except NameError:
     # In Python 2 basestring is the ancestor of both str and unicode
     # in Python 3 it's just str, but was missing in 3.1
-    basestring = str
+    basestring = str,
 
 try:
     long
     baseinteger = int, long
 except NameError:
-    baseinteger = int
+    baseinteger = int,
+    long = int
 # deprecated
 baseint = baseinteger
 
@@ -118,7 +115,7 @@ if StdlibEnum:
 
 # helpers
 # will be exported later
-AutoValue = AutoNumber = MultiValue = NoAlias = Unique = None
+MagicValue = AddValue = MultiValue = NoAlias = Unique = None
 
 def _bit_count(num):
     """
@@ -326,6 +323,11 @@ class Member(object):
     def __init__(self, value):
         self.value = value
 member = Member
+
+class SentinelType(type):
+    def __repr__(cls):
+        return '<%s>' % cls.__name__
+Sentinel = SentinelType('Sentinel', (object, ), {})
 
 def _is_descriptor(obj):
     """Returns True if obj is a descriptor, False otherwise."""
@@ -1268,29 +1270,35 @@ del namedtuple_dict
 
 # Enum
 
-    # _init_ and value and AutoValue
-    # ------------------------------
-    # be default, when defining a member everything after the = is "the value"
+    # _init_ and value and AddValue
+    # -----------------------------
+    # by default, when defining a member everything after the = is "the value", everything is
+    #   passed to __new__, everything is passed to __init__
     #
     # if _init_ is present then
-    #   if `value` is not in _init_, everything is "the value", everything is passed to __init__
+    #   if `value` is not in _init_, everything is "the value", defaults apply
     #   if `value` is in _init_, only the first thing after the = is the value, and the rest will
     #       be passed to __init__
+    #   if fewer values are present for member assignment than _init_ calls for, _generate_next_value_
+    #       will be called in an attempt to generate them
     #
-    # if AutoValue is present then
-    #   if there are fewer things after the = than _init_ calls for, _generate_next_value_ is called to
-    #       generate a value
+    # if AddValue is present then
+    #   _generate_next_value_ is always called, and any generated values are prepended to provided
+    #       values (custom _gnv_s can change that)
+    #   default _init_ rules apply
 
 
     # Constants used in Enum
 
 @export(globals())
 class EnumConstants(NamedConstant):
-    AutoValue = constant('autovalue', 'values are automatically created from _generate_next_value_')
-    AutoNumber = constant('autovalue', 'integer value is prepended to members, beginning from START')
+    AddValue = constant('addvalue', 'prepends value(s) from _generate_next_value_ to each member')
+    MagicValue = constant('magicvalue', 'calls _generate_next_value_ when no arguments are given')
     MultiValue = constant('multivalue', 'each member can have several values')
     NoAlias = constant('noalias', 'duplicate valued members are distinct, not aliased')
     Unique = constant('unique', 'duplicate valued members are not allowed')
+    def __repr__(self):
+        return self._name_
 
 
     # Dummy value for Enum as EnumType explicity checks for it, but of course until
@@ -1342,7 +1350,7 @@ class enum(object):
             final.append(kwds)
         return '%s(%s)' % (self.__class__.__name__, ', '.join(final))
 
-_auto_null = object()
+_auto_null = SentinelType('no_value', (object, ), {})
 class auto(enum):
     """
     Instances are replaced with an appropriate value in Enum class suites.
@@ -1680,7 +1688,7 @@ class _proto_member:
                 else:
                     try:
                         enum_member._value_ = enum_class._member_type_(*args, **kwds)
-                    except Exception as exc:
+                    except Exception:
                         te = TypeError('_value_ not set in __new__, unable to create it')
                         te.__cause__ = None
                         raise te
@@ -1788,6 +1796,7 @@ class _EnumDict(dict):
     """
     def __init__(self, cls_name, settings, start, constructor_init, constructor_start, constructor_boundary):
         super(_EnumDict, self).__init__()
+        # print('=' * 50, cls_name, sep='\n')
         self._cls_name = cls_name
         self._constructor_init = constructor_init
         self._constructor_start = constructor_start
@@ -1795,17 +1804,25 @@ class _EnumDict(dict):
         self._generate_next_value = None
         self._member_names = []
         self._settings = settings
-        self._autovalue = AutoValue in settings
+        self._addvalue = addvalue = AddValue in settings
+        self._magicvalue = MagicValue in settings
         self._multivalue = MultiValue in settings
+        if self._addvalue and self._magicvalue:
+            raise TypeError('%r: AddValue and MagicValue are mutually exclusive' % cls_name)
+        if self._multivalue and self._magicvalue:
+            raise TypeError('%r: MultiValue and MagicValue are mutually exclusive' % cls_name)
         self._start = start
+        self._addvalue_value = start
         self._new_args = ()
         self._auto_args = False
         # when the magic turns off
-        self._locked = True
+        self._locked = MagicValue not in settings
         # if init fields are specified
         self._init = []
         # list of temporary names
         self._ignore = []
+        if self._magicvalue:
+            self._ignore = ['property', 'staticmethod', 'classmethod']
         self._ignore_init_done = False
         # if _sunder_ values can be changed via the class body
         self._allow_init = True
@@ -1814,12 +1831,6 @@ class _EnumDict(dict):
     def __getitem__(self, key):
         if key == self._cls_name and self._cls_name not in self:
             return enum
-        elif key == '_auto_on_':
-            self._locked = False
-            return None
-        elif key == '_auto_off_':
-            self._locked = True
-            return None
         elif (
                 self._locked
                 or key in self
@@ -1828,12 +1839,12 @@ class _EnumDict(dict):
                 or _is_dunder(key)
                 ):
             return super(_EnumDict, self).__getitem__(key)
-        elif self._autovalue:
+        elif self._magicvalue:
             value = self._generate_next_value(key, self._start, len(self._member_names), self._last_values[:])
+            self.__setitem__(key, value)
+            return value
         else:
-            raise Exception('AutoValue is not set -- why am I here?')
-        self.__setitem__(key, value)
-        return value
+            raise Exception('Magic is not set -- why am I here?')
 
     def __setitem__(self, key, value):
         """Changes anything not sundured, dundered, nor a descriptor.
@@ -1843,7 +1854,8 @@ class _EnumDict(dict):
 
         Single underscore (sunder) names are reserved.
         """
-        # Flag classes that have AutoValue and __new__ will get a generated _gnv_
+        # print('incoming %r %r ' % ( key, value))
+        # Flag classes that have MagicValue and __new__ will get a generated _gnv_
         if _is_internal_class(self._cls_name, value):
             pass
         elif _is_private_name(self._cls_name, key):
@@ -1852,22 +1864,21 @@ class _EnumDict(dict):
             if key not in (
                     '_init_', '_settings_', '_order_', '_ignore_', '_start_',
                     '_create_pseudo_member_', '_create_pseudo_member_values_',
-                    '_generate_next_value_',
+                    '_generate_next_value_', '_boundary_',
                     '_missing_', '_missing_value_', '_missing_name_',
-                    '_boundary_',
                     '_iter_member_', '_iter_member_by_value_', '_iter_member_by_def_',
                     ):
-                raise ValueError('_sunder_ names, such as %r, are reserved for future Enum use'
-                        % (key, )
+                raise ValueError('%r: _sunder_ names, such as %r, are reserved for future Enum use'
+                        % (self._cls_name, key)
                         )
             elif not self._allow_init and key not in (
                     'create_pseudo_member_', '_missing_', '_missing_value_', '_missing_name_',
                 ):
                 # sunder is used during creation, must be specified first
-                raise ValueError('cannot set %r after init phase' % (key, ))
+                raise ValueError('%r: cannot set %r after init phase' % (self._cls_name, key))
             elif key == '_ignore_':
                 if self._ignore_init_done:
-                    raise TypeError('ignore can only be specified once')
+                    raise TypeError('%r: ignore can only be specified once' % self._cls_name)
                 if isinstance(value, basestring):
                     value = value.split()
                 else:
@@ -1875,14 +1886,17 @@ class _EnumDict(dict):
                 self._ignore = value
                 already = set(value) & set(self._member_names)
                 if already:
-                    raise ValueError('_ignore_ cannot specify already set names: %r' % (already, ))
+                    raise ValueError('%r: _ignore_ cannot specify already set names %s' % (
+                            self._cls_name,
+                            ', '.join(repr(a) for a in already)
+                            ))
                 self._ignore_init_done = True
             elif key == '_boundary_':
                 if self._constructor_boundary:
-                    raise TypeError('boundary specified in constructor and class body')
+                    raise TypeError('%r: boundary specified in constructor and class body' % self._cls_name)
             elif key == '_start_':
                 if self._constructor_start:
-                    raise TypeError('start specified in constructor and class body')
+                    raise TypeError('%r: start specified in constructor and class body' % self._cls_name)
                 self._start = value
             elif key == '_settings_':
                 if not isinstance(value, (set, tuple)):
@@ -1891,23 +1905,33 @@ class _EnumDict(dict):
                     value = set(value)
                 self._settings |= value
                 if NoAlias in value and Unique in value:
-                    raise TypeError('cannot specify both NoAlias and Unique')
+                    raise TypeError('%r: NoAlias and Unique are mutually exclusive' % self._cls_name)
                 elif MultiValue in value and NoAlias in value:
-                    raise TypeError('cannot specify both MultiValue and NoAlias')
-                allowed_settings = dict.fromkeys(['autovalue', 'noalias', 'unique', 'multivalue'])
-                for arg in value:
+                    raise TypeError('cannot specify both MultiValue and NoAlias' % self._cls_name)
+                allowed_settings = dict.fromkeys(['addvalue', 'magicvalue', 'noalias', 'unique', 'multivalue'])
+                for arg in self._settings:
                     if arg not in allowed_settings:
-                        raise TypeError('unknown qualifier: %r (from %r)' % (arg, value))
+                        raise TypeError('%r: unknown qualifier %r (from %r)' % (self._cls_name, arg, value))
                     allowed_settings[arg] = True
                 self._multivalue = allowed_settings['multivalue']
-                self._autovalue = allowed_settings['autovalue']
+                self._addvalue = allowed_settings['addvalue']
+                self._magicvalue = allowed_settings['magicvalue']
+                self._locked = not self._magicvalue
+                if self._magicvalue and not self._ignore_init_done:
+                    self._ignore = ['property', 'classmethod', 'staticmethod']
+                if self._addvalue and self._init and 'value' not in self._init:
+                    self._init.insert(0, 'value')
                 value = tuple(self._settings)
             elif key == '_init_':
                 if self._constructor_init:
-                    raise TypeError('init specified in constructor and in class body')
+                    raise TypeError('%r: init specified in constructor and in class body' % self._cls_name)
                 _init_ = value
                 if isinstance(_init_, basestring):
                     _init_ = _init_.replace(',',' ').split()
+                if self._addvalue and 'value' not in self._init:
+                    self._init.insert(0, 'value')
+                if self._magicvalue:
+                    raise TypeError("%r: _init_ and MagicValue are mutually exclusive" % self._cls_name)
                 self._init = _init_
                 value = _init_
             elif key == '_generate_next_value_':
@@ -1916,7 +1940,7 @@ class _EnumDict(dict):
                     if isinstance(value, staticmethod):
                         gnv = value.__func__
                     elif isinstance(value, classmethod):
-                        raise TypeError('_generate_next_value should be a staticmethod, not a classmethod')
+                        raise TypeError('%r: _generate_next_value must be a staticmethod, not a classmethod' % self._cls_name)
                     else:
                         gnv = value
                         value = staticmethod(value)
@@ -1927,7 +1951,7 @@ class _EnumDict(dict):
                 key = '_order_'
                 if not self._allow_init:
                     # _order_ is used during creation, must be specified first
-                    raise ValueError('cannot set %r after init phase' % (key, ))
+                    raise ValueError('%r: cannot set %r after init phase' % (self._cls_name, key))
             elif key == '__new__':  # and self._new_to_init:
                 if isinstance(value, staticmethod):
                     value = value.__func__
@@ -1940,52 +1964,35 @@ class _EnumDict(dict):
                 self._locked = True
         elif key in self._member_names:
             # descriptor overwriting an enum?
-            raise TypeError('attempt to reuse name: %r' % (key, ))
+            raise TypeError('%r: attempt to reuse name: %r' % (self._cls_name, key))
         elif key in self._ignore:
             pass
         elif not _is_descriptor(value):
             self._allow_init = False
             if key in self:
                 # enum overwriting a descriptor?
-                raise TypeError('%s already defined as: %r' % (key, self[key]))
-            if self._multivalue:
+                raise TypeError('%r: %s already defined as %r' % (self._cls_name, key, self[key]))
+            if type(value) is enum:
+                value.name = key
+                if self._addvalue:
+                    raise TypeError('%r: enum() and AddValue are incompatible' % self._cls_name)
+            elif self._addvalue and not self._multivalue:
+                # generate a value
+                value = self._gnv(key, value)
+            elif self._multivalue:
                 # make sure it's a tuple
                 if not isinstance(value, tuple):
                     value = (value, )
                 if isinstance(value[0], auto):
-                    original_value, value = value, value[0]
-                    if value.args or value.kwds or value.value is _auto_null:
-                        if value.args or value.kwds:
-                            values = value.args
-                        else:
-                            values = ()
-                        target_len = len(self._init or self._new_args) or 1
-                        if isinstance(values, tuple):
-                            source_len = len(values)
-                        else:
-                            source_len = 1
-                        multi_args = len(self._init) > 1 or self._new_args
-                        if source_len < target_len :
-                            prev_values = []
-                            for v in self._last_values:
-                                if isinstance(v, auto):
-                                    prev_values.append(v.value)
-                                else:
-                                    prev_values.append(v)
-                            gnv = self._generate_next_value
-                            if self._auto_args:
-                                if not isinstance(values, tuple):
-                                    values = (values, )
-                                values = gnv(key, self._start, len(self._member_names), prev_values, *values)
-                            else:
-                                values = gnv(key, self._start, len(self._member_names), prev_values)
-                            if value.args:
-                                value._args = values
-                            else:
-                                value.value = values
-
-                    value = original_value
-            elif self._autovalue and not isinstance(value, auto):
+                    value = (self._convert_auto(key, value[0]), ) + value[1:]
+                if self._addvalue:
+                    value = self._gnv(key, value)
+            elif isinstance(value, auto):
+                # print('getting a value for auto()')
+                value = self._convert_auto(key, value)
+            elif isinstance(value, tuple) and value and isinstance(value[0], auto):
+                value = (self._convert_auto(key, value[0]), ) + value[1:]
+            elif not isinstance(value, auto):
                 # call generate maybe if
                 # - init is specified; or
                 # - __new__ is specified;
@@ -1997,47 +2004,7 @@ class _EnumDict(dict):
                     source_len = 1
                 multi_args = len(self._init) > 1 or self._new_args
                 if source_len < target_len :
-                    gnv = self._generate_next_value
-                    if self._auto_args:
-                        if not isinstance(value, tuple):
-                            value = (value, )
-                        value = gnv(key, self._start, len(self._member_names), self._last_values[:], *value)
-                    else:
-                        value = gnv(key, self._start, len(self._member_names), self._last_values[:])
-            elif isinstance(value, auto):
-                # if auto.args or auto.kwds, compare to _init_ and __new__ -- if lacking, call gnv
-                # if not auto.args|kwds but auto.value is _auto_null -- call gnv
-                if value.args or value.kwds or value.value is _auto_null:
-                    if value.args or value.kwds:
-                        values = value.args
-                    else:
-                        values = ()
-                    target_len = len(self._init or self._new_args) or 1
-                    if isinstance(values, tuple):
-                        source_len = len(values)
-                    else:
-                        source_len = 1
-                    multi_args = len(self._init) > 1 or self._new_args
-                    if source_len < target_len :
-                        prev_values = []
-                        for v in self._last_values:
-                            if isinstance(v, auto):
-                                prev_values.append(v.value)
-                            else:
-                                prev_values.append(v)
-                        gnv = self._generate_next_value
-                        if self._auto_args:
-                            if not isinstance(values, tuple):
-                                values = (values, )
-                            values = gnv(key, self._start, len(self._member_names), prev_values, *values)
-                        else:
-                            values = gnv(key, self._start, len(self._member_names), prev_values)
-                        if value.args:
-                            value._args = values
-                        else:
-                            value.value = values
-            elif isinstance(value, enum):
-                value.name = key
+                    value = self._gnv(key, value)
             else:
                 pass
             if self._init:
@@ -2058,14 +2025,61 @@ class _EnumDict(dict):
             self._locked = True
             self._allow_init = False
         if not (_is_sunder(key) or _is_dunder(key) or _is_private_name(self._cls_name, key) or _is_descriptor(value)):
-            if (self._multivalue or len(self._new_args) > 1  or self._init) and isinstance(value, tuple):
-                self._last_values.append(value[0])
+            if isinstance(value, auto):
+                self._last_values.append(value.value)
+            elif isinstance(value, tuple) and value and isinstance(value[0], auto):
+                self._last_values.append(value[0].value)
+            # elif (self._multivalue or len(self._new_args) > 1  or self._init) and isinstance(value, tuple):
+            elif isinstance(value, tuple):
+                if value:
+                    self._last_values.append(value[0])
             else:
                 self._last_values.append(value)
+        # print('outgoing:         %r' % (value, ))
         super(_EnumDict, self).__setitem__(key, value)
 
+    def _convert_auto(self, key, value):
+        # if auto.args or auto.kwds, compare to _init_ and __new__ -- if lacking, call gnv
+        # if not auto.args|kwds but auto.value is _auto_null -- call gnv
+        if value.args or value.kwds or value.value is _auto_null:
+            if value.args or value.kwds:
+                values = value.args
+            else:
+                values = ()
+            target_len = len(self._init or self._new_args) or 1
+            if isinstance(values, tuple):
+                source_len = len(values)
+            else:
+                source_len = 1
+            multi_args = len(self._init) > 1 or self._new_args
+            if source_len < target_len :
+                # prev_values = []
+                # for v in self._last_values:
+                #     if isinstance(v, auto):
+                #         prev_values.append(v.value)
+                #     else:
+                #         prev_values.append(v)
+                values = self._gnv(key, values)
+                if value.args:
+                    value._args = values
+                else:
+                    value.value = values
+        return value
 
-no_arg = object()
+    def _gnv(self, key, value):
+        # generate a value
+        if self._auto_args:
+            if not isinstance(value, tuple):
+                value = (value, )
+            value = self._generate_next_value(key, self._start, len(self._member_names), self._last_values[:], *value)
+        else:
+            value = self._generate_next_value(key, self._start, len(self._member_names), self._last_values[:])
+        if isinstance(value, tuple) and len(value) == 1:
+            value = value[0]
+        return value
+
+
+no_arg = SentinelType('no_arg', (object, ), {})
 class EnumType(StdlibEnumMeta or type):
     """Metaclass for Enum"""
 
@@ -2086,36 +2100,49 @@ class EnumType(StdlibEnumMeta or type):
         order = None
         # inherit previous flags
         member_type, first_enum = metacls._get_mixins_(bases)
-        if start is not None:
-            # if start is specifed, ensure AutoValue is enabled and 'value' is in init
-            settings.add('autovalue')
-            if init is None:
-                init = []
-            elif isinstance(init, basestring):
-                init = init.replace(',',' ').split()
-            if 'value' not in init:
-                init.insert(0, 'value')
+        # if start is not None:
+        #     # if start is specifed, ensure AutoValue is enabled and 'value' is in init
+        #     settings.add('autovalue')
+        #     if init is None:
+        #         init = []
+        #     elif isinstance(init, basestring):
+        #         init = init.replace(',',' ').split()
+        #     if 'value' not in init:
+        #         init.insert(0, 'value')
         if first_enum is not None:
+            generate = getattr(first_enum, '_generate_next_value_', None)
+            generate = getattr(generate, 'im_func', generate)
             settings |= first_enum._settings_
-            init = init or first_enum._auto_init_
+            init = init or first_enum._auto_init_[:]
             order = first_enum._order_function_
             if start is None:
                 start = first_enum._start_
-            generate = getattr(first_enum, '_generate_next_value_', None)
-            generate = getattr(generate, 'im_func', generate)
+            # else:
+            #     # start was specified:
+            #     # if AutoValue in settings, ensure _init_ has 'value'
+            #     # otherwise, default to AutoNumber
+            #     if 'autovalue' in settings:
+            #         if 'value' not in init:
+            #             init.insert(0, 'value')
+            #     else:
+            #         settings.add('autonumber')
         else:
             # first time through -- creating Enum itself
-            if start is None:
-                start = 1
+            start = 1
         # check for custom settings
+        if AddValue in settings and init and 'value' not in init:
+            if isinstance(init, list):
+                init.insert(0, 'value')
+            else:
+                init = 'value ' + init
         if NoAlias in settings and Unique in settings:
-            raise TypeError('cannot specify both NoAlias and Unique')
-        elif MultiValue in settings and NoAlias in settings:
-            raise TypeError('cannot specify both MultiValue and NoAlias')
-        allowed_settings = dict.fromkeys(['autovalue', 'noalias', 'unique', 'multivalue'])
+            raise TypeError('%r: NoAlias and Unique are mutually exclusive' % cls)
+        if MultiValue in settings and NoAlias in settings:
+            raise TypeError('%r: MultiValue and NoAlias are mutually exclusive' % cls)
+        allowed_settings = dict.fromkeys(['addvalue', 'magicvalue', 'noalias', 'unique', 'multivalue'])
         for arg in settings:
             if arg not in allowed_settings:
-                raise TypeError('unknown qualifier: %r' % (arg, ))
+                raise TypeError('%r: unknown qualifier %r' % (cls, arg))
         enum_dict = _EnumDict(cls_name=cls, settings=settings, start=start, constructor_init=constructor_init, constructor_start=constructor_start, constructor_boundary=constructor_boundary)
         enum_dict._member_type = member_type
         enum_dict._base_type = ('enum', 'flag')[
@@ -2123,7 +2150,7 @@ class EnumType(StdlibEnumMeta or type):
                 or
                 Flag is not None and any(issubclass(b, Flag) for b in bases)
                 ]
-        if Flag is not None and any(b is Flag for b in bases) and member_type not in (int, object):
+        if Flag is not None and any(b is Flag for b in bases) and member_type not in (baseinteger + (object, )):
             if Flag in bases:
                 # when a non-int data type is mixed in with Flag, we end up
                 # needing two values for two `__new__`s:
@@ -2277,7 +2304,7 @@ class EnumType(StdlibEnumMeta or type):
             creating_init = init[:]
         if 'value' in creating_init and creating_init[0] != 'value':
             raise TypeError("'value', if specified, must be the first item in 'init'")
-        autovalue = AutoValue in settings
+        magicvalue = MagicValue in settings
         multivalue = MultiValue in settings
         noalias = NoAlias in settings
         unique = Unique in settings
@@ -2312,16 +2339,16 @@ class EnumType(StdlibEnumMeta or type):
             value = test_value = clsdict[name]
             if isinstance(value, auto) and value.value is not _auto_null:
                 test_value = value.value
-            if isinstance(test_value, int):
+            if isinstance(test_value, baseinteger):
                 flag_mask |= test_value
-            if isinstance(test_value, tuple) and test_value and isinstance(test_value[0], int):
+            if isinstance(test_value, tuple) and test_value and isinstance(test_value[0], baseinteger):
                 flag_mask |= test_value[0]
             clsdict[name] = _proto_member(value)
         #
         # temp stuff
         clsdict['_creating_init_'] = creating_init
         clsdict['_multivalue_'] = multivalue
-        clsdict['_autovalue_'] = autovalue
+        clsdict['_magicvalue_'] = magicvalue
         clsdict['_noalias_'] = noalias
         clsdict['_unique_'] = unique
         #
@@ -3161,7 +3188,7 @@ if pyver >= 3:
         """
         automatically use _generate_next_value_ when values are missing (Python 3 only)
         """
-        _settings_ = AutoValue
+        _settings_ = MagicValue
 
 
 class AutoNumberEnum(Enum):
@@ -3177,6 +3204,8 @@ class AutoNumberEnum(Enum):
         value = len(cls.__members__) + 1
         if cls._member_type_ is int:
             obj = int.__new__(cls, value)
+        elif cls._member_type_ is long:
+            obj = long.__new__(cls, value)
         else:
             obj = object.__new__(cls)
         obj._value_ = value
@@ -3512,9 +3541,9 @@ class Flag(Enum):
         Create a composite member.
         """
         value = values[0]
-        if not isinstance(value, int):
+        if not isinstance(value, baseinteger):
             raise ValueError(
-                    "%r is not a valid %s" % (value, cls.__qualname__)
+                    "%r is not a valid %s" % (value, getattr(cls, '__qualname__', cls.__name__))
                     )
         # check boundaries
         # - value must be in range (e.g. -16 <-> +15, i.e. ~15 <-> 15)
@@ -3587,7 +3616,7 @@ class Flag(Enum):
         """
         Return values to be fed to __new__ to create new member.
         """
-        if cls._member_type_ in (int, object):
+        if cls._member_type_ in (baseinteger + (object, )):
             return values
         elif len(values) < 2:
             return values + (cls._member_type_(), )
@@ -3673,7 +3702,7 @@ class IntFlag(int, Flag):
     def __or__(self, other):
         if isinstance(other, self.__class__):
             other = other._value_
-        elif isinstance(other, int):
+        elif isinstance(other, baseinteger):
             other = other
         else:
             return NotImplemented
@@ -3683,7 +3712,7 @@ class IntFlag(int, Flag):
     def __and__(self, other):
         if isinstance(other, self.__class__):
             other = other._value_
-        elif isinstance(other, int):
+        elif isinstance(other, baseinteger):
             other = other
         else:
             return NotImplemented
@@ -3693,7 +3722,7 @@ class IntFlag(int, Flag):
     def __xor__(self, other):
         if isinstance(other, self.__class__):
             other = other._value_
-        elif isinstance(other, int):
+        elif isinstance(other, baseinteger):
             other = other
         else:
             return NotImplemented

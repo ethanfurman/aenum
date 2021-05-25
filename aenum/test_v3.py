@@ -1,6 +1,6 @@
 from aenum import EnumMeta, Enum, IntEnum, Flag, UniqueEnum, AutoEnum
-from aenum import NamedTuple, TupleSize, AutoValue, AutoNumber, NoAlias, Unique, MultiValue
-from aenum import AutoNumberEnum, OrderedEnum, unique, skip, extend_enum
+from aenum import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
+from aenum import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum
 
 from collections import OrderedDict
 from datetime import timedelta
@@ -12,6 +12,7 @@ import tempfile
 import textwrap
 import sys
 pyver = float('%s.%s' % sys.version_info[:2])
+
 
 class TestEnumV3(TestCase):
 
@@ -80,58 +81,44 @@ class TestEnumV3(TestCase):
         self.assertEqual(Color.BLUE.rgb, (0, 1, 0))
         self.assertEqual(Color.GREEN.rgb, (0, 0, 1))
 
-    # def test_auto_turns_off(self):
-    #     with self.assertRaises(NameError):
-    #         class Color(Enum, settings=AutoValue):
-    #             red
-    #             green
-    #             blue
-    #             def hello(self):
-    #                 print('Hello!  My serial is %s.' % self.value)
-    #             rose
-    #     with self.assertRaises(NameError):
-    #         class Color(Enum, settings=AutoValue):
-    #             red
-    #             green
-    #             blue
-    #             def __init__(self, *args):
-    #                 pass
-    #             rose
+    def test_auto_turns_off(self):
+        with self.assertRaises(NameError):
+            class Color(Enum, settings=MagicValue):
+                red
+                green
+                blue
+                def hello(self):
+                    print('Hello!  My serial is %s.' % self.value)
+                rose
+        with self.assertRaises(NameError):
+            class Color(Enum, settings=MagicValue):
+                red
+                green
+                blue
+                def __init__(self, *args):
+                    pass
+                rose
 
-    # def test_magic(self):
-    #     class Color(Enum, settings=AutoValue):
-    #         red, green, blue
-    #     self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-    #     self.assertEqual(Color.red.value, 1)
+    def test_magic(self):
+        class Color(Enum, settings=MagicValue):
+            red, green, blue
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+        self.assertEqual(Color.red.value, 1)
 
-    # def test_ignore_not_overridden(self):
-    #     with self.assertRaisesRegex(TypeError, 'object is not callable'):
-    #         class Color(Flag):
-    #             _ignore_ = 'irrelevent'
-    #             _settings_ = AutoValue
-    #             @property
-    #             def shade(self):
-    #                 print('I am light', self.name.lower())
+    def test_ignore_not_overridden(self):
+        with self.assertRaisesRegex(TypeError, 'object is not callable'):
+            class Color(Flag):
+                _ignore_ = 'irrelevent'
+                _settings_ = MagicValue
+                @property
+                def shade(self):
+                    print('I am light', self.name.lower())
 
-    # def test_magic_start(self):
-    #     class Color(Enum, start=0):
-    #         red, green, blue
-    #     self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-    #     self.assertEqual(Color.red.value, 0)
-
-    # def test_magic_on_and_off(self):
-    #     class Color(Enum):
-    #         _auto_on_
-    #         red
-    #         green
-    #         _auto_off_
-    #         @property
-    #         def cap_name(self) -> str:
-    #             return self.name.title()
-    #         _auto_on_
-    #         blue
-    #     self.assertEqual(len(Color), 3)
-    #     self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+    def test_magic_start(self):
+        class Color(Enum, settings=MagicValue, start=0):
+            red, green, blue
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+        self.assertEqual(Color.red.value, 0)
 
     def test_dir_on_class(self):
         Season = self.Season
@@ -275,8 +262,15 @@ class TestEnumV3(TestCase):
                 green = 2, 'green'
                 blue = 3, 'blue', 'red'
 
-    def test_auto_and_init(self):
-        class Field(IntEnum, settings=AutoValue, init='value __doc__'):
+    def test_multivalue_and_auto(self):
+        with self.assertRaisesRegex(TypeError, r'MultiValue and MagicValue are mutually exclusive'):
+            class Color(Enum, settings=(MultiValue, MagicValue)):
+                red
+                green = 3, 'green'
+                blue
+
+    def test_autonumber_and_init(self):
+        class Field(IntEnum, settings=AddValue, init='__doc__'):
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
         self.assertEqual(Field.TYPE, 1)
@@ -285,8 +279,15 @@ class TestEnumV3(TestCase):
         self.assertEqual(Field.START.__doc__, 'Field offset in record')
         self.assertFalse(hasattr(Field, '_order_'))
 
-    def test_auto_and_start(self):
-        class Field(IntEnum, init='__doc__', start=0):
+    def test_autovalue_and_init(self):
+        class Field(IntEnum, init='value __doc__'):
+            TYPE = "Char, Date, Logical, etc."
+            START = "Field offset in record"
+        self.assertEqual(Field.TYPE, 1)
+        self.assertEqual(Field.START.__doc__, 'Field offset in record')
+
+    def test_autonumber_and_start(self):
+        class Field(IntEnum, init='__doc__', settings=AddValue, start=0):
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
         self.assertEqual(Field.TYPE, 0)
@@ -294,8 +295,8 @@ class TestEnumV3(TestCase):
         self.assertEqual(Field.TYPE.__doc__, 'Char, Date, Logical, etc.')
         self.assertEqual(Field.START.__doc__, 'Field offset in record')
 
-    def test_auto_and_init_and_some_values(self):
-        class Field(IntEnum, init='value __doc__', settings=AutoValue):
+    def test_autonumber_and_init_and_some_values(self):
+        class Field(IntEnum, init='value __doc__'):
             TYPE = "Char, Date, Logical, etc."
             START = "Field offset in record"
             BLAH = 5, "test blah"
@@ -309,44 +310,109 @@ class TestEnumV3(TestCase):
         self.assertEqual(Field.BLAH.__doc__, 'test blah')
         self.assertEqual(Field.BELCH.__doc__, 'test belch')
 
-    # def test_autoenum(self):
-    #     class Color(AutoEnum):
-    #         red
-    #         green
-    #         blue
-    #     self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-    #     self.assertEqual([m.value for m in Color], [1, 2, 3])
-    #     self.assertEqual([m.name for m in Color], ['red', 'green', 'blue'])
+    def test_autonumber_with_irregular_values(self):
+        class Point(AutoNumberEnum, init='x y'):
+            first = 7, 9
+            second = 11, 13
+        self.assertEqual(Point.first.value, 1)
+        self.assertEqual(Point.first.x, 7)
+        self.assertEqual(Point.first.y, 9)
+        self.assertEqual(Point.second.value, 2)
+        self.assertEqual(Point.second.x, 11)
+        self.assertEqual(Point.second.y, 13)
+        with self.assertRaisesRegex(TypeError, '.*number of fields provided do not match init ...x., .y.. != .3, 11, 13..'):
+            class Point(AutoNumberEnum, init='x y'):
+                first = 7, 9
+                second = 3, 11, 13
+        class Color(AutoNumberEnum, init='__doc__'):
+            # interactions between AutoNumberEnum and _generate_next_value_ may not be pretty
+            red = ()
+            green = 'red'
+            blue = ()
+        self.assertTrue(Color.red.__doc__, 1)
+        self.assertEqual(Color.green.__doc__, 'red')
+        self.assertTrue(Color.blue.__doc__, 2)
 
-    # def test_autoenum_with_str(self):
-    #     class Color(AutoEnum):
-    #         def _generate_next_value_(name, start, count, last_values):
-    #             return name
-    #         red
-    #         green
-    #         blue
-    #     self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-    #     self.assertEqual([m.value for m in Color], ['red', 'green', 'blue'])
-    #     self.assertEqual([m.name for m in Color], ['red', 'green', 'blue'])
+    def test_autonumber_and_property(self):
+        with self.assertRaises(TypeError):
+            class Color(AutoEnum):
+                _ignore_ = ()
+                red = ()
+                green = ()
+                blue = ()
+                @property
+                def cap_name(self) -> str:
+                    return self.name.title()
 
-    # def test_autoenum_and_default_ignore(self):
-    #     class Color(AutoEnum):
-    #         red
-    #         green
-    #         blue
-    #         @property
-    #         def cap_name(self):
-    #             return self.name.title()
-    #     self.assertEqual(Color.blue.cap_name, 'Blue')
+    def test_autoenum(self):
+        class Color(AutoEnum):
+            red
+            green
+            blue
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+        self.assertEqual([m.value for m in Color], [1, 2, 3])
+        self.assertEqual([m.name for m in Color], ['red', 'green', 'blue'])
 
-    # def test_combine_new_settings_with_old_settings(self):
-    #     class Auto(Enum, settings=Unique):
-    #         pass
-    #     with self.assertRaises(ValueError):
-    #         class AutoUnique(Auto, settings=AutoValue):
-    #             BLAH
-    #             BLUH
-    #             ICK = 1
+    def test_autoenum_with_str(self):
+        class Color(AutoEnum):
+            def _generate_next_value_(name, start, count, last_values):
+                return name
+            red
+            green
+            blue
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+        self.assertEqual([m.value for m in Color], ['red', 'green', 'blue'])
+        self.assertEqual([m.name for m in Color], ['red', 'green', 'blue'])
+
+    def test_autoenum_and_default_ignore(self):
+        class Color(AutoEnum):
+            red
+            green
+            blue
+            @property
+            def cap_name(self):
+                return self.name.title()
+        self.assertEqual(Color.blue.cap_name, 'Blue')
+
+    def test_autonumber_and_overridden_ignore(self):
+        with self.assertRaises(TypeError):
+            class Color(AutoEnum):
+                _ignore_ = 'staticmethod'
+                red
+                green
+                blue
+                @property
+                def cap_name(self) -> str:
+                    return self.name.title()
+
+    def test_autonumber_and_multiple_assignment(self):
+        class Color(AutoEnum):
+            _ignore_ = 'property'
+            red
+            green
+            blue = cyan
+            @property
+            def cap_name(self) -> str:
+                return self.name.title()
+        self.assertEqual(Color.blue.cap_name, 'Cyan')
+
+    def test_multivalue_and_autonumber_inherited(self):
+        class Measurement(int, Enum, settings=(MultiValue, AddValue), start=0):
+            one = "20110721"
+            two = "20120911"
+            three = "20110518"
+        M = Measurement
+        self.assertEqual(M.one, 0)
+        self.assertTrue(M.one is M(0) is M('20110721'))
+
+    def test_combine_new_settings_with_old_settings(self):
+        class Auto(Enum, settings=Unique):
+            pass
+        with self.assertRaises(ValueError):
+            class AutoUnique(Auto, settings=MagicValue):
+                BLAH
+                BLUH
+                ICK = 1
 
     def test_timedelta(self):
         class Period(timedelta, Enum):
@@ -393,17 +459,17 @@ class TestEnumV3(TestCase):
         self.assertEqual(len(Color), 4)
         self.assertEqual(Color.red.value, 1)
 
-    # def test_extend_enum_generate(self):
-    #     class Foo(AutoEnum):
-    #         def _generate_next_value_(name, start, count, values, *args, **kwds):
-    #             return name
-    #         a
-    #         b
-    #     #
-    #     extend_enum(Foo, 'c')
-    #     self.assertEqual(Foo.a.value, 'a')
-    #     self.assertEqual(Foo.b.value, 'b')
-    #     self.assertEqual(Foo.c.value, 'c')
+    def test_extend_enum_generate(self):
+        class Foo(AutoEnum):
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return name
+            a
+            b
+        #
+        extend_enum(Foo, 'c')
+        self.assertEqual(Foo.a.value, 'a')
+        self.assertEqual(Foo.b.value, 'b')
+        self.assertEqual(Foo.c.value, 'c')
 
     def test_extend_enum_unique_with_duplicate(self):
         with self.assertRaises(ValueError):
@@ -455,68 +521,68 @@ class TestEnumV3(TestCase):
             triple = 3
             value = 4
 
-    # def test_auto_number(self):
-    #     class Color(Enum, settings=AutoValue):
-    #         red
-    #         blue
-    #         green
-    #
-    #     self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
-    #     self.assertEqual(Color.red.value, 1)
-    #     self.assertEqual(Color.blue.value, 2)
-    #     self.assertEqual(Color.green.value, 3)
+    def test_auto_number(self):
+        class Color(Enum, settings=MagicValue):
+            red
+            blue
+            green
 
-    # def test_auto_name(self):
-    #     class Color(Enum, settings=AutoValue):
-    #         def _generate_next_value_(name, start, count, last):
-    #             return name
-    #         red
-    #         blue
-    #         green
-    #
-    #     self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
-    #     self.assertEqual(Color.red.value, 'red')
-    #     self.assertEqual(Color.blue.value, 'blue')
-    #     self.assertEqual(Color.green.value, 'green')
+        self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
+        self.assertEqual(Color.red.value, 1)
+        self.assertEqual(Color.blue.value, 2)
+        self.assertEqual(Color.green.value, 3)
 
-    # def test_auto_name_inherit(self):
-    #     class AutoNameEnum(Enum):
-    #         def _generate_next_value_(name, start, count, last):
-    #             return name
-    #     class Color(AutoNameEnum, settings=AutoValue):
-    #         red
-    #         blue
-    #         green
-    #
-    #     self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
-    #     self.assertEqual(Color.red.value, 'red')
-    #     self.assertEqual(Color.blue.value, 'blue')
-    #     self.assertEqual(Color.green.value, 'green')
+    def test_auto_name(self):
+        class Color(Enum, settings=MagicValue):
+            def _generate_next_value_(name, start, count, last):
+                return name
+            red
+            blue
+            green
 
-    # def test_auto_garbage(self):
-    #     class Color(Enum):
-    #         _settings_ = AutoValue
-    #         red = 'red'
-    #         blue
-    #     self.assertEqual(Color.blue.value, 1)
+        self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
+        self.assertEqual(Color.red.value, 'red')
+        self.assertEqual(Color.blue.value, 'blue')
+        self.assertEqual(Color.green.value, 'green')
 
-    # def test_auto_garbage_corrected(self):
-    #     class Color(Enum, settings=AutoValue):
-    #         red = 'red'
-    #         blue = 2
-    #         green
-    #
-    #     self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
-    #     self.assertEqual(Color.red.value, 'red')
-    #     self.assertEqual(Color.blue.value, 2)
-    #     self.assertEqual(Color.green.value, 3)
+    def test_auto_name_inherit(self):
+        class AutoNameEnum(Enum):
+            def _generate_next_value_(name, start, count, last):
+                return name
+        class Color(AutoNameEnum, settings=MagicValue):
+            red
+            blue
+            green
 
-    # def test_duplicate_auto(self):
-    #     class Dupes(Enum, settings=AutoValue):
-    #         first = primero
-    #         second
-    #         third
-    #     self.assertEqual([Dupes.first, Dupes.second, Dupes.third], list(Dupes))
+        self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
+        self.assertEqual(Color.red.value, 'red')
+        self.assertEqual(Color.blue.value, 'blue')
+        self.assertEqual(Color.green.value, 'green')
+
+    def test_auto_garbage(self):
+        class Color(Enum):
+            _settings_ = MagicValue
+            red = 'red'
+            blue
+        self.assertEqual(Color.blue.value, 1)
+
+    def test_auto_garbage_corrected(self):
+        class Color(Enum, settings=MagicValue):
+            red = 'red'
+            blue = 2
+            green
+
+        self.assertEqual(list(Color), [Color.red, Color.blue, Color.green])
+        self.assertEqual(Color.red.value, 'red')
+        self.assertEqual(Color.blue.value, 2)
+        self.assertEqual(Color.green.value, 3)
+
+    def test_duplicate_auto(self):
+        class Dupes(Enum, settings=MagicValue):
+            first = primero
+            second
+            third
+        self.assertEqual([Dupes.first, Dupes.second, Dupes.third], list(Dupes))
 
     def test_order_as_function(self):
         # first with _init_
@@ -1077,9 +1143,7 @@ class TestStackoverflowAnswersV3(TestCase):
 
     def test_create_C_like_Enum(self):
         # https://stackoverflow.com/a/35965438/208880
-        class Id(Enum, start=0):
-            #
-            _auto_on_
+        class Id(Enum, settings=MagicValue, start=0):
             #
             NONE  # 0x0
             HEARTBEAT  # 0x1

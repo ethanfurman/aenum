@@ -1,3 +1,20 @@
+3.1.0
+=====
+
+AddValue is similar to the old AutoNumber: it will always activate, but
+uses _generate_next_value_ to get the next value (so the user has some
+control over the return data type instead of always getting an int).
+
+
+BREAKING CHANGES
+
+AutoValue is gone.  It was superflous and its removal simplified the code.
+Simply put the fields needed in an `_init_` and `_generate_next_value_`
+will be called to supply the missing values (this is probably already what
+is happening).
+
+
+
 3.0.0
 =====
 

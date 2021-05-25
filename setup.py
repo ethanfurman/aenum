@@ -8,6 +8,11 @@ import sys
 long_desc = '''\
 Advanced Enumerations (compatible with Python's stdlib Enum), NamedTuples, and NamedConstants
 
+WARNING: Version 3.1 has breaking changes in custom Enum settings
+WARNING:
+WARNING: AutoNumber has been removed
+WARNING: AutoValue has been removed
+
 aenum includes a Python stdlib Enum-compatible data type, as well as a metaclass-based NamedTuple implementation and a NamedConstant class.
 
 An Enum is a set of symbolic names (members) bound to unique, constant values. Within an enumeration, the members can be compared by identity, and the enumeration itself can be iterated over.  Support exists for unique values, multiple values, auto-numbering, and suspension of aliasing (members with the same value are not identical), plus the ability to have values automatically bound to attributes.
