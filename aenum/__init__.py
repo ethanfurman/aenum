@@ -3315,6 +3315,7 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         _value2member_seq_ = []
         _multi_value_ = False
         _no_alias_ = False
+        _unique_ = False
         _auto_init_ = []
     mt_new = _member_type_.__new__
     _new = getattr(enumeration, '__new_member__', mt_new)
