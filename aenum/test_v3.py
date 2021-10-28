@@ -1,6 +1,6 @@
-from aenum import EnumMeta, Enum, IntEnum, Flag, UniqueEnum, AutoEnum
-from aenum import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
-from aenum import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum
+from . import EnumMeta, Enum, IntEnum, Flag, UniqueEnum, AutoEnum, AddValueEnum
+from . import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
+from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum
 
 from collections import OrderedDict
 from datetime import timedelta
@@ -1298,6 +1298,41 @@ class TestStackoverflowAnswersV3(TestCase):
             self.assertEqual(Blah.BETA.value, 1)
             self.assertEqual(Blah.GAMMA.value, 10)
             self.assertEqual(Blah.ZETA.value, 50)
+
+class TestIssuesV3(TestCase):
+    """
+    Problems that were stated in issues.
+    """
+
+    def test_auto_multi_int_1(self):
+        class Measurement(int, AddValueEnum, MultiValueEnum, start=0):
+            one = "20110721"
+            two = "20120911"
+            three = "20110518"
+        self.assertEqual([m.value for m in Measurement], [0, 1, 2])
+        self.assertEqual([m.name for m in Measurement], ['one', 'two', 'three'])
+        self.assertIs(Measurement(0), Measurement.one)
+        self.assertIs(Measurement('20110721'), Measurement.one)
+        self.assertIs(Measurement(1), Measurement.two)
+        self.assertIs(Measurement('20120911'), Measurement.two)
+        self.assertIs(Measurement(2), Measurement.three)
+        self.assertIs(Measurement('20110518'), Measurement.three)
+
+    def test_auto_multi_int_2(self):
+        class Measurement(int, Enum, settings=(MultiValue, AddValue)):
+            print('starting Measurement')
+            _start_ = 0
+            one = "20110721"
+            two = "20120911"
+            three = "20110518"
+        self.assertEqual([m.value for m in Measurement], [0, 1, 2])
+        self.assertEqual([m.name for m in Measurement], ['one', 'two', 'three'])
+        self.assertIs(Measurement(0), Measurement.one)
+        self.assertIs(Measurement('20110721'), Measurement.one)
+        self.assertIs(Measurement(1), Measurement.two)
+        self.assertIs(Measurement('20120911'), Measurement.two)
+        self.assertIs(Measurement(2), Measurement.three)
+        self.assertIs(Measurement('20110518'), Measurement.three)
 
 
 if __name__ == '__main__':

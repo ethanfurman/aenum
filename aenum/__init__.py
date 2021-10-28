@@ -44,6 +44,7 @@ __all__ = [
         'StrEnum', 'UpperStrEnum', 'LowerStrEnum',
         'Flag', 'IntFlag',
         'AddValue', 'MagicValue', 'MultiValue', 'NoAlias', 'Unique',
+        'AddValueEnum', 'MultiValueEnum', 'NoAliasEnum',
         'enum', 'extend_enum', 'unique', 'property',
         'NamedTuple', 'SqliteEnum',
         'FlagBoundary', 'STRICT', 'CONFORM', 'EJECT', 'KEEP',
@@ -52,7 +53,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 0
+version = 3, 1, 1, 2
 
 # shims
 try:
@@ -1796,7 +1797,6 @@ class _EnumDict(dict):
     """
     def __init__(self, cls_name, settings, start, constructor_init, constructor_start, constructor_boundary):
         super(_EnumDict, self).__init__()
-        # print('=' * 50, cls_name, sep='\n')
         self._cls_name = cls_name
         self._constructor_init = constructor_init
         self._constructor_start = constructor_start
@@ -1854,7 +1854,6 @@ class _EnumDict(dict):
 
         Single underscore (sunder) names are reserved.
         """
-        # print('incoming %r %r ' % ( key, value))
         # Flag classes that have MagicValue and __new__ will get a generated _gnv_
         if _is_internal_class(self._cls_name, value):
             pass
@@ -1988,7 +1987,6 @@ class _EnumDict(dict):
                 if self._addvalue:
                     value = self._gnv(key, value)
             elif isinstance(value, auto):
-                # print('getting a value for auto()')
                 value = self._convert_auto(key, value)
             elif isinstance(value, tuple) and value and isinstance(value[0], auto):
                 value = (self._convert_auto(key, value[0]), ) + value[1:]
@@ -2035,7 +2033,6 @@ class _EnumDict(dict):
                     self._last_values.append(value[0])
             else:
                 self._last_values.append(value)
-        # print('outgoing:         %r' % (value, ))
         super(_EnumDict, self).__setitem__(key, value)
 
     def _convert_auto(self, key, value):
@@ -2112,7 +2109,7 @@ class EnumType(StdlibEnumMeta or type):
         if first_enum is not None:
             generate = getattr(first_enum, '_generate_next_value_', None)
             generate = getattr(generate, 'im_func', generate)
-            settings |= first_enum._settings_
+            settings |= metacls._get_settings(bases)
             init = init or first_enum._auto_init_[:]
             order = first_enum._order_function_
             if start is None:
@@ -2775,16 +2772,30 @@ class EnumType(StdlibEnumMeta or type):
         if not bases or Enum is None:
             return object, Enum
         def _find_data_type(bases):
+            data_types = set()
             for chain in bases:
+                candidate = None
                 for base in chain.__mro__:
                     if base is object or base is StdlibEnum or base is StdlibFlag:
                         continue
+                    elif issubclass(base, Enum):
+                        if base._member_type_ is not object:
+                            data_types.add(base._member_type_)
                     elif '__new__' in base.__dict__:
                         if issubclass(base, Enum):
                             continue
                         elif StdlibFlag is not None and issubclass(base, StdlibFlag):
                             continue
-                        return base
+                        data_types.add(candidate or base)
+                        break
+                    else:
+                        candidate = candidate or base
+            if len(data_types) > 1:
+                raise TypeError('%r: too many data types: %r' % (class_name, data_types))
+            elif data_types:
+                return data_types.pop()
+            else:
+                return None
 
         # ensure final parent class is an Enum derivative, find any concrete
         # data type, and check that Enum has no members
@@ -2797,6 +2808,20 @@ class EnumType(StdlibEnumMeta or type):
             raise TypeError("cannot extend enumerations via subclassing")
         #
         return member_type, first_enum
+
+    @staticmethod
+    def _get_settings(bases):
+        """Returns the combined _settings_ of all Enum base classes
+
+        bases: the tuple of bases given to __new__
+        """
+        settings = set()
+        for chain in bases:
+            for base in chain.__mro__:
+                if issubclass(base, Enum):
+                    for s in base._settings_:
+                        settings.add(s)
+        return settings
 
     @classmethod
     def _find_new_(mcls, clsdict, member_type, first_enum):
@@ -3210,6 +3235,10 @@ class AutoNumberEnum(Enum):
             obj = object.__new__(cls)
         obj._value_ = value
         return obj
+
+
+class AddValueEnum(Enum):
+    _settings_ = AddValue
 
 
 class MultiValueEnum(Enum):

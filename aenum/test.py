@@ -12,7 +12,7 @@ import textwrap
 import unittest
 import warnings
 from aenum import EnumType, EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
-from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, Flag, IntFlag
+from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, AddValueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AddValue, Unique
 from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
@@ -173,7 +173,7 @@ def test_pickle_exception(assertion, exception, obj,
         raise ValueError('Failed with protocols: %s' % ', '.join(failures))
 
 if pyver >= 3.0:
-    from aenum.test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3, TestStackoverflowAnswersV3
+    from aenum.test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3, TestStackoverflowAnswersV3, TestIssuesV3
     from aenum import test_v3
     test_v3.pyver = pyver
     test_v3.IntStooges = IntStooges
@@ -3419,17 +3419,6 @@ class TestEnum(TestCase):
         self.assertEqual(list(Fruit.CitrusTypes), [Fruit.lemon, Fruit.orange])
         self.assertTrue(Fruit.orange in Fruit.CitrusTypes)
 
-    def test_constant_with_enum_is_updated(self):
-        class Fruit(Flag):
-            _order_ = 'apple banana lemon orange'
-            apple = auto()
-            banana = auto()
-            lemon = auto()
-            orange = auto()
-            CitrusTypes = constant(lemon | orange)
-        self.assertEqual(list(Fruit), [Fruit.apple, Fruit.banana, Fruit.lemon, Fruit.orange])
-        self.assertEqual(list(Fruit.CitrusTypes), [Fruit.lemon, Fruit.orange])
-        self.assertTrue(Fruit.orange in Fruit.CitrusTypes)
 
     def test_order_as_function(self):
         # first with _init_
@@ -6193,58 +6182,6 @@ class TestNamedConstant(TestCase):
         self.assertFalse(Foo.BLA is Bar.BLA)
 
 
-# These are unordered here on purpose to ensure that declaration order
-# makes no difference.
-CONVERT_TEST_NAME_D = 5
-CONVERT_TEST_NAME_C = 5
-CONVERT_TEST_NAME_B = 5
-CONVERT_TEST_NAME_A = 5  # This one should sort first.
-CONVERT_TEST_NAME_E = 5
-CONVERT_TEST_NAME_F = 5
-CONVERT_TEST_SIGABRT = 4 # and this one
-CONVERT_TEST_SIGIOT = 4
-CONVERT_TEST_EIO = 7
-CONVERT_TEST_EBUS = 7    # and this one
-
-class TestIntEnumConvert(TestCase):
-    def test_convert_value_lookup_priority(self):
-        test_type = IntEnum._convert_(
-                'UnittestConvert',
-                '__main__',
-                filter=lambda x: x.startswith('CONVERT_TEST_'))
-        # We don't want the reverse lookup value to vary when there are
-        # multiple possible names for a given value.  It should always
-        # report the first lexigraphical name in that case.
-        self.assertEqual(test_type(5).name, 'CONVERT_TEST_NAME_A')
-        self.assertEqual(test_type(4).name, 'CONVERT_TEST_SIGABRT')
-        self.assertEqual(test_type(7).name, 'CONVERT_TEST_EBUS')
-        self.assertEqual(
-                list(test_type),
-                [
-                    test_type.CONVERT_TEST_SIGABRT,
-                    test_type.CONVERT_TEST_NAME_A,
-                    test_type.CONVERT_TEST_EBUS,
-                    ],
-                )
-
-    def test_convert_(self):
-        test_type = IntEnum._convert_(
-                'UnittestConvert',
-                '__main__',
-                filter=lambda x: x.startswith('CONVERT_TEST_'))
-        # Ensure that test_type has all of the desired names and values.
-        self.assertEqual(test_type.CONVERT_TEST_NAME_F,
-                         test_type.CONVERT_TEST_NAME_A)
-        self.assertEqual(test_type.CONVERT_TEST_NAME_B, 5)
-        self.assertEqual(test_type.CONVERT_TEST_NAME_C, 5)
-        self.assertEqual(test_type.CONVERT_TEST_NAME_D, 5)
-        self.assertEqual(test_type.CONVERT_TEST_NAME_E, 5)
-        # Ensure that test_type only picked up names matching the filter.
-        self.assertEqual([name for name in dir(test_type)
-                          if name[0:2] not in ('CO', '__')],
-                         [], msg='Names other than CONVERT_TEST_* found.')
-
-
 class TestStarImport(TestCase):
 
     def test_all_exports_names(self):
@@ -6347,6 +6284,75 @@ class TestStackoverflowAnswers(TestCase):
             SIX = "SIX"
         #
         self.assertTrue(LabelEnum.has_name('Enum_Three'))
+
+    def test_auto_multi_int_3(self):
+        class Measurement(int, MultiValueEnum, AddValueEnum):
+            _order_ = 'one two three'
+            _start_ = 0
+            one = "20110721"
+            two = "20120911"
+            three = "20110518"
+        self.assertEqual([m.value for m in Measurement], [0, 1, 2])
+        self.assertEqual([m.name for m in Measurement], ['one', 'two', 'three'])
+        self.assertIs(Measurement('20110721'), Measurement.one)
+        self.assertIs(Measurement(0), Measurement.one)
+        self.assertIs(Measurement('20120911'), Measurement.two)
+        self.assertIs(Measurement(1), Measurement.two)
+        self.assertIs(Measurement('20110518'), Measurement.three)
+        self.assertIs(Measurement(2), Measurement.three)
+
+# Test conversion of global constants
+# These are unordered here on purpose to ensure that declaration order
+# makes no difference.
+CONVERT_TEST_NAME_D = 5
+CONVERT_TEST_NAME_C = 5
+CONVERT_TEST_NAME_B = 5
+CONVERT_TEST_NAME_A = 5  # This one should sort first.
+CONVERT_TEST_NAME_E = 5
+CONVERT_TEST_NAME_F = 5
+CONVERT_TEST_SIGABRT = 4 # and this one
+CONVERT_TEST_SIGIOT = 4
+CONVERT_TEST_EIO = 7
+CONVERT_TEST_EBUS = 7    # and this one
+
+class TestIntEnumConvert(TestCase):
+    def test_convert_value_lookup_priority(self):
+        test_type = IntEnum._convert_(
+                'UnittestConvert',
+                '__main__',
+                filter=lambda x: x.startswith('CONVERT_TEST_'))
+        # We don't want the reverse lookup value to vary when there are
+        # multiple possible names for a given value.  It should always
+        # report the first lexigraphical name in that case.
+        self.assertEqual(test_type(5).name, 'CONVERT_TEST_NAME_A')
+        self.assertEqual(test_type(4).name, 'CONVERT_TEST_SIGABRT')
+        self.assertEqual(test_type(7).name, 'CONVERT_TEST_EBUS')
+        self.assertEqual(
+                list(test_type),
+                [
+                    test_type.CONVERT_TEST_SIGABRT,
+                    test_type.CONVERT_TEST_NAME_A,
+                    test_type.CONVERT_TEST_EBUS,
+                    ],
+                )
+
+    def test_convert_(self):
+        test_type = IntEnum._convert_(
+                'UnittestConvert',
+                '__main__',
+                filter=lambda x: x.startswith('CONVERT_TEST_'))
+        # Ensure that test_type has all of the desired names and values.
+        self.assertEqual(test_type.CONVERT_TEST_NAME_F,
+                         test_type.CONVERT_TEST_NAME_A)
+        self.assertEqual(test_type.CONVERT_TEST_NAME_B, 5)
+        self.assertEqual(test_type.CONVERT_TEST_NAME_C, 5)
+        self.assertEqual(test_type.CONVERT_TEST_NAME_D, 5)
+        self.assertEqual(test_type.CONVERT_TEST_NAME_E, 5)
+        # Ensure that test_type only picked up names matching the filter.
+        self.assertEqual([name for name in dir(test_type)
+                          if name[0:2] not in ('CO', '__')],
+                         [], msg='Names other than CONVERT_TEST_* found.')
+
 
 
 if __name__ == '__main__':
