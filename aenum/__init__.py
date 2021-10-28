@@ -3,7 +3,7 @@ from __future__ import print_function
 
 # imports
 import sys as _sys
-pyver = float('%s.%s' % _sys.version_info[:2])
+pyver = _sys.version_info[:2]
 
 import re
 
@@ -25,10 +25,10 @@ from operator import abs as _abs_, add as _add_, floordiv as _floordiv_
 from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
 from operator import mul as _mul_, neg as _neg_, pos as _pos_, pow as _pow_
 from operator import truediv as _truediv_, sub as _sub_
-if pyver < 3:
+if pyver < (3, ):
     from operator import div as _div_
 
-if pyver >= 3:
+if pyver >= (3, ):
     from inspect import getfullargspec
     def getargspec(method):
         args, varargs, keywords, defaults, _, _, _ = getfullargspec(method)
@@ -354,7 +354,7 @@ def _is_sunder(name):
 
 def _is_internal_class(cls_name, obj):
     # only 3.3 and up, always return False in 3.2 and below
-    if pyver < 3.3:
+    if pyver < (3, 3):
         return False
     else:
         qualname = getattr(obj, '__qualname__', False)
@@ -589,7 +589,7 @@ class constant(object):
     def __pos__(self):
         return _pos_(self.value)
 
-    if pyver < 3:
+    if pyver < (3, ):
         def __div__(self, other):
             return _div_(self.value, _value(other))
 
@@ -1100,7 +1100,7 @@ class NamedTupleMeta(type):
                 raise TypeError('too few arguments to NamedTuple: %s, %s' % (original_args, original_kwds))
             if args or kwds:
                 raise TypeError('too many arguments to NamedTuple: %s, %s' % (original_args, original_kwds))
-            if pyver < 3.0:
+            if pyver < (3, 0):
                 # if class_name is unicode, attempt a conversion to ASCII
                 if isinstance(class_name, unicode):
                     try:
@@ -1430,7 +1430,7 @@ class auto(enum):
         new_auto._operations.append((_pos_, (self, )))
         return new_auto
 
-    if pyver < 3:
+    if pyver < (3, ):
         def __div__(self, other):
             new_auto = self.__class__()
             new_auto._operations = self._operations[:]
@@ -2416,7 +2416,7 @@ class EnumType(StdlibEnumMeta or type):
         #
         # if Python 3.5 or ealier, implement the __set_name__ and
         # __init_subclass__ protocols
-        if pyver < 3.6:
+        if pyver < (3, 6):
             for name in member_names:
                 enum_class.__dict__[name].__set_name__(enum_class, name)
             for name, obj in enum_class.__dict__.items():
@@ -2444,12 +2444,12 @@ class EnumType(StdlibEnumMeta or type):
         #
         # method resolution and int's are not playing nice
         # Python's less than 2.6 use __cmp__
-        if pyver < 2.6:
+        if pyver < (2, 6):
             #
             if issubclass(enum_class, int):
                 setattr(enum_class, '__cmp__', getattr(int, '__cmp__'))
             #
-        elif pyver < 3.0:
+        elif pyver < (3, 0):
             #
             if issubclass(enum_class, int):
                 for method in (
@@ -2707,7 +2707,7 @@ class EnumType(StdlibEnumMeta or type):
         * An iterable of (member name, value) pairs.
         * A mapping of member name -> value.
         """
-        if pyver < 3.0:
+        if pyver < (3, 0):
             # if class_name is unicode, attempt a conversion to ASCII
             if isinstance(class_name, unicode):
                 try:
@@ -2937,7 +2937,7 @@ def __new__(cls, value):
 @enum_dict
 @classmethod
 def __init_subclass__(cls, **kwds):
-    if pyver < 3.6:
+    if pyver < (3, 6):
         # end of the line
         if kwds:
             raise TypeError('unconsumed keyword arguments: %r' % (kwds, ))
@@ -2987,7 +2987,7 @@ def __repr__(self):
 def __str__(self):
     return "%s.%s" % (self.__class__.__name__, self._name_)
 
-if pyver >= 3.0:
+if pyver >= (3, 0):
     @enum_dict
     def __dir__(self):
         added_behavior = [
@@ -3027,7 +3027,7 @@ def __reduce_ex__(self, proto):
 ####################################
 # Python's less than 2.6 use __cmp__
 
-if pyver < 2.6:
+if pyver < (2, 6):
 
     @enum_dict
     def __cmp__(self, other):
@@ -3183,7 +3183,7 @@ class UpperStrEnum(StrEnum):
         return name.upper()
 
 
-if pyver >= 3:
+if pyver >= (3, ):
     class AutoEnum(Enum):
         """
         automatically use _generate_next_value_ when values are missing (Python 3 only)
@@ -3661,7 +3661,7 @@ class Flag(Enum):
         else:
             return '%s(%s)' % (cls.__name__, self._value_)
 
-    if pyver < 3:
+    if pyver < (3, ):
         def __nonzero__(self):
             return bool(self._value_)
     else:
