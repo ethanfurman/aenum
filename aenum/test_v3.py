@@ -1319,9 +1319,8 @@ class TestIssuesV3(TestCase):
         self.assertIs(Measurement('20110518'), Measurement.three)
 
     def test_auto_multi_int_2(self):
-        class Measurement(int, Enum, settings=(MultiValue, AddValue)):
+        class Measurement(int, Enum, settings=(MultiValue, AddValue), start=0):
             print('starting Measurement')
-            _start_ = 0
             one = "20110721"
             two = "20120911"
             three = "20110518"
