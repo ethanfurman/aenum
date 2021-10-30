@@ -1,6 +1,8 @@
-from . import EnumMeta, Enum, IntEnum, Flag, UniqueEnum, AutoEnum, AddValueEnum
+from . import EnumMeta, Enum, IntEnum, Flag, IntFlag, StrEnum, UniqueEnum, AutoEnum, AddValueEnum
 from . import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
-from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum
+from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum, auto
+from . import StdlibEnumMeta, StdlibEnum, StdlibIntEnum, StdlibFlag, StdlibIntFlag, StdlibStrEnum
+from . import pyver, PY33, PY34, PY35
 
 from collections import OrderedDict
 from datetime import timedelta
@@ -8,11 +10,15 @@ from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 from unittest import TestCase, main
 
 import os
+import sys
 import tempfile
 import textwrap
-import sys
-pyver = float('%s.%s' % sys.version_info[:2])
+import unittest
 
+try:
+    import pyparsing
+except (ImportError, SyntaxError):
+    pyparsing = None
 
 class TestEnumV3(TestCase):
 
@@ -50,6 +56,11 @@ class TestEnumV3(TestCase):
             NEW_YEAR = 2013, 1, 1
             IDES_OF_MARCH = 2013, 3, 15
         self.Holiday = Holiday
+
+    @unittest.skipUnless(StdlibEnumMeta, 'Stdlib enum not available')
+    def test_stdlib_inheritence(self):
+        self.assertTrue(isinstance(self.Season, StdlibEnumMeta))
+        self.assertTrue(issubclass(self.Season, StdlibEnum))
 
     def test_auto_init(self):
         class Planet(Enum, init='mass radius'):
@@ -708,7 +719,7 @@ class TestEnumV3(TestCase):
                 gl_category              = 'Rn$(5,1)',      8     # G/L Category
                 warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
 
-    if pyver >= 3.3:
+    if pyver >= PY33:
         def test_missing(self):
             class Color(Enum):
                 red = 1
@@ -788,7 +799,7 @@ class TestEnumV3(TestCase):
             [Outer.a, Outer.b],
             )
 
-    if pyver == 3.4:
+    if pyver == PY34:
         def test_class_nested_enum_and_pickle_protocol_four(self):
             # would normally just have this directly in the class namespace
             class NestedEnum(Enum):
@@ -803,7 +814,7 @@ class TestEnumV3(TestCase):
             test_pickle_dump_load(self.assertTrue, self.NestedEnum.twigs,
                     protocol=(4, HIGHEST_PROTOCOL))
 
-    elif pyver >= 3.5:
+    elif pyver >= PY35:
         def test_class_nested_enum_and_pickle_protocol_four(self):
             # would normally just have this directly in the class namespace
             class NestedEnum(Enum):
@@ -815,7 +826,7 @@ class TestEnumV3(TestCase):
             test_pickle_dump_load(self.assertTrue, self.NestedEnum.twigs,
                     protocol=(0, HIGHEST_PROTOCOL))
 
-    if pyver >= 3.4:
+    if pyver >= PY34:
         def test_enum_injection(self):
             class Color(Enum):
                 _order_ = 'BLACK WHITE'
@@ -1183,121 +1194,121 @@ class TestStackoverflowAnswersV3(TestCase):
         self.assertEqual(Id.LAST_ID.value, 0x30005)
 
 
-    if pyver >= 3.5:
-        def test_c_header_scanner(self):
-            # https://stackoverflow.com/questions/58732872/208880
-            with open(os.path.join(tempdir, 'c_plus_plus.h'), 'w') as fh:
-                fh.write("""
-                        stuff before
-                        enum hello {
-                            Zero,
-                            One,
-                            Two,
-                            Three,
-                            Five=5,
-                            Six,
-                            Ten=10
-                            };
-                        in the middle
-                        enum blah
-                            {
-                            alpha,
-                            beta,
-                            gamma = 10 ,
-                            zeta = 50
-                            };
-                        at the end
-                        """)
-            from pyparsing import Group, Optional, Suppress, Word, ZeroOrMore
-            from pyparsing import alphas, alphanums, nums
+    @unittest.skipUnless(pyparsing, 'pyparsing not installed')
+    def test_c_header_scanner(self):
+        # https://stackoverflow.com/questions/58732872/208880
+        with open(os.path.join(tempdir, 'c_plus_plus.h'), 'w') as fh:
+            fh.write("""
+                    stuff before
+                    enum hello {
+                        Zero,
+                        One,
+                        Two,
+                        Three,
+                        Five=5,
+                        Six,
+                        Ten=10
+                        };
+                    in the middle
+                    enum blah
+                        {
+                        alpha,
+                        beta,
+                        gamma = 10 ,
+                        zeta = 50
+                        };
+                    at the end
+                    """)
+        from pyparsing import Group, Optional, Suppress, Word, ZeroOrMore
+        from pyparsing import alphas, alphanums, nums
+        #
+        CPPEnum = None
+        class CPPEnumType(EnumMeta):
             #
-            CPPEnum = None
-            class CPPEnumType(EnumMeta):
-                #
-                @classmethod
-                def __prepare__(metacls, clsname, bases, **kwds):
-                    # return a standard dictionary for the initial processing
-                    return {}
-                #
-                def __init__(clsname, *args , **kwds):
-                    super(CPPEnumType, clsname).__init__(*args)
-                #
-                def __new__(metacls, clsname, bases, clsdict, **kwds):
-                    if CPPEnum is None:
-                        # first time through, ignore the rest
-                        enum_dict = super(CPPEnumType, metacls).__prepare__(clsname, bases, **kwds)
-                        enum_dict.update(clsdict)
-                        return super(CPPEnumType, metacls).__new__(metacls, clsname, bases, enum_dict, **kwds)
-                    members = []
-                    #
-                    # remove _file and _name using `pop()` as they will cause problems in EnumMeta
-                    try:
-                        file = clsdict.pop('_file')
-                    except KeyError:
-                        raise TypeError('_file not specified')
-                    cpp_enum_name = clsdict.pop('_name', clsname.lower())
-                    with open(file) as fh:
-                        file_contents = fh.read()
-                    #
-                    # syntax we don't want to see in the final parse tree
-                    LBRACE, RBRACE, EQ, COMMA = map(Suppress, "{}=,")
-                    _enum = Suppress("enum")
-                    identifier = Word(alphas, alphanums + "_")
-                    integer = Word(nums)
-                    enumValue = Group(identifier("name") + Optional(EQ + integer("value")))
-                    enumList = Group(enumValue + ZeroOrMore(COMMA + enumValue))
-                    enum = _enum + identifier("enum") + LBRACE + enumList("names") + RBRACE
-                    #
-                    # find the cpp_enum_name ignoring other syntax and other enums
-                    for item, start, stop in enum.scanString(file_contents):
-                        if item.enum != cpp_enum_name:
-                            continue
-                        id = 0
-                        for entry in item.names:
-                            if entry.value != "":
-                                id = int(entry.value)
-                            members.append((entry.name.upper(), id))
-                            id += 1
-                    #
-                    # get the real EnumDict
+            @classmethod
+            def __prepare__(metacls, clsname, bases, **kwds):
+                # return a standard dictionary for the initial processing
+                return {}
+            #
+            def __init__(clsname, *args , **kwds):
+                super(CPPEnumType, clsname).__init__(*args)
+            #
+            def __new__(metacls, clsname, bases, clsdict, **kwds):
+                if CPPEnum is None:
+                    # first time through, ignore the rest
                     enum_dict = super(CPPEnumType, metacls).__prepare__(clsname, bases, **kwds)
-                    # transfer the original dict content, names starting with '_' first
-                    items = list(clsdict.items())
-                    items.sort(key=lambda p: (0 if p[0][0] == '_' else 1, p))
-                    for name, value in items:
-                        enum_dict[name] = value
-                    # add the members
-                    for name, value in members:
-                        enum_dict[name] = value
+                    enum_dict.update(clsdict)
                     return super(CPPEnumType, metacls).__new__(metacls, clsname, bases, enum_dict, **kwds)
-            #
-            class CPPEnum(IntEnum, metaclass=CPPEnumType):
-                pass
-            #
-            class Hello(CPPEnum):
-                _file = os.path.join(tempdir, 'c_plus_plus.h')
-            #
-            class Blah(CPPEnum):
-                _file = os.path.join(tempdir, 'c_plus_plus.h')
-                _name = 'blah'
-            #
-            self.assertEqual(
-                    list(Hello),
-                    [Hello.ZERO, Hello.ONE, Hello.TWO, Hello.THREE, Hello.FIVE, Hello.SIX, Hello.TEN],
-                    )
-            self.assertEqual(Hello.ZERO.value, 0)
-            self.assertEqual(Hello.THREE.value, 3)
-            self.assertEqual(Hello.SIX.value, 6)
-            self.assertEqual(Hello.TEN.value, 10)
-            #
-            self.assertEqual(
-                    list(Blah),
-                    [Blah.ALPHA, Blah.BETA, Blah.GAMMA, Blah.ZETA],
-                    )
-            self.assertEqual(Blah.ALPHA.value, 0)
-            self.assertEqual(Blah.BETA.value, 1)
-            self.assertEqual(Blah.GAMMA.value, 10)
-            self.assertEqual(Blah.ZETA.value, 50)
+                members = []
+                #
+                # remove _file and _name using `pop()` as they will cause problems in EnumMeta
+                try:
+                    file = clsdict.pop('_file')
+                except KeyError:
+                    raise TypeError('_file not specified')
+                cpp_enum_name = clsdict.pop('_name', clsname.lower())
+                with open(file) as fh:
+                    file_contents = fh.read()
+                #
+                # syntax we don't want to see in the final parse tree
+                LBRACE, RBRACE, EQ, COMMA = map(Suppress, "{}=,")
+                _enum = Suppress("enum")
+                identifier = Word(alphas, alphanums + "_")
+                integer = Word(nums)
+                enumValue = Group(identifier("name") + Optional(EQ + integer("value")))
+                enumList = Group(enumValue + ZeroOrMore(COMMA + enumValue))
+                enum = _enum + identifier("enum") + LBRACE + enumList("names") + RBRACE
+                #
+                # find the cpp_enum_name ignoring other syntax and other enums
+                for item, start, stop in enum.scanString(file_contents):
+                    if item.enum != cpp_enum_name:
+                        continue
+                    id = 0
+                    for entry in item.names:
+                        if entry.value != "":
+                            id = int(entry.value)
+                        members.append((entry.name.upper(), id))
+                        id += 1
+                #
+                # get the real EnumDict
+                enum_dict = super(CPPEnumType, metacls).__prepare__(clsname, bases, **kwds)
+                # transfer the original dict content, names starting with '_' first
+                items = list(clsdict.items())
+                items.sort(key=lambda p: (0 if p[0][0] == '_' else 1, p))
+                for name, value in items:
+                    enum_dict[name] = value
+                # add the members
+                for name, value in members:
+                    enum_dict[name] = value
+                return super(CPPEnumType, metacls).__new__(metacls, clsname, bases, enum_dict, **kwds)
+        #
+        class CPPEnum(IntEnum, metaclass=CPPEnumType):
+            pass
+        #
+        class Hello(CPPEnum):
+            _file = os.path.join(tempdir, 'c_plus_plus.h')
+        #
+        class Blah(CPPEnum):
+            _file = os.path.join(tempdir, 'c_plus_plus.h')
+            _name = 'blah'
+        #
+        self.assertEqual(
+                list(Hello),
+                [Hello.ZERO, Hello.ONE, Hello.TWO, Hello.THREE, Hello.FIVE, Hello.SIX, Hello.TEN],
+                )
+        self.assertEqual(Hello.ZERO.value, 0)
+        self.assertEqual(Hello.THREE.value, 3)
+        self.assertEqual(Hello.SIX.value, 6)
+        self.assertEqual(Hello.TEN.value, 10)
+        #
+        self.assertEqual(
+                list(Blah),
+                [Blah.ALPHA, Blah.BETA, Blah.GAMMA, Blah.ZETA],
+                )
+        self.assertEqual(Blah.ALPHA.value, 0)
+        self.assertEqual(Blah.BETA.value, 1)
+        self.assertEqual(Blah.GAMMA.value, 10)
+        self.assertEqual(Blah.ZETA.value, 50)
 
 class TestIssuesV3(TestCase):
     """
@@ -1320,7 +1331,6 @@ class TestIssuesV3(TestCase):
 
     def test_auto_multi_int_2(self):
         class Measurement(int, Enum, settings=(MultiValue, AddValue), start=0):
-            print('starting Measurement')
             one = "20110721"
             two = "20120911"
             three = "20110518"
@@ -1332,6 +1342,566 @@ class TestIssuesV3(TestCase):
         self.assertIs(Measurement('20120911'), Measurement.two)
         self.assertIs(Measurement(2), Measurement.three)
         self.assertIs(Measurement('20110518'), Measurement.three)
+
+    def test_extend_enum_with_init(self):
+        class Color(Enum, settings=MultiValue, init='foo bar'):
+            red = '1', 'yes'
+            green = '2', 'no'
+            blue = '3', 'maybe'
+        self.assertEqual(Color.red.value, '1')
+        self.assertEqual(Color.red.foo, '1')
+        self.assertEqual(Color.red.bar, 'yes')
+        extend_enum(Color, 'opacity', '4', 'never')
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue, Color.opacity])
+        self.assertEqual(Color.opacity.value, '4')
+        self.assertEqual(Color.opacity.name, 'opacity')
+        self.assertTrue(Color('4') is Color.opacity)
+        self.assertTrue(Color('never') is Color.opacity)
+
+class TestExtendEnumV3(TestCase):
+
+    def test_extend_enum_plain(self):
+        class Color(Enum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(TypeError, '.blue. already in use as property..Color.blue: 3.', extend_enum, Color, 'blue', 5)
+        #
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(4), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 5)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(5), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_enum_alias(self):
+        class Color(Enum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'rojo', 1)
+        self.assertEqual(Color.rojo.name, 'red')
+        self.assertEqual(Color.rojo.value, 1)
+        self.assertTrue(Color.rojo in Color)
+        self.assertEqual(Color(1), Color.rojo)
+        self.assertEqual(Color['rojo'], Color.red)
+        self.assertEqual(len(Color), 3)
+
+    def test_extend_enum_unique(self):
+        class Color(UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(ValueError, r'<Color.rojo: 1> is a duplicate of <Color.red: 1>', extend_enum, Color, 'rojo', 1)
+        #
+        self.assertEqual(Color.red.name, 'red')
+        self.assertEqual(Color.red.value, 1)
+        self.assertTrue(Color.red in Color)
+        self.assertEqual(Color(1), Color.red)
+        self.assertEqual(Color['red'], Color.red)
+        self.assertEqual(Color.green.name, 'green')
+        self.assertEqual(Color.green.value, 2)
+        self.assertTrue(Color.green in Color)
+        self.assertEqual(Color(2), Color.green)
+        self.assertEqual(Color['blue'], Color.blue)
+        self.assertEqual(Color.blue.name, 'blue')
+        self.assertEqual(Color.blue.value, 3)
+        self.assertTrue(Color.blue in Color)
+        self.assertEqual(Color(3), Color.blue)
+        self.assertEqual(len(Color), 3)
+        #
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(4), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+        #
+        self.assertRaisesRegex(ValueError, '<Color.verde: 2> is a duplicate of <Color.green: 2>', extend_enum, Color, 'verde', 2)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 5)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(5), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+
+    def test_extend_enum_shadow_property(self):
+        class Color(Enum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'value', 4)
+        self.assertEqual(Color.value.name, 'value')
+        self.assertEqual(Color.value.value, 4)
+        self.assertTrue(Color.value in Color)
+        self.assertEqual(Color(4), Color.value)
+        self.assertEqual(Color['value'], Color.value)
+        self.assertEqual(len(Color), 4)
+        self.assertEqual(Color.red.value, 1)
+
+    def test_extend_enum_shadow_base(self):
+        class hohum(object):
+            def cyan(self):
+                "cyanize a color"
+                return self.value
+        class Color(hohum, Enum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(TypeError, r'already in use in superclass', extend_enum, Color, 'cyan', 4)
+        self.assertEqual(len(Color), 3)
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+
+    def test_extend_enum_multivalue(self):
+        class Color(MultiValueEnum):
+            red = 1, 4, 7
+            green = 2, 5, 8
+            blue = 3, 6, 9
+        extend_enum(Color, 'brown', 10, 20)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 10)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(10), Color.brown)
+        self.assertEqual(Color(20), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+        #
+        self.assertRaisesRegex(ValueError, 'no values specified for MultiValue enum', extend_enum, Color, 'mauve')
+
+    def test_extend_enum_multivalue_alias(self):
+        class Color(MultiValueEnum):
+            red = 1, 4, 7
+            green = 2, 5, 8
+            blue = 3, 6, 9
+        self.assertRaisesRegex(ValueError, r'<Color.rojo: 7> is a duplicate of <Color.red: 1>', extend_enum, Color, 'rojo', 7)
+        self.assertEqual(Color.red.name, 'red')
+        self.assertEqual(Color.red.value, 1)
+        self.assertTrue(Color.red in Color)
+        self.assertEqual(Color(1), Color.red)
+        self.assertEqual(Color(4), Color.red)
+        self.assertEqual(Color(7), Color.red)
+        self.assertEqual(Color['red'], Color.red)
+        self.assertEqual(Color.green.name, 'green')
+        self.assertEqual(Color.green.value, 2)
+        self.assertTrue(Color.green in Color)
+        self.assertEqual(Color(2), Color.green)
+        self.assertEqual(Color(5), Color.green)
+        self.assertEqual(Color(8), Color.green)
+        self.assertEqual(Color['blue'], Color.blue)
+        self.assertEqual(Color.blue.name, 'blue')
+        self.assertEqual(Color.blue.value, 3)
+        self.assertTrue(Color.blue in Color)
+        self.assertEqual(Color(3), Color.blue)
+        self.assertEqual(Color(6), Color.blue)
+        self.assertEqual(Color(9), Color.blue)
+        self.assertEqual(len(Color), 3)
+
+    def test_extend_enum_multivalue_str(self):
+        class M(str, MultiValueEnum):
+            VALUE_1 = 'value_1', 'VALUE_1'
+            VALUE_2 = 'value_2', 'VALUE_2'
+            VALUE_3 = 'value_3', 'VALUE_3'
+        self.assertTrue(M._member_type_ is str)
+        extend_enum(M, 'VALUE_4', 'value_4', 'VALUE_4')
+        self.assertEqual(list(M), [M.VALUE_1, M.VALUE_2, M.VALUE_3, M.VALUE_4])
+        self.assertTrue(M('value_4') is M.VALUE_4)
+        self.assertTrue(M('VALUE_4') is M.VALUE_4)
+        self.assertTrue(M.VALUE_4.name == 'VALUE_4')
+        self.assertTrue(M.VALUE_4.value == 'value_4')
+
+    def test_extend_intenum(self):
+        class Index(IntEnum):
+            DeviceType    = 0x1000
+            ErrorRegister = 0x1001
+
+        for name, value in (
+                ('ControlWord', 0x6040),
+                ('StatusWord', 0x6041),
+                ('OperationMode', 0x6060),
+                ):
+            extend_enum(Index, name, value)
+
+        self.assertEqual(len(Index), 5)
+        self.assertEqual(list(Index), [Index.DeviceType, Index.ErrorRegister, Index.ControlWord, Index.StatusWord, Index.OperationMode])
+        self.assertEqual(Index.DeviceType.value, 0x1000)
+        self.assertEqual(Index.StatusWord.value, 0x6041)
+
+    def test_extend_multi_init(self):
+        class HTTPStatus(IntEnum):
+            def __new__(cls, value, phrase, description):
+                obj = int.__new__(cls, value)
+                obj._value_ = value
+
+                obj.phrase = phrase
+                obj.description = description
+                return obj
+            CONTINUE = 100, 'Continue', 'Request received, please continue'
+            SWITCHING_PROTOCOLS = 101, 'Switching Protocols', 'Switching to new protocol; obey Upgrade header'
+            PROCESSING = 102, 'Processing', ''
+        length = 3
+        extend_enum(HTTPStatus, 'BAD_SPAM', 513, 'Too greasy', 'for a train')
+        extend_enum(HTTPStatus, 'BAD_EGGS', 514, 'Too green', '')
+        self.assertEqual(len(HTTPStatus), length+2)
+        self.assertEqual(
+                list(HTTPStatus)[-2:],
+                [HTTPStatus.BAD_SPAM, HTTPStatus.BAD_EGGS],
+                )
+        self.assertEqual(HTTPStatus.BAD_SPAM.value, 513)
+        self.assertEqual(HTTPStatus.BAD_SPAM.name, 'BAD_SPAM')
+        self.assertEqual(HTTPStatus.BAD_SPAM.phrase, 'Too greasy')
+        self.assertEqual(HTTPStatus.BAD_SPAM.description, 'for a train')
+        self.assertEqual(HTTPStatus.BAD_EGGS.value, 514)
+        self.assertEqual(HTTPStatus.BAD_EGGS.name, 'BAD_EGGS')
+        self.assertEqual(HTTPStatus.BAD_EGGS.phrase, 'Too green')
+        self.assertEqual(HTTPStatus.BAD_EGGS.description, '')
+
+    def test_extend_flag(self):
+        class Color(Flag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+
+    def test_extend_flag_backwards(self):
+        class Color(Flag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+        #
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_intflag(self):
+        class Color(IntFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_intflag_backwards(self):
+        class Color(IntFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+        #
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_strenum(self):
+        class Color(StrEnum):
+            RED = auto()
+            GREEN = auto()
+            BLUE = auto()
+        extend_enum(Color, 'BLACK')
+        self.assertEqual(Color.BLACK.name, 'BLACK')
+        self.assertEqual(Color.BLACK.value, 'black')
+        self.assertEqual(len(Color), 4)
+
+    @unittest.skipUnless(StdlibEnum, 'Stdlib Enum not available')
+    def test_extend_enum_stdlib(self):
+        class Color(StdlibEnum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertEqual(getattr(Color.red, '_values_', None), None)
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(4), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+
+    @unittest.skipUnless(StdlibEnum, 'Stdlib Enum not available')
+    def test_extend_enum_plain_stdlib(self):
+        class Color(StdlibEnum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(TypeError, 'already in use as', extend_enum, Color, 'blue', 5)
+        #
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(4), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue, Color.brown])
+        self.assertEqual([c.value for c in Color], [1, 2, 3, 4])
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 5)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(5), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    @unittest.skipUnless(StdlibEnum, 'Stdlib Enum not available')
+    def test_extend_enum_alias_stdlib(self):
+        class Color(StdlibEnum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'rojo', 1)
+        self.assertEqual(Color.rojo.name, 'red')
+        self.assertEqual(Color.rojo.value, 1)
+        self.assertTrue(Color.rojo in Color)
+        self.assertEqual(Color(1), Color.rojo)
+        self.assertEqual(Color['rojo'], Color.red)
+        self.assertEqual(len(Color), 3)
+
+    @unittest.skipUnless(StdlibEnum, 'Stdlib Enum not available')
+    def test_extend_enum_shadow_property_stdlib(self):
+        class Color(StdlibEnum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'value', 4)
+        self.assertEqual(Color.value.name, 'value')
+        self.assertEqual(Color.value.value, 4)
+        self.assertTrue(Color.value in Color)
+        self.assertEqual(Color(4), Color.value)
+        self.assertEqual(Color['value'], Color.value)
+        self.assertEqual(len(Color), 4)
+        self.assertEqual(Color.red.value, 1)
+
+    @unittest.skipUnless(StdlibEnum, 'Stdlib Enum not available')
+    def test_extend_enum_shadow_base_stdlib(self):
+        class hohum(object):
+            def cyan(self):
+                "cyanize a color"
+                return self.value
+        class Color(hohum, StdlibEnum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(TypeError, r'already in use in superclass', extend_enum, Color, 'cyan', 4)
+        self.assertEqual(len(Color), 3)
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+
+    @unittest.skipUnless(StdlibIntEnum, 'Stdlib IntEnum not available')
+    def test_extend_intenum_stdlib(self):
+        class Index(StdlibIntEnum):
+            DeviceType    = 0x1000
+            ErrorRegister = 0x1001
+
+        for name, value in (
+                ('ControlWord', 0x6040),
+                ('StatusWord', 0x6041),
+                ('OperationMode', 0x6060),
+                ):
+            extend_enum(Index, name, value)
+
+        self.assertEqual(len(Index), 5)
+        self.assertEqual(list(Index), [Index.DeviceType, Index.ErrorRegister, Index.ControlWord, Index.StatusWord, Index.OperationMode])
+        self.assertEqual(Index.DeviceType.value, 0x1000)
+        self.assertEqual(Index.StatusWord.value, 0x6041)
+
+    @unittest.skipUnless(StdlibIntEnum, 'Stdlib IntEnum not available')
+    def test_extend_multi_init_stdlib(self):
+        class HTTPStatus(StdlibIntEnum):
+            def __new__(cls, value, phrase, description):
+                obj = int.__new__(cls, value)
+                obj._value_ = value
+
+                obj.phrase = phrase
+                obj.description = description
+                return obj
+            CONTINUE = 100, 'Continue', 'Request received, please continue'
+            SWITCHING_PROTOCOLS = 101, 'Switching Protocols', 'Switching to new protocol; obey Upgrade header'
+            PROCESSING = 102, 'Processing', ''
+        length = 3
+        extend_enum(HTTPStatus, 'BAD_SPAM', 513, 'Too greasy', 'for a train')
+        extend_enum(HTTPStatus, 'BAD_EGGS', 514, 'Too green', '')
+        self.assertEqual(len(HTTPStatus), length+2)
+        self.assertEqual(
+                list(HTTPStatus)[-2:],
+                [HTTPStatus.BAD_SPAM, HTTPStatus.BAD_EGGS],
+                )
+        self.assertEqual(HTTPStatus.BAD_SPAM.value, 513)
+        self.assertEqual(HTTPStatus.BAD_SPAM.name, 'BAD_SPAM')
+        self.assertEqual(HTTPStatus.BAD_SPAM.phrase, 'Too greasy')
+        self.assertEqual(HTTPStatus.BAD_SPAM.description, 'for a train')
+        self.assertEqual(HTTPStatus.BAD_EGGS.value, 514)
+        self.assertEqual(HTTPStatus.BAD_EGGS.name, 'BAD_EGGS')
+        self.assertEqual(HTTPStatus.BAD_EGGS.phrase, 'Too green')
+        self.assertEqual(HTTPStatus.BAD_EGGS.description, '')
+
+    @unittest.skipUnless(StdlibFlag, 'Stdlib Flag not available')
+    def test_extend_flag_stdlib(self):
+        class Color(StdlibFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, StdlibFlag))
+
+    @unittest.skipUnless(StdlibFlag, 'Stdlib Flag not available')
+    def test_extend_flag_backwards_stdlib(self):
+        class Color(StdlibFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, StdlibFlag))
+        #
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(16) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value,16)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 32)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(32), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+
+    @unittest.skipUnless(StdlibIntFlag, 'Stdlib IntFlag not available')
+    def test_extend_intflag_stdlib(self):
+        class Color(StdlibIntFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, StdlibFlag))
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+
+    @unittest.skipUnless(StdlibIntFlag, 'Stdlib IntFlag not available')
+    def test_extend_intflag_backwards_stdlib(self):
+        class Color(StdlibIntFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, StdlibFlag))
+        #
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(16) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 16)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 32)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(32), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 7)
+
+    @unittest.skipUnless(StdlibStrEnum, 'Stdlib StrEnum not available')
+    def test_extend_strenum_stdlib(self):
+        class Color(StrEnum):
+            RED = auto()
+            GREEN = auto()
+            BLUE = auto()
+        extend_enum(Color, 'BLACK')
+        self.assertEqual(Color.BLACK.name, 'BLACK')
+        self.assertEqual(Color.BLACK.value, 'black')
+        self.assertEqual(len(Color), 4)
 
 
 if __name__ == '__main__':

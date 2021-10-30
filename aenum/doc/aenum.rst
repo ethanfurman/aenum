@@ -837,7 +837,8 @@ extend_enum
 ^^^^^^^^^^^
 
 For those rare cases when you need to create your ``Enum`` in pieces, you
-can use ``extend_enum`` to add new members after the initial creation::
+can use ``extend_enum`` to add new members after the initial creation
+(the new member is returned)::
 
     >>> from aenum import extend_enum
     >>> class Color(Enum):
@@ -848,6 +849,7 @@ can use ``extend_enum`` to add new members after the initial creation::
     >>> list(Color)
     [<Color.red: 1>, <Color.green: 2>, <Color.blue: 3>]
     >>> extend_enum(Color, 'opacity', 4)
+    <Color.opacity: 4>
     >>> list(Color)
     [<Color.red: 1>, <Color.green: 2>, <Color.blue: 3>, <Color.opacity: 4>]
     >>> Color.opacity in Color

@@ -1,9 +1,17 @@
 """Python Advanced Enumerations & NameTuples"""
 from __future__ import print_function
+from pprint import pformat
 
 # imports
 import sys as _sys
 pyver = _sys.version_info[:2]
+PY2 = pyver < (3, )
+PY3 = pyver >= (3, )
+PY26 = (2, 6)
+PY33 = (3, 3)
+PY34 = (3, 4)
+PY35 = (3, 5)
+PY36 = (3, 6)
 
 import re
 
@@ -25,10 +33,10 @@ from operator import abs as _abs_, add as _add_, floordiv as _floordiv_
 from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
 from operator import mul as _mul_, neg as _neg_, pos as _pos_, pow as _pow_
 from operator import truediv as _truediv_, sub as _sub_
-if pyver < (3, ):
+if PY2:
     from operator import div as _div_
 
-if pyver >= (3, ):
+if PY3:
     from inspect import getfullargspec
     def getargspec(method):
         args, varargs, keywords, defaults, _, _, _ = getfullargspec(method)
@@ -101,13 +109,17 @@ try:
         raise ImportError('wrong version')
     else:
         from enum import EnumMeta as StdlibEnumMeta, Enum as StdlibEnum, IntEnum as StdlibIntEnum
-        StdlibFlag = StdlibIntFlag = None
+        StdlibFlag = StdlibIntFlag = StdlibStrEnum = None
 except ImportError:
-    StdlibEnumMeta = StdlibEnum = StdlibIntEnum = StdlibIntFlag = StdlibFlag = None
+    StdlibEnumMeta = StdlibEnum = StdlibIntEnum = StdlibIntFlag = StdlibFlag = StdlibStrEnum = None
 
 if StdlibEnum:
     try:
         from enum import IntFlag as StdlibIntFlag, Flag as StdlibFlag
+    except ImportError:
+        pass
+    try:
+        from enum import StrEnum as StdlibStrEnum
     except ImportError:
         pass
 
@@ -249,6 +261,16 @@ class property(base):
             result.overwrite_doc = self.overwrite_doc
             return result
 
+    def __repr__(self):
+        member = self.ownerclass._member_map_.get(self.name)
+        func = self.fget or self.fset or self.fdel
+        strings = []
+        if member:
+            strings.append('%r' % member)
+        if func:
+            strings.append('function=%s' % func.__name__)
+        return 'property(%s)' % ', '.join(strings)
+
     def __get__(self, instance, ownerclass=None):
         if instance is None:
             try:
@@ -299,6 +321,7 @@ class property(base):
     def __set_name__(self, ownerclass, name):
         self.name = name
         self.clsname = ownerclass.__name__
+        self.ownerclass = ownerclass
 
 _RouteClassAttributeToGetattr = property
 if DynamicClassAttribute is None:
@@ -355,7 +378,7 @@ def _is_sunder(name):
 
 def _is_internal_class(cls_name, obj):
     # only 3.3 and up, always return False in 3.2 and below
-    if pyver < (3, 3):
+    if pyver < PY33:
         return False
     else:
         qualname = getattr(obj, '__qualname__', False)
@@ -590,7 +613,7 @@ class constant(object):
     def __pos__(self):
         return _pos_(self.value)
 
-    if pyver < (3, ):
+    if PY2:
         def __div__(self, other):
             return _div_(self.value, _value(other))
 
@@ -1101,7 +1124,7 @@ class NamedTupleMeta(type):
                 raise TypeError('too few arguments to NamedTuple: %s, %s' % (original_args, original_kwds))
             if args or kwds:
                 raise TypeError('too many arguments to NamedTuple: %s, %s' % (original_args, original_kwds))
-            if pyver < (3, 0):
+            if PY2:
                 # if class_name is unicode, attempt a conversion to ASCII
                 if isinstance(class_name, unicode):
                     try:
@@ -1431,7 +1454,7 @@ class auto(enum):
         new_auto._operations.append((_pos_, (self, )))
         return new_auto
 
-    if pyver < (3, ):
+    if PY2:
         def __div__(self, other):
             new_auto = self.__class__()
             new_auto._operations = self._operations[:]
@@ -2320,12 +2343,15 @@ class EnumType(StdlibEnumMeta or type):
         # convert to regular dict
         clsdict = dict(clsdict.items())
         member_type, first_enum = metacls._get_mixins_(bases)
+        # print('member_type: %r' % member_type)
         # get the method to create enum members
         __new__, save_new, new_uses_args = metacls._find_new_(
                 clsdict,
                 member_type,
                 first_enum,
                 )
+        # print('discovered new: %r' % __new__)
+        # print('should be saved: %r' % save_new)
         clsdict['_new_member_'] = staticmethod(__new__)
         clsdict['_use_args_'] = new_uses_args
         #
@@ -2413,7 +2439,7 @@ class EnumType(StdlibEnumMeta or type):
         #
         # if Python 3.5 or ealier, implement the __set_name__ and
         # __init_subclass__ protocols
-        if pyver < (3, 6):
+        if pyver < PY36:
             for name in member_names:
                 enum_class.__dict__[name].__set_name__(enum_class, name)
             for name, obj in enum_class.__dict__.items():
@@ -2441,12 +2467,12 @@ class EnumType(StdlibEnumMeta or type):
         #
         # method resolution and int's are not playing nice
         # Python's less than 2.6 use __cmp__
-        if pyver < (2, 6):
+        if pyver < PY26:
             #
             if issubclass(enum_class, int):
                 setattr(enum_class, '__cmp__', getattr(int, '__cmp__'))
             #
-        elif pyver < (3, 0):
+        elif PY2:
             #
             if issubclass(enum_class, int):
                 for method in (
@@ -2704,7 +2730,7 @@ class EnumType(StdlibEnumMeta or type):
         * An iterable of (member name, value) pairs.
         * A mapping of member name -> value.
         """
-        if pyver < (3, 0):
+        if PY2:
             # if class_name is unicode, attempt a conversion to ASCII
             if isinstance(class_name, unicode):
                 try:
@@ -2831,6 +2857,8 @@ class EnumType(StdlibEnumMeta or type):
         member_type: the data type whose __new__ will be used by default
         first_enum: enumeration to check for an overriding __new__
         """
+        # print('_find_new_:\n  member_type: %r\n  first_enum: %r\n  clsdict: %s'
+        #         % (member_type, first_enum, pformat(clsdict)))
         # now find the correct __new__, checking to see of one was defined
         # by the user; also check earlier enum classes in case a __new__ was
         # saved as __new_member__
@@ -2857,12 +2885,15 @@ class EnumType(StdlibEnumMeta or type):
                             Flag.__new__,
                             StdlibFlag.__new__,
                             ):
+                        # print('found target: %r' % target)
                         __new__ = target
                         break
                 if __new__ is not None:
                     break
             else:
+                # print('no target found, using object')
                 __new__ = object.__new__
+        # print('__new__ is str.__new__: %r' % (__new__ is str.__new__))
         # if a non-object.__new__ is used then whatever value/tuple was
         # assigned to the enum member name will be passed to __new__ and to the
         # new enum member's __init__
@@ -2962,7 +2993,7 @@ def __new__(cls, value):
 @enum_dict
 @classmethod
 def __init_subclass__(cls, **kwds):
-    if pyver < (3, 6):
+    if pyver < PY36:
         # end of the line
         if kwds:
             raise TypeError('unconsumed keyword arguments: %r' % (kwds, ))
@@ -3012,7 +3043,7 @@ def __repr__(self):
 def __str__(self):
     return "%s.%s" % (self.__class__.__name__, self._name_)
 
-if pyver >= (3, 0):
+if PY3:
     @enum_dict
     def __dir__(self):
         added_behavior = [
@@ -3052,7 +3083,7 @@ def __reduce_ex__(self, proto):
 ####################################
 # Python's less than 2.6 use __cmp__
 
-if pyver < (2, 6):
+if pyver < PY26:
 
     @enum_dict
     def __cmp__(self, other):
@@ -3149,20 +3180,9 @@ class StrEnum(str, Enum):
     def __new__(cls, *values, **kwds):
         if kwds:
             raise TypeError('%r: keyword arguments not supported' % (cls.__name__))
-        if len(values) > 3:
-            raise TypeError('%r: too many arguments for str(): %r' % (cls.__name__, values))
-        if len(values) == 1:
-            # it better be a string
+        if values:
             if not isinstance(values[0], str):
                 raise TypeError('%s: values must be str [%r is a %r]' % (cls.__name__, values[0], type(values[0])))
-        if len(values) > 1:
-            # check that encoding argument is a string
-            if not isinstance(values[1], str):
-                raise TypeError('encoding must be a string, not %r' % (values[1], ))
-            if len(values) > 2:
-                # check that errors argument is a string
-                if not isinstance(values[2], str):
-                    raise TypeError('errors must be a string, not %r' % (values[2], ))
         value = str(*values)
         member = str.__new__(cls, value)
         member._value_ = value
@@ -3208,7 +3228,7 @@ class UpperStrEnum(StrEnum):
         return name.upper()
 
 
-if pyver >= (3, ):
+if PY3:
     class AutoEnum(Enum):
         """
         automatically use _generate_next_value_ when values are missing (Python 3 only)
@@ -3321,10 +3341,33 @@ def convert(enum, name, module, filter, source=None):
     module_globals.update(enum.__members__)
     module_globals[name] = enum
 
-def extend_enum(enumeration, name, *args, **_private_kwds):
+def extend_enum(enumeration, name, *args, **kwds):
     """
     Add a new member to an existing Enum.
     """
+    # there are four possibilities:
+    # - extending an aenum Enum or 3.11+ enum Enum
+    # - extending an aenum Flag or 3.11+ enum Flag
+    # - extending a pre-3.11 stdlib Enum Flag
+    # - extending a 3.11+ stdlib Flag
+    #
+    # fail early if name is already in the enumeration
+    if (
+            name in enumeration.__dict__
+            or name in enumeration._member_map_
+            or name in [t[1] for t in getattr(enumeration, '_value2member_seq_', ())]
+        ):
+        raise TypeError('%r already in use as %r' % (name, enumeration.__dict__.get(name, enumeration[name])))
+    # and check for other instances in parent classes
+    descriptor = None
+    for base in enumeration.__mro__[1:]:
+        descriptor = base.__dict__.get(name)
+        if descriptor is not None:
+            if isinstance(descriptor, (property, DynamicClassAttribute)):
+                break
+            else:
+                raise TypeError('%r already in use in superclass %r' % (name, base.__name__))
+    # print('received args: %r' % (args, ))
     try:
         _member_map_ = enumeration._member_map_
         _member_names_ = enumeration._member_names_
@@ -3339,33 +3382,47 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         _no_alias_ = NoAlias in enumeration._settings_
         _unique_ = Unique in enumeration._settings_
         _auto_init_ = enumeration._auto_init_ or []
+        # print('aenum enum')
     except AttributeError:
+        # print('standard enum')
         # standard Enum
         _value2member_seq_ = []
         _multi_value_ = False
         _no_alias_ = False
         _unique_ = False
         _auto_init_ = []
+    if _multi_value_ and not args:
+        # must specify values for multivalue enums
+        raise ValueError('no values specified for MultiValue enum %r' % enumeration.__name__)
+    # print('_value2member_seq_: %r\n_multi_value_: %r\n_no_alias_: %r\n_unique_: %r\n_auto_init_: %r'
+    #         % (_value2member_seq_, _multi_value_, _no_alias_, _unique_, _auto_init_))
     mt_new = _member_type_.__new__
+    # print('initial mt_new: %r' % mt_new)
     _new = getattr(enumeration, '__new_member__', mt_new)
+    # print('final mt_new: %r' % mt_new)
     if not args:
-        _gnv = getattr(enumeration, '_generate_next_value_')
-        if _gnv is None:
-            raise TypeError('value not provided and _generate_next_value_ missing')
         last_values = [m.value for m in enumeration]
         count = len(enumeration)
-        start = getattr(enumeration, '_start_')
+        start = getattr(enumeration, '_start_', None)
         if start is None:
-            start = last_values and last_values[0] or 1
-        args = ( _gnv(name, start, count, last_values), )
+            start = last_values and (last_values[-1] + 1) or 1
+        _gnv = getattr(enumeration, '_generate_next_value_', None)
+        if _gnv is not None:
+            args = ( _gnv(name, start, count, last_values), )
+        else:
+            # must be a 3.4 or 3.5 Enum
+            args = (start, )
     if _new is object.__new__:
+        # print('not using args')
         new_uses_args = False
     else:
+        # print('using args')
         new_uses_args = True
     if len(args) == 1:
         [value] = args
     else:
         value = args
+    # print('value: %r\nargs:%r' % (value, args))
     more_values = ()
     kwds = {}
     if isinstance(value, enum):
@@ -3375,6 +3432,7 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
         args = (value, )
     else:
         args = value
+    # print('value: %r\nmore_values:%r\nargs:%r' % (value, more_values, args))
     # tease value out of auto-init if specified
     if 'value' in _auto_init_:
         if 'value' in kwds:
@@ -3383,91 +3441,114 @@ def extend_enum(enumeration, name, *args, **_private_kwds):
             value, args = args[0], args[1:]
     elif _multi_value_:
         value, more_values, args = args[0], args[1:], ()
+        if new_uses_args:
+            args = (value, )
+    # print('value: %r\nmore_values:%r\nargs:%r' % (value, more_values, args))
     if _member_type_ is tuple:
         args = (args, )
     if not new_uses_args:
+        # print("creating new member with no args:", _new, name, args, kwds)
         new_member = _new(enumeration)
         if not hasattr(new_member, '_value_'):
             new_member._value_ = value
     else:
+        # print("creating new member with args:", _new, name, args, kwds)
         new_member = _new(enumeration, *args, **kwds)
         if not hasattr(new_member, '_value_'):
             new_member._value_ = _member_type_(*args)
     value = new_member._value_
+    if _multi_value_:
+        if 'value' in _auto_init_:
+            args = more_values
+        else:
+        # put all the values back into args for the init call
+            args = (value, ) + more_values
     new_member._name_ = name
     new_member.__objclass__ = enumeration.__class__
     new_member.__init__(*args)
-    if _private_kwds.get('create_only'):
-        return new_member
+    new_member._values_ = (value, ) + more_values
+    # do final checks before modifying enum structures:
+    # - is new member a flag?
+    #   - does the new member fit in the enum's declared _boundary_?
+    # - is new member an alias?
+    #
+    _all_bits_ = _flag_mask_ = None
+    if hasattr(enumeration, '_all_bits_'):
+        _all_bits_ = enumeration._all_bits_ | value
+        _flag_mask_ = enumeration._flag_mask_ | value
+        if enumeration._boundary_ != 'keep':
+            missed = list(_iter_bits_lsb(_flag_mask_ & ~_all_bits_))
+            if missed:
+                raise TypeError(
+                        'invalid Flag %r -- missing values: %s'
+                        % (cls, ', '.join((str(i) for i in missed)))
+                        )
     # If another member with the same value was already defined, the
     # new member becomes an alias to the existing one.
-    is_alias = False
     if _no_alias_:
         # unless NoAlias was specified
-        _member_names_.append(name)
-        _member_map_[name] = new_member
+        return _finalize_extend_enum(enumeration, new_member, bits=_all_bits_, mask=_flag_mask_)
     else:
+        # handle "normal" aliases
+        new_values = new_member._values_
         for canonical_member in _member_map_.values():
-            _values_ = getattr(canonical_member, '_values_', [canonical_member._value_])
-            for canonical_value in _values_:
-                if canonical_value == new_member._value_:
-                    # name is an alias
-                    if _unique_ or _multi_value_:
-                        # aliases not allowed if Unique specified
-                        raise ValueError('%s is a duplicate of %s' % (name, canonical_member.name))
-                    if name not in base_attributes:
-                        setattr(enumeration, name, canonical_member)
-                    else:
-                        # check type of name
-                        for parent in enumeration.mro()[1:]:
-                            if name in parent.__dict__:
-                                obj = parent.__dict__[name]
-                                if not isinstance(obj, property):
-                                    raise TypeError('%r already used: %r' % (name, obj))
-                                break
-                    # Aliases don't appear in member names (only in __members__ and _member_map_).
-                    _member_map_[new_member._name_] = canonical_member
-                    new_member = canonical_member
-                    is_alias = True
-                    break
-            if is_alias:
-                break
-        else:
-            # not an alias
-            values = (value, ) + more_values
-            new_member._values_ = values
-            for value in (value, ) + more_values:
-                # first check if value has already been used
-                if _multi_value_ and (
-                        value in _value2member_map_
-                        or any(v == value for (v, m) in _value2member_seq_)
-                        ):
-                    raise ValueError('%r has already been used' % (value, ))
-                try:
-                    # This may fail if value is not hashable. We can't add the value
-                    # to the map, and by-value lookups for this value will be
-                    # linear.
-                    if _no_alias_:
-                        raise TypeError('cannot use dict to store value')
-                    _value2member_map_[value] = new_member
-                except TypeError:
-                    _value2member_seq_ += ((value, new_member), )
-            if name not in base_attributes:
-                setattr(enumeration, name, new_member)
+            canonical_values_ = getattr(canonical_member, '_values_', [canonical_member._value_])
+            for canonical_value in canonical_values_:
+                for new_value in new_values:
+                    if canonical_value == new_value:
+                        # name is an alias
+                        if _unique_ or _multi_value_:
+                            # aliases not allowed in Unique and MultiValue enums
+                            raise ValueError('%r is a duplicate of %r' % (new_member, canonical_member))
+                        else:
+                            # aliased name can be added, remaining checks irrelevant
+                            # aliases don't appear in member names (only in __members__ and _member_map_).
+                            return _finalize_extend_enum(enumeration, canonical_member, name=name, bits=_all_bits_, mask=_flag_mask_, is_alias=True)
+        # not a standard alias, but maybe a flag alias
+        if issubclass(enumeration, Flag) and hasattr(enumeration, '_all_bits_'):
+            # handle the new flag type
+            if _is_single_bit(value):
+                # a new member!  (an aliase would have been discovered in the previous loop)
+                return _finalize_extend_enum(enumeration, new_member, bits=_all_bits_, mask=_flag_mask_)
             else:
-                # check type of name
-                for parent in enumeration.mro()[1:]:
-                    if name in parent.__dict__:
-                        obj = parent.__dict__[name]
-                        if not isinstance(obj, property):
-                            raise TypeError('%r already used: %r' % (name, obj))
-                        break
-            _member_names_.append(name)
-            _member_map_[name] = new_member
-            try:
-                _value2member_map_[value] = new_member
-            except TypeError:
-                pass
+                # might be an 3.11 Flag alias
+                if value & enumeration._flag_mask_ == value and _value2member_map_.get(value) is not None:
+                    # yup, it's an alias to existing members... and its an alias of an alias
+                    canonical = _value2member_map_.get(value)
+                    return _finalize_extend_enum(enumeration, canonical, name=name, bits=_all_bits_, mask=_flag_mask_, is_alias=True)
+                else:
+                    return _finalize_extend_enum(enumeration, new_member, bits=_all_bits_, mask=_flag_mask_, is_alias=True)
+        else:
+            # if we get here, we have a brand new member
+            return _finalize_extend_enum(enumeration, new_member)
+
+def _finalize_extend_enum(enumeration, new_member, name=None, bits=None, mask=None, is_alias=False):
+    name = name or new_member.name
+    descriptor = None
+    for base in enumeration.__mro__[1:]:
+        descriptor = base.__dict__.get(name)
+        if descriptor is not None:
+            if isinstance(descriptor, (property, DynamicClassAttribute)):
+                break
+            else:
+                raise TypeError('%r already in use in superclass %r' % (name, base.__name__))
+    if not descriptor:
+        # get redirect in place before adding to _member_map_
+        redirect = property()
+        redirect.__set_name__(enumeration, name)
+        setattr(enumeration, name, redirect)
+    if not is_alias:
+        enumeration._member_names_.append(name)
+    enumeration._member_map_[name] = new_member
+    for v in getattr(new_member, '_values_', [new_member._value_]):
+        try:
+            enumeration._value2member_map_[v] = new_member
+        except TypeError:
+            _value2member_seq_ += ((v, new_member), )
+    if bits:
+        enumeration._all_bits_ = bits
+        enumeration._flag_mask_ = mask
+    return new_member
 
 def unique(enumeration):
     """
@@ -3500,7 +3581,7 @@ class FlagBoundary(StrEnum):
     CONFORM = auto()
     EJECT = auto()
     KEEP = auto()
-assert FlagBoundary.STRICT == 'strict'
+assert FlagBoundary.STRICT == 'strict', (FlagBoundary.STRICT, FlagBoundary.CONFORM)
 
 class Flag(Enum):
     """
@@ -3690,7 +3771,7 @@ class Flag(Enum):
         else:
             return '%s(%s)' % (cls.__name__, self._value_)
 
-    if pyver < (3, ):
+    if PY2:
         def __nonzero__(self):
             return bool(self._value_)
     else:

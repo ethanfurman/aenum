@@ -2,7 +2,6 @@
 
 from __future__ import division, print_function
 import sys
-pyver = float('%s.%s' % sys.version_info[:2])
 import aenum
 import doctest
 import os
@@ -17,7 +16,7 @@ from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AddVa
 from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode
-from aenum import StdlibEnumMeta, StdlibEnum
+from aenum import pyver, PY2, PY3, PY26, PY33, PY34, PY35, PY36
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -26,7 +25,7 @@ from operator import abs as _abs_, add as _add_, floordiv as _floordiv_
 from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
 from operator import mul as _mul_, neg as _neg_, pos as _pos_, pow as _pow_
 from operator import truediv as _truediv_, sub as _sub_
-if pyver < 3:
+if PY2:
     from operator import div as _div_
 try:
     import threading
@@ -37,6 +36,7 @@ try:
     any
 except NameError:
     from aenum import any
+
 
 def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite(aenum))
@@ -172,10 +172,9 @@ def test_pickle_exception(assertion, exception, obj,
     if failures:
         raise ValueError('Failed with protocols: %s' % ', '.join(failures))
 
-if pyver >= 3.0:
-    from aenum.test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3, TestStackoverflowAnswersV3, TestIssuesV3
+if PY3:
+    from aenum.test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3, TestStackoverflowAnswersV3, TestIssuesV3, TestExtendEnumV3
     from aenum import test_v3
-    test_v3.pyver = pyver
     test_v3.IntStooges = IntStooges
     test_v3.test_pickle_exception = test_pickle_exception
     test_v3.test_pickle_dump_load = test_pickle_dump_load
@@ -794,7 +793,7 @@ class TestHelpers(TestCase):
                 ):
             tester(*args)
         # operator.div is gone in 3
-        if pyver < 3:
+        if PY2:
             tester(12, _div_, 12 // 5, 5)
         # strings are a pain
         left = auto()
@@ -851,7 +850,7 @@ class TestHelpers(TestCase):
                 ):
             tester(*args)
         # operator.div is gone in 3
-        if pyver < 3:
+        if PY2:
             tester(12, _div_, 12 // 5, 5)
         # strings are a pain
         left = constant('I see 17 %s!')
@@ -1111,7 +1110,7 @@ class TestEnum(TestCase):
     def test_member_contains(self):
         self.assertRaises(TypeError, lambda: 'test' in self.Season.AUTUMN)
 
-    if pyver >= 2.6:     # when `format` came into being
+    if pyver >= PY26:     # when `format` came into being
 
         def test_format_enum(self):
             Season = self.Season
@@ -1522,7 +1521,7 @@ class TestEnum(TestCase):
         lst = list(SummerMonth)
         self.assertEqual(len(lst), len(SummerMonth))
         self.assertEqual(len(SummerMonth), 3, SummerMonth)
-        if pyver < 3.0:
+        if PY2:
             self.assertEqual(
                     [SummerMonth.june, SummerMonth.july, SummerMonth.august],
                     lst,
@@ -1667,7 +1666,7 @@ class TestEnum(TestCase):
         lst = list(SummerMonth)
         self.assertEqual(len(lst), len(SummerMonth))
         self.assertEqual(len(SummerMonth), 3, SummerMonth)
-        if pyver < 3.0:
+        if PY2:
             self.assertEqual(
                     [SummerMonth.june, SummerMonth.july, SummerMonth.august],
                     lst,
@@ -1716,12 +1715,12 @@ class TestEnum(TestCase):
             self.assertTrue(type(e) is SummerMonth)
 
     def test_programmatic_function_unicode_class(self):
-        if pyver < 3.0:
+        if PY2:
             class_names = unicode('SummerMonth'), 'S\xfcmm\xe9rM\xf6nth'.decode('latin1')
         else:
             class_names = 'SummerMonth', 'S\xfcmm\xe9rM\xf6nth'
         for i, class_name in enumerate(class_names):
-            if pyver < 3.0 and i == 1:
+            if PY2 and i == 1:
                 self.assertRaises(TypeError, Enum, class_name, unicode('june july august'))
             else:
                 SummerMonth = Enum(class_name, unicode('june july august'))
@@ -2356,7 +2355,7 @@ class TestEnum(TestCase):
             blue = ()
         self.assertEqual(len(Color), 3, "wrong number of elements: %d (should be %d)" % (len(Color), 3))
         self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-        if pyver >= 3.0:
+        if PY3:
             self.assertEqual(list(map(int, Color)), [1, 2, 3])
 
     def test_inherited_new_from_mixed_enum(self):
@@ -2517,191 +2516,6 @@ class TestEnum(TestCase):
         self.assertEqual(Color['value'], Color.value)
         self.assertEqual(Color.red.value, 1)
 
-    if StdlibEnum is not None:
-
-        def test_extend_enum_stdlib(self):
-            class Color(StdlibEnum):
-                red = 1
-                green = 2
-                blue = 3
-            self.assertEqual(getattr(Color.red, '_values_', None), None)
-            extend_enum(Color, 'brown', 4)
-            self.assertEqual(Color.brown.name, 'brown')
-            self.assertEqual(Color.brown.value, 4)
-            self.assertTrue(Color.brown in Color)
-            self.assertEqual(Color(4), Color.brown)
-            self.assertEqual(Color['brown'], Color.brown)
-            self.assertEqual(len(Color), 4)
-
-    def test_extend_enum_plain(self):
-        class Color(UniqueEnum):
-            red = 1
-            green = 2
-            blue = 3
-        extend_enum(Color, 'brown', 4)
-        self.assertEqual(Color.brown.name, 'brown')
-        self.assertEqual(Color.brown.value, 4)
-        self.assertTrue(Color.brown in Color)
-        self.assertEqual(Color(4), Color.brown)
-        self.assertEqual(Color['brown'], Color.brown)
-        self.assertEqual(len(Color), 4)
-
-    def test_extend_enum_alias(self):
-        class Color(Enum):
-            red = 1
-            green = 2
-            blue = 3
-        extend_enum(Color, 'rojo', 1)
-        self.assertEqual(Color.rojo.name, 'red')
-        self.assertEqual(Color.rojo.value, 1)
-        self.assertTrue(Color.rojo in Color)
-        self.assertEqual(Color(1), Color.rojo)
-        self.assertEqual(Color['rojo'], Color.red)
-        self.assertEqual(len(Color), 3)
-
-    def test_extend_enum_no_alias(self):
-        class Color(UniqueEnum):
-            red = 1
-            green = 2
-            blue = 3
-        self.assertRaisesRegex(ValueError, r'rojo is a duplicate of red', extend_enum, Color, 'rojo', 1)
-        self.assertEqual(Color.red.name, 'red')
-        self.assertEqual(Color.red.value, 1)
-        self.assertTrue(Color.red in Color)
-        self.assertEqual(Color(1), Color.red)
-        self.assertEqual(Color['red'], Color.red)
-        self.assertEqual(Color.green.name, 'green')
-        self.assertEqual(Color.green.value, 2)
-        self.assertTrue(Color.green in Color)
-        self.assertEqual(Color(2), Color.green)
-        self.assertEqual(Color['blue'], Color.blue)
-        self.assertEqual(Color.blue.name, 'blue')
-        self.assertEqual(Color.blue.value, 3)
-        self.assertTrue(Color.blue in Color)
-        self.assertEqual(Color(3), Color.blue)
-        self.assertEqual(len(Color), 3)
-
-    def test_extend_enum_shadow(self):
-        class Color(UniqueEnum):
-            red = 1
-            green = 2
-            blue = 3
-        extend_enum(Color, 'value', 4)
-        self.assertEqual(Color.value.name, 'value')
-        self.assertEqual(Color.value.value, 4)
-        self.assertTrue(Color.value in Color)
-        self.assertEqual(Color(4), Color.value)
-        self.assertEqual(Color['value'], Color.value)
-        self.assertEqual(len(Color), 4)
-        self.assertEqual(Color.red.value, 1)
-
-    def test_extend_enum_shadow_base(self):
-        class hohum(object):
-            def cyan(self):
-                "cyanize a color"
-                return self.value
-        class Color(hohum, UniqueEnum):
-            red = 1
-            green = 2
-            blue = 3
-        with self.assertRaises(TypeError):
-            extend_enum(Color, 'cyan', 4)
-        self.assertEqual(len(Color), 3)
-        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
-
-    def test_extend_enum_multivalue(self):
-        class Color(MultiValueEnum):
-            red = 1, 4, 7
-            green = 2, 5, 8
-            blue = 3, 6, 9
-        extend_enum(Color, 'brown', 10, 20)
-        self.assertEqual(Color.brown.name, 'brown')
-        self.assertEqual(Color.brown.value, 10)
-        self.assertTrue(Color.brown in Color)
-        self.assertEqual(Color(10), Color.brown)
-        self.assertEqual(Color(20), Color.brown)
-        self.assertEqual(Color['brown'], Color.brown)
-        self.assertEqual(len(Color), 4)
-
-    def test_extend_enum_multivalue_alias(self):
-        class Color(MultiValueEnum):
-            red = 1, 4, 7
-            green = 2, 5, 8
-            blue = 3, 6, 9
-        self.assertRaisesRegex(ValueError, r'rojo is a duplicate of red', extend_enum, Color, 'rojo', 7)
-        self.assertEqual(Color.red.name, 'red')
-        self.assertEqual(Color.red.value, 1)
-        self.assertTrue(Color.red in Color)
-        self.assertEqual(Color(1), Color.red)
-        self.assertEqual(Color(4), Color.red)
-        self.assertEqual(Color(7), Color.red)
-        self.assertEqual(Color['red'], Color.red)
-        self.assertEqual(Color.green.name, 'green')
-        self.assertEqual(Color.green.value, 2)
-        self.assertTrue(Color.green in Color)
-        self.assertEqual(Color(2), Color.green)
-        self.assertEqual(Color(5), Color.green)
-        self.assertEqual(Color(8), Color.green)
-        self.assertEqual(Color['blue'], Color.blue)
-        self.assertEqual(Color.blue.name, 'blue')
-        self.assertEqual(Color.blue.value, 3)
-        self.assertTrue(Color.blue in Color)
-        self.assertEqual(Color(3), Color.blue)
-        self.assertEqual(Color(6), Color.blue)
-        self.assertEqual(Color(9), Color.blue)
-        self.assertEqual(len(Color), 3)
-
-    def test_extend_intenum(self):
-        class Index(IntEnum):
-            DeviceType    = 0x1000
-            ErrorRegister = 0x1001
-
-        for name, value in (
-                ('ControlWord', 0x6040),
-                ('StatusWord', 0x6041),
-                ('OperationMode', 0x6060),
-                ):
-            extend_enum(Index, name, value)
-
-        self.assertEqual(len(Index), 5)
-        self.assertEqual(list(Index), [Index.DeviceType, Index.ErrorRegister, Index.ControlWord, Index.StatusWord, Index.OperationMode])
-        self.assertEqual(Index.DeviceType.value, 0x1000)
-        self.assertEqual(Index.StatusWord.value, 0x6041)
-
-    def test_extend_multi_init(self):
-        try:
-            from http import HTTPStatus
-            length = len(HTTPStatus)
-        except ImportError:
-            class HTTPStatus(IntEnum):
-                def __new__(cls, value, phrase, description):
-                    obj = int.__new__(cls, value)
-                    obj._value_ = value
-
-                    obj.phrase = phrase
-                    obj.description = description
-                    return obj
-                CONTINUE = 100, 'Continue', 'Request received, please continue'
-                SWITCHING_PROTOCOLS = 101, 'Switching Protocols', 'Switching to new protocol; obey Upgrade header'
-                PROCESSING = 102, 'Processing', ''
-            length = 3
-        extend_enum(HTTPStatus, 'BAD_SPAM', 513, 'Too greasy', 'for a train')
-        extend_enum(HTTPStatus, 'BAD_EGGS', 514, 'Too green', '')
-        self.assertEqual(len(HTTPStatus), length+2)
-        self.assertEqual(
-                list(HTTPStatus)[-2:],
-                [HTTPStatus.BAD_SPAM, HTTPStatus.BAD_EGGS],
-                )
-        self.assertEqual(HTTPStatus.BAD_SPAM.value, 513)
-        self.assertEqual(HTTPStatus.BAD_SPAM.name, 'BAD_SPAM')
-        self.assertEqual(HTTPStatus.BAD_SPAM.phrase, 'Too greasy')
-        self.assertEqual(HTTPStatus.BAD_SPAM.description, 'for a train')
-        self.assertEqual(HTTPStatus.BAD_EGGS.value, 514)
-        self.assertEqual(HTTPStatus.BAD_EGGS.name, 'BAD_EGGS')
-        self.assertEqual(HTTPStatus.BAD_EGGS.phrase, 'Too green')
-        self.assertEqual(HTTPStatus.BAD_EGGS.description, '')
-
-    # informational
     CONTINUE = 100, 'Continue', 'Request received, please continue'
     SWITCHING_PROTOCOLS = (101, 'Switching Protocols',
             'Switching to new protocol; obey Upgrade header')
@@ -3603,11 +3417,6 @@ class TestEnum(TestCase):
 
         pass
 
-    if StdlibEnumMeta is not None:
-        def test_stdlib_inheritence(self):
-            self.assertTrue(isinstance(self.Season, StdlibEnumMeta))
-            self.assertTrue(issubclass(self.Season, StdlibEnum))
-
     def test_multiple_mixin(self):
         class MaxMixin(object):
             @classproperty
@@ -3751,7 +3560,7 @@ class TestEnum(TestCase):
             spam = SpamEnumNotInner
         self.assertEqual(SpamEnum.spam.value, SpamEnumNotInner)
 
-    if pyver < 3.0:
+    if PY2:
         def test_nested_classes_in_enum_do_become_members(self):
             # manually set __qualname__ to remove testing framework noise
             class Outer(Enum):
@@ -3935,14 +3744,10 @@ class TestStrEnum(TestCase):
         self.assertEqual(phy.tau.count('a'), 1)
 
     def test_strict_strenum(self):
-        with self.assertRaisesRegex(TypeError, r'too many arguments for str'):
-            class Huh(StrEnum):
-                huh = 'this', 'is', 'too', 'many'
         for uhoh in (object, object(), [], Enum, 9):
             with self.assertRaisesRegex(TypeError, r'values must be str'):
                 class Huh(StrEnum):
                     huh = uhoh
-        #
         class Either(StrEnum):
             _order_ = 'this that Those lower upper'
             this = auto()
@@ -4937,22 +4742,6 @@ class TestFlag(TestCase):
         self.assertEqual(MyFlag.these.value, 2)
         self.assertEqual(MyFlag.theother, 'thingimibobs')
         self.assertEqual(MyFlag.theother.value, 4)
-
-    def test_extend_flag(self):
-        class Color(Flag):
-            BLACK = 0
-            RED = 1
-            GREEN = 2
-            BLUE = 4
-        extend_enum(Color, 'MAGENTA')
-        self.assertTrue(Color(8) is Color.MAGENTA)
-        self.assertTrue(isinstance(Color.MAGENTA, Color))
-        self.assertEqual(Color.MAGENTA.value, 8)
-        extend_enum(Color, 'PURPLE', 11)
-        self.assertTrue(Color(11) is Color.PURPLE)
-        self.assertTrue(isinstance(Color.PURPLE, Color))
-        self.assertEqual(Color.PURPLE.value, 11)
-        self.assertTrue(issubclass(Color, Flag))
 
     def test_subclass_a_bunch(self):
         class Color(str, Flag):
@@ -6285,7 +6074,325 @@ class TestStackoverflowAnswers(TestCase):
         #
         self.assertTrue(LabelEnum.has_name('Enum_Three'))
 
-    def test_auto_multi_int_3(self):
+
+class TestExtendEnum(TestCase):
+
+    def test_extend_enum_plain(self):
+        class Color(Enum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(TypeError, 'already in use as', extend_enum, Color, 'blue', 5)
+        #
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(4), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 5)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(5), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_enum_alias(self):
+        class Color(Enum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'rojo', 1)
+        self.assertEqual(Color.rojo.name, 'red')
+        self.assertEqual(Color.rojo.value, 1)
+        self.assertTrue(Color.rojo in Color)
+        self.assertEqual(Color(1), Color.rojo)
+        self.assertEqual(Color['rojo'], Color.red)
+        self.assertEqual(len(Color), 3)
+
+    def test_extend_enum_unique(self):
+        class Color(UniqueEnum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(ValueError, r'<Color.rojo: 1> is a duplicate of <Color.red: 1>', extend_enum, Color, 'rojo', 1)
+        #
+        self.assertEqual(Color.red.name, 'red')
+        self.assertEqual(Color.red.value, 1)
+        self.assertTrue(Color.red in Color)
+        self.assertEqual(Color(1), Color.red)
+        self.assertEqual(Color['red'], Color.red)
+        self.assertEqual(Color.green.name, 'green')
+        self.assertEqual(Color.green.value, 2)
+        self.assertTrue(Color.green in Color)
+        self.assertEqual(Color(2), Color.green)
+        self.assertEqual(Color['blue'], Color.blue)
+        self.assertEqual(Color.blue.name, 'blue')
+        self.assertEqual(Color.blue.value, 3)
+        self.assertTrue(Color.blue in Color)
+        self.assertEqual(Color(3), Color.blue)
+        self.assertEqual(len(Color), 3)
+        #
+        extend_enum(Color, 'brown', 4)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 4)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(4), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+        #
+        self.assertRaisesRegex(ValueError, '', extend_enum, Color, 'verde', 2)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 5)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(5), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+
+    def test_extend_enum_shadow_property(self):
+        class Color(Enum):
+            red = 1
+            green = 2
+            blue = 3
+        extend_enum(Color, 'value', 4)
+        self.assertEqual(Color.value.name, 'value')
+        self.assertEqual(Color.value.value, 4)
+        self.assertTrue(Color.value in Color)
+        self.assertEqual(Color(4), Color.value)
+        self.assertEqual(Color['value'], Color.value)
+        self.assertEqual(len(Color), 4)
+        self.assertEqual(Color.red.value, 1)
+
+    def test_extend_enum_shadow_base(self):
+        class hohum(object):
+            def cyan(self):
+                "cyanize a color"
+                return self.value
+        class Color(hohum, Enum):
+            red = 1
+            green = 2
+            blue = 3
+        self.assertRaisesRegex(TypeError, r'already in use in superclass', extend_enum, Color, 'cyan', 4)
+        self.assertEqual(len(Color), 3)
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue])
+
+    def test_extend_enum_multivalue(self):
+        class Color(MultiValueEnum):
+            red = 1, 4, 7
+            green = 2, 5, 8
+            blue = 3, 6, 9
+        extend_enum(Color, 'brown', 10, 20)
+        self.assertEqual(Color.brown.name, 'brown')
+        self.assertEqual(Color.brown.value, 10)
+        self.assertTrue(Color.brown in Color)
+        self.assertEqual(Color(10), Color.brown)
+        self.assertEqual(Color(20), Color.brown)
+        self.assertEqual(Color['brown'], Color.brown)
+        self.assertEqual(len(Color), 4)
+        #
+        self.assertRaisesRegex(ValueError, 'no values specified for MultiValue enum', extend_enum, Color, 'mauve')
+
+    def test_extend_enum_multivalue_alias(self):
+        class Color(MultiValueEnum):
+            red = 1, 4, 7
+            green = 2, 5, 8
+            blue = 3, 6, 9
+        self.assertRaisesRegex(ValueError, r'<Color.rojo: 7> is a duplicate of <Color.red: 1>', extend_enum, Color, 'rojo', 7)
+        self.assertEqual(Color.red.name, 'red')
+        self.assertEqual(Color.red.value, 1)
+        self.assertTrue(Color.red in Color)
+        self.assertEqual(Color(1), Color.red)
+        self.assertEqual(Color(4), Color.red)
+        self.assertEqual(Color(7), Color.red)
+        self.assertEqual(Color['red'], Color.red)
+        self.assertEqual(Color.green.name, 'green')
+        self.assertEqual(Color.green.value, 2)
+        self.assertTrue(Color.green in Color)
+        self.assertEqual(Color(2), Color.green)
+        self.assertEqual(Color(5), Color.green)
+        self.assertEqual(Color(8), Color.green)
+        self.assertEqual(Color['blue'], Color.blue)
+        self.assertEqual(Color.blue.name, 'blue')
+        self.assertEqual(Color.blue.value, 3)
+        self.assertTrue(Color.blue in Color)
+        self.assertEqual(Color(3), Color.blue)
+        self.assertEqual(Color(6), Color.blue)
+        self.assertEqual(Color(9), Color.blue)
+        self.assertEqual(len(Color), 3)
+
+    def test_extend_enum_multivalue_str(self):
+        class M(str, MultiValueEnum):
+            VALUE_1 = 'value_1', 'VALUE_1'
+            VALUE_2 = 'value_2', 'VALUE_2'
+            VALUE_3 = 'value_3', 'VALUE_3'
+        self.assertTrue(M._member_type_ is str)
+        extend_enum(M, 'VALUE_4', 'value_4', 'VALUE_4')
+        self.assertEqual(list(M), [M.VALUE_1, M.VALUE_2, M.VALUE_3, M.VALUE_4])
+        self.assertTrue(M('value_4') is M.VALUE_4)
+        self.assertTrue(M('VALUE_4') is M.VALUE_4)
+        self.assertTrue(M.VALUE_4.name == 'VALUE_4')
+        self.assertTrue(M.VALUE_4.value == 'value_4')
+
+    def test_extend_intenum(self):
+        class Index(IntEnum):
+            DeviceType    = 0x1000
+            ErrorRegister = 0x1001
+
+        for name, value in (
+                ('ControlWord', 0x6040),
+                ('StatusWord', 0x6041),
+                ('OperationMode', 0x6060),
+                ):
+            extend_enum(Index, name, value)
+
+        self.assertEqual(len(Index), 5)
+        self.assertEqual(list(Index), [Index.DeviceType, Index.ErrorRegister, Index.ControlWord, Index.StatusWord, Index.OperationMode])
+        self.assertEqual(Index.DeviceType.value, 0x1000)
+        self.assertEqual(Index.StatusWord.value, 0x6041)
+
+    def test_extend_multi_init(self):
+        try:
+            from http import HTTPStatus
+            length = len(HTTPStatus)
+        except ImportError:
+            class HTTPStatus(IntEnum):
+                def __new__(cls, value, phrase, description):
+                    obj = int.__new__(cls, value)
+                    obj._value_ = value
+
+                    obj.phrase = phrase
+                    obj.description = description
+                    return obj
+                CONTINUE = 100, 'Continue', 'Request received, please continue'
+                SWITCHING_PROTOCOLS = 101, 'Switching Protocols', 'Switching to new protocol; obey Upgrade header'
+                PROCESSING = 102, 'Processing', ''
+            length = 3
+        extend_enum(HTTPStatus, 'BAD_SPAM', 513, 'Too greasy', 'for a train')
+        extend_enum(HTTPStatus, 'BAD_EGGS', 514, 'Too green', '')
+        self.assertEqual(len(HTTPStatus), length+2)
+        self.assertEqual(
+                list(HTTPStatus)[-2:],
+                [HTTPStatus.BAD_SPAM, HTTPStatus.BAD_EGGS],
+                )
+        self.assertEqual(HTTPStatus.BAD_SPAM.value, 513)
+        self.assertEqual(HTTPStatus.BAD_SPAM.name, 'BAD_SPAM')
+        self.assertEqual(HTTPStatus.BAD_SPAM.phrase, 'Too greasy')
+        self.assertEqual(HTTPStatus.BAD_SPAM.description, 'for a train')
+        self.assertEqual(HTTPStatus.BAD_EGGS.value, 514)
+        self.assertEqual(HTTPStatus.BAD_EGGS.name, 'BAD_EGGS')
+        self.assertEqual(HTTPStatus.BAD_EGGS.phrase, 'Too green')
+        self.assertEqual(HTTPStatus.BAD_EGGS.description, '')
+
+    def test_extend_flag(self):
+        class Color(Flag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+
+    def test_extend_flag_backwards(self):
+        class Color(Flag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+        #
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_intflag(self):
+        class Color(IntFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_intflag_backwards(self):
+        class Color(IntFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, Flag))
+        #
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value, 8)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+        self.assertEqual(len(Color), 5)
+
+    def test_extend_strenum(self):
+        class Color(StrEnum):
+            RED = auto()
+            GREEN = auto()
+            BLUE = auto()
+        extend_enum(Color, 'BLACK')
+        self.assertEqual(Color.BLACK.name, 'BLACK')
+        self.assertEqual(Color.BLACK.value, 'black')
+        self.assertEqual(len(Color), 4)
+
+
+class TestIssues(TestCase):
+
+    def test_auto_multi_int(self):
         class Measurement(int, MultiValueEnum, AddValueEnum):
             _order_ = 'one two three'
             _start_ = 0
@@ -6300,6 +6407,16 @@ class TestStackoverflowAnswers(TestCase):
         self.assertIs(Measurement(1), Measurement.two)
         self.assertIs(Measurement('20110518'), Measurement.three)
         self.assertIs(Measurement(2), Measurement.three)
+
+    def test_extend_flag(self):
+        class FlagTest(Flag): # Or IntFlag
+            NONE = 0
+            LOW = 1
+            MID = 2
+        extend_enum(FlagTest, 'HIGH', 4)
+        self.assertEqual(FlagTest.LOW | FlagTest.HIGH, FlagTest(5))
+        self.assertEqual((FlagTest.LOW | FlagTest.HIGH).value, 5)
+        
 
 # Test conversion of global constants
 # These are unordered here on purpose to ensure that declaration order
@@ -6358,9 +6475,13 @@ class TestIntEnumConvert(TestCase):
 if __name__ == '__main__':
     tempdir = tempfile.mkdtemp()
     try:
-        if pyver >= 3.0:
+        if PY3:
             test_v3.tempdir = tempdir
-        unittest.main()
+        test = unittest.main(exit=False)
+        sys.stdout.flush()
+        for name, reason in test.result.skipped:
+            print("%s: %s" % (name, reason))
     finally:
         shutil.rmtree(tempdir, True)
+
 
