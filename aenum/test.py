@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import textwrap
 import unittest
+import uuid
 import warnings
 from aenum import EnumType, EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
 from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, AddValueEnum, Flag, IntFlag
@@ -6417,6 +6418,24 @@ class TestIssues(TestCase):
         self.assertEqual(FlagTest.LOW | FlagTest.HIGH, FlagTest(5))
         self.assertEqual((FlagTest.LOW | FlagTest.HIGH).value, 5)
         
+    def test_extend_unhashable(self):
+        class TestEnum(Enum):
+            ABC = {
+                'id': 0,
+                'value': 'abc'
+                }
+            DEF = {
+                'id': 1,
+                'value': 'def'
+                }
+        rand = uuid.uuid4().hex
+        new_value = {
+            'id': 99,
+            'value': 'new',
+            }
+        extend_enum(TestEnum, rand, new_value)
+
+
 
 # Test conversion of global constants
 # These are unordered here on purpose to ensure that declaration order
@@ -6483,5 +6502,5 @@ if __name__ == '__main__':
             print("%s: %s" % (name, reason))
     finally:
         shutil.rmtree(tempdir, True)
-
+        sys.exit(len(test.result.errors or test.result.failures) and 1 or 0)
 

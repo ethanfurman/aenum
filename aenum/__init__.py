@@ -61,7 +61,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 1
+version = 3, 1, 2, 1
 
 # shims
 try:
@@ -3544,7 +3544,7 @@ def _finalize_extend_enum(enumeration, new_member, name=None, bits=None, mask=No
         try:
             enumeration._value2member_map_[v] = new_member
         except TypeError:
-            _value2member_seq_ += ((v, new_member), )
+            enumeration._value2member_seq_ += ((v, new_member), )
     if bits:
         enumeration._all_bits_ = bits
         enumeration._flag_mask_ = mask
