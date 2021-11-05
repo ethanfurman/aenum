@@ -1365,7 +1365,7 @@ class TestExtendEnumV3(TestCase):
             red = 1
             green = 2
             blue = 3
-        self.assertRaisesRegex(TypeError, '.blue. already in use as property..Color.blue: 3.', extend_enum, Color, 'blue', 5)
+        self.assertRaisesRegex(TypeError, '.blue. already in use as enum_property..Color.blue: 3.', extend_enum, Color, 'blue', 5)
         #
         extend_enum(Color, 'brown', 4)
         self.assertEqual(Color.brown.name, 'brown')

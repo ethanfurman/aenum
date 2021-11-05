@@ -1,3 +1,24 @@
+3.1.3
+=====
+
+rename `aenum.property` to `aenum.enum_property` (`aenum.property still exists,
+but was too easily confused with the built-in property)
+
+fix `enum_property` to work with `_init_` attributes
+
+
+3.1.2
+=====
+
+fix `extend_enum()` for unhashable values
+
+
+3.1.1
+=====
+
+fix `extend_enum()` for most cases
+
+
 3.1.0
 =====
 

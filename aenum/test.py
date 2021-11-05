@@ -16,7 +16,7 @@ from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, AddVa
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AddValue, Unique
 from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
-from aenum import basestring, baseinteger, unicode
+from aenum import basestring, baseinteger, unicode, enum_property
 from aenum import pyver, PY2, PY3, PY26, PY33, PY34, PY35, PY36
 from collections import OrderedDict
 from datetime import timedelta
@@ -864,6 +864,46 @@ class TestHelpers(TestCase):
             for error in errors:
                 print(error)
             self.assertTrue(False)
+
+
+class TestEnumType(TestCase):
+
+    def test_immutability(self):
+        class Hah(object):
+            @classproperty
+            def all_values(cls):
+                return [m.value for m in cls]
+        class Huh(Hah, Enum):
+            one = 1
+            two = 2
+        self.assertRaisesRegex(AttributeError, 'cannot rebind enum_property', setattr, Huh, 'value', 'boom')
+        self.assertRaisesRegex(AttributeError, 'cannot delete enum_property', delattr, Huh, 'value')
+        self.assertRaisesRegex(AttributeError, 'cannot set attribute', setattr, Huh.one, 'value', 'boom')
+        self.assertRaisesRegex(AttributeError, 'cannot delete attribute', delattr, Huh.two, 'value')
+        self.assertEqual(Huh.one.value, 1)
+        self.assertEqual(Huh.two.value, 2)
+        self.assertEquals(Huh.all_values, [1, 2])
+        setattr(Huh, 'all_values', 99)
+        self.assertEquals(Huh.all_values, 99)
+
+    def test_enum_shadow_base(self):
+        class hohum(object):
+            def cyan(self):
+                "cyanize a color"
+                return self.value * 'cyan'
+            @property
+            def azure(self):
+                return 'azure ' + self.name
+        class Color(hohum, Enum):
+            red = 1
+            green = 2
+            blue = 3
+            cyan = 4
+            azure = 5
+        self.assertEqual(len(Color), 5)
+        self.assertEqual(list(Color), [Color.red, Color.green, Color.blue, Color.cyan, Color.azure])
+        self.assertRaisesRegex(AttributeError, 'no attribute .cyan.', lambda: Color.blue.cyan)
+        self.assertEqual(Color.red.azure, 'azure red')
 
 
 class TestEnum(TestCase):
@@ -2566,6 +2606,27 @@ class TestEnum(TestCase):
                 return G * self.mass / (self.radius * self.radius)
         self.assertEqual(round(Planet.EARTH.surface_gravity, 2), 9.80)
         self.assertEqual(Planet.EARTH.value, (5.976e+24, 6.37814e6))
+
+    def test_init_and_shadowing_attribute(self):
+        class SelectionEnum(str, Enum):
+            _init_ = 'db user'
+            def __new__(cls, *args, **kwds):
+                count = len(cls.__members__)
+                obj = str.__new__(cls, args[0])
+                obj._count = count
+                obj._value_ = args
+                return obj
+            @staticmethod
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return (name, ) + args
+        class DeviceTypeSource(SelectionEnum):
+            _order_ = 'user system'
+            user = "User controlled"
+            system = "System controlled"
+        self.assertEqual(DeviceTypeSource.system.db, 'system')
+        self.assertEqual(DeviceTypeSource.system.user, 'System controlled')
+        self.assertEqual(DeviceTypeSource.user.db, 'user')
+        self.assertEqual(DeviceTypeSource.user.user, 'User controlled')
 
     def test_nonhash_value(self):
         class AutoNumberInAList(Enum):
