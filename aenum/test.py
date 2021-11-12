@@ -6508,7 +6508,7 @@ class TestIssues(TestCase):
                 new_requirements = {}
                 for k, v in requirements.items():
                     if isinstance(k, auto):
-                        k = k.value
+                        k = k.enum_member
                     new_requirements[k] = v
                 obj.requirements = new_requirements
                 return obj

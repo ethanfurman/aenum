@@ -61,7 +61,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 4
+version = 3, 1, 5, 1
 
 # shims
 try:
@@ -1384,6 +1384,7 @@ class auto(enum):
     """
     Instances are replaced with an appropriate value in Enum class suites.
     """
+    enum_member = _auto_null
     _value = _auto_null
     _operations = []
 
@@ -1643,10 +1644,6 @@ class _proto_member:
             kwds = value.kwds
             args = (value.value, ) + value.args
             value = value.value
-            if isinstance(value, enum_class) and args == (value, ) and not kwds:
-                # unwrap the enum
-                value = value.value
-                args = (value, )
         elif isinstance(value, enum):
             args = value.args
             kwds = value.kwds
@@ -1773,7 +1770,7 @@ class _proto_member:
                         )
         # if self.value is an `auto()`, replace the value attribute with the new enum member
         if isinstance(self.value, auto):
-            self.value.value = enum_member
+            self.value.enum_member = enum_member
         # get redirect in place before adding to _member_map_
         # but check for other instances in parent classes first
         need_override = False
