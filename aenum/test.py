@@ -882,9 +882,9 @@ class TestEnumType(TestCase):
         self.assertRaisesRegex(AttributeError, 'cannot delete attribute', delattr, Huh.two, 'value')
         self.assertEqual(Huh.one.value, 1)
         self.assertEqual(Huh.two.value, 2)
-        self.assertEquals(Huh.all_values, [1, 2])
+        self.assertEqual(Huh.all_values, [1, 2])
         setattr(Huh, 'all_values', 99)
-        self.assertEquals(Huh.all_values, 99)
+        self.assertEqual(Huh.all_values, 99)
 
     def test_enum_shadow_base(self):
         class hohum(object):
@@ -2738,6 +2738,15 @@ class TestEnum(TestCase):
         self.assertEqual(Color.green.value, 3)
 
     def test_duplicate_auto(self):
+        #
+        class MoreDupes(Enum):
+            _order_ = 'A B C'
+            A = auto()
+            B = A,
+            C = auto()
+        self.assertEqual(list(MoreDupes), [MoreDupes.A, MoreDupes.B, MoreDupes.C])
+        self.assertEqual([m.value for m in MoreDupes], [1, (1, ), 2])
+        #
         class Dupes(Enum):
             _order_ = 'first second third'
             first = primero = auto()
@@ -2803,6 +2812,21 @@ class TestEnum(TestCase):
         self.assertEqual(Test.that.value, ('that', 'those'))
         self.assertEqual(Test.that.db, 'that')
         self.assertEqual(Test.that.user, 'those')
+
+    def test_auto_and_kwds(self):
+        class Item(Enum):
+            _order_ = 'A B'
+            A = auto(size=100, req={'red': True})
+            B = auto(size=200, req={'red': False})
+            #
+            def __new__(cls, value, size, req):
+                obj = object.__new__(cls)
+                obj._value_ = value
+                obj.size = size
+                obj.req= req
+                return obj
+        self.assertEqual((Item.A.value, Item.A.size, Item.A.req), (1, 100, {'red': True}))
+        self.assertEqual((Item.B.value, Item.B.size, Item.B.req), (2, 200, {'red': False}))
 
     def test_empty_with_functional_api(self):
         empty = aenum.IntEnum('Foo', {})
@@ -6469,6 +6493,27 @@ class TestIssues(TestCase):
         self.assertIs(Measurement(1), Measurement.two)
         self.assertIs(Measurement('20110518'), Measurement.three)
         self.assertIs(Measurement(2), Measurement.three)
+
+    def test_auto_kwds(self):
+        class Item(Enum):
+            _order_ = 'A B'
+            A = auto(size=100, requirements={})
+            B = auto(size=200, requirements={A: 1})
+            #
+            def __new__(cls, value, size, requirements):
+                obj = object.__new__(cls)
+                obj._value_ = value
+                obj.size = size
+                # fix requirements
+                new_requirements = {}
+                for k, v in requirements.items():
+                    if isinstance(k, auto):
+                        k = k.value
+                    new_requirements[k] = v
+                obj.requirements = new_requirements
+                return obj
+        self.assertEqual((Item.A.value, Item.A.size, Item.A.requirements), (1, 100, {}))
+        self.assertEqual((Item.B.value, Item.B.size, Item.B.requirements), (2, 200, {Item.A: 1}))
 
     def test_extend_flag(self):
         class FlagTest(Flag): # Or IntFlag

@@ -1640,8 +1640,13 @@ class _proto_member:
             args = value.args
             kwds = value.kwds
         elif isinstance(value, auto):
+            kwds = value.kwds
+            args = (value.value, ) + value.args
             value = value.value
-            args = (value, )
+            if isinstance(value, enum_class) and args == (value, ) and not kwds:
+                # unwrap the enum
+                value = value.value
+                args = (value, )
         elif isinstance(value, enum):
             args = value.args
             kwds = value.kwds
@@ -1766,6 +1771,9 @@ class _proto_member:
                         '%s: duplicate names found: %s' %
                             (enum_class.__name__, ';  '.join(message))
                         )
+        # if self.value is an `auto()`, replace the value attribute with the new enum member
+        if isinstance(self.value, auto):
+            self.value.value = enum_member
         # get redirect in place before adding to _member_map_
         # but check for other instances in parent classes first
         need_override = False
