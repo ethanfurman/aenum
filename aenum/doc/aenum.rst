@@ -479,7 +479,7 @@ any members.  So this is forbidden::
     ...   pink = 17
     Traceback (most recent call last):
     ...
-    TypeError: cannot extend enumerations via subclassing
+    TypeError: <aenum 'MoreColor'> cannot extend <aenum 'Color'>
 
 But this is allowed::
 

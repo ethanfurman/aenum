@@ -1,6 +1,5 @@
 """Python Advanced Enumerations & NameTuples"""
 from __future__ import print_function
-from pprint import pformat
 
 # imports
 import sys as _sys
@@ -2142,6 +2141,7 @@ class EnumType(StdlibEnumMeta or type):
 
     @classmethod
     def __prepare__(metacls, cls, bases, init=None, start=None, settings=(), boundary=None, **kwds):
+        metacls._check_for_existing_members_(cls, bases)
         if Flag is None and cls == 'Flag':
             initial_flag = True
         else:
@@ -2156,11 +2156,11 @@ class EnumType(StdlibEnumMeta or type):
         generate = None
         order = None
         # inherit previous flags
-        member_type, first_enum = metacls._get_mixins_(bases)
+        member_type, first_enum = metacls._get_mixins_(cls, bases)
         if first_enum is not None:
             generate = getattr(first_enum, '_generate_next_value_', None)
             generate = getattr(generate, 'im_func', generate)
-            settings |= metacls._get_settings(bases)
+            settings |= metacls._get_settings_(bases)
             init = init or first_enum._auto_init_[:]
             order = first_enum._order_function_
             if start is None:
@@ -2228,7 +2228,7 @@ class EnumType(StdlibEnumMeta or type):
         return enum_dict
 
     def __init__(cls, *args , **kwds):
-        super(EnumType, cls).__init__(*args)
+        pass
 
     def __new__(metacls, cls, bases, clsdict, init=None, start=None, settings=(), boundary=None, **kwds):
         # handle py2 case first
@@ -2361,7 +2361,7 @@ class EnumType(StdlibEnumMeta or type):
         boundary = boundary or clsdict.pop('_boundary_', None)
         # convert to regular dict
         clsdict = dict(clsdict.items())
-        member_type, first_enum = metacls._get_mixins_(bases)
+        member_type, first_enum = metacls._get_mixins_(cls, bases)
         # get the method to create enum members
         __new__, save_new, new_uses_args = metacls._find_new_(
                 clsdict,
@@ -2403,6 +2403,8 @@ class EnumType(StdlibEnumMeta or type):
         clsdict['_new_args_'] = new_args
         clsdict['_auto_args_'] = auto_args
         clsdict['_order_function_'] = None
+        # now set the __repr__ for the value
+        clsdict['_value_repr_'] = metacls._find_data_repr_(cls, bases)
         #
         # Flag structures (will be removed if final class is not a Flag
         clsdict['_boundary_'] = (
@@ -2767,7 +2769,7 @@ class EnumType(StdlibEnumMeta or type):
             bases = (cls, )
         else:
             bases = (type, cls)
-        _, first_enum = cls._get_mixins_(bases)
+        _, first_enum = cls._get_mixins_(class_name, bases)
         generate = getattr(first_enum, '_generate_next_value_', None)
         generate = getattr(generate, 'im_func', generate)
         # special processing needed for names?
@@ -2813,8 +2815,19 @@ class EnumType(StdlibEnumMeta or type):
             enum_class.__module__ = module
         return enum_class
 
-    @staticmethod
-    def _get_mixins_(bases):
+    @classmethod
+    def _check_for_existing_members_(mcls, class_name, bases):
+        if Enum is None:
+            return
+        for chain in bases:
+            for base in chain.__mro__:
+                if issubclass(base, Enum) and base._member_names_:
+                    raise TypeError(
+                            "<aenum %r> cannot extend %r"
+                            % (class_name, base)
+                            )
+    @classmethod
+    def _get_mixins_(mcls, class_name, bases):
         """Returns the type for creating enum members, and the first inherited
         enum class.
 
@@ -2822,31 +2835,8 @@ class EnumType(StdlibEnumMeta or type):
         """
         if not bases or Enum is None:
             return object, Enum
-        def _find_data_type(bases):
-            data_types = set()
-            for chain in bases:
-                candidate = None
-                for base in chain.__mro__:
-                    if base is object or base is StdlibEnum or base is StdlibFlag:
-                        continue
-                    elif issubclass(base, Enum):
-                        if base._member_type_ is not object:
-                            data_types.add(base._member_type_)
-                    elif '__new__' in base.__dict__:
-                        if issubclass(base, Enum):
-                            continue
-                        elif StdlibFlag is not None and issubclass(base, StdlibFlag):
-                            continue
-                        data_types.add(candidate or base)
-                        break
-                    else:
-                        candidate = candidate or base
-            if len(data_types) > 1:
-                raise TypeError('%r: too many data types: %r' % (class_name, data_types))
-            elif data_types:
-                return data_types.pop()
-            else:
-                return None
+
+        mcls._check_for_existing_members_(class_name, bases)
 
         # ensure final parent class is an Enum derivative, find any concrete
         # data type, and check that Enum has no members
@@ -2854,14 +2844,55 @@ class EnumType(StdlibEnumMeta or type):
         if not issubclass(first_enum, Enum):
             raise TypeError("new enumerations should be created as "
                     "`EnumName([mixin_type, ...] [data_type,] enum_type)`")
-        member_type = _find_data_type(bases) or object
+        member_type = mcls._find_data_type_(class_name, bases) or object
         if first_enum._member_names_:
             raise TypeError("cannot extend enumerations via subclassing")
         #
         return member_type, first_enum
 
+    @classmethod
+    def _find_data_repr_(mcls, class_name, bases):
+        for chain in bases:
+            for base in chain.__mro__:
+                if base is object:
+                    continue
+                elif issubclass(base, Enum):
+                    # if we hit an Enum, use it's _value_repr_
+                    return base._value_repr_
+                elif '__repr__' in base.__dict__:
+                    # this is our data repr
+                    return base.__dict__['__repr__']
+        return None
+
+    @classmethod
+    def _find_data_type_(mcls, class_name, bases):
+        data_types = set()
+        for chain in bases:
+            candidate = None
+            for base in chain.__mro__:
+                if base is object or base is StdlibEnum or base is StdlibFlag:
+                    continue
+                elif issubclass(base, Enum):
+                    if base._member_type_ is not object:
+                        data_types.add(base._member_type_)
+                elif '__new__' in base.__dict__:
+                    if issubclass(base, Enum):
+                        continue
+                    elif StdlibFlag is not None and issubclass(base, StdlibFlag):
+                        continue
+                    data_types.add(candidate or base)
+                    break
+                else:
+                    candidate = candidate or base
+        if len(data_types) > 1:
+            raise TypeError('%r: too many data types: %r' % (class_name, data_types))
+        elif data_types:
+            return data_types.pop()
+        else:
+            return None
+
     @staticmethod
-    def _get_settings(bases):
+    def _get_settings_(bases):
         """Returns the combined _settings_ of all Enum base classes
 
         bases: the tuple of bases given to __new__
@@ -2882,17 +2913,13 @@ class EnumType(StdlibEnumMeta or type):
         member_type: the data type whose __new__ will be used by default
         first_enum: enumeration to check for an overriding __new__
         """
-        #         % (member_type, first_enum, pformat(clsdict)))
         # now find the correct __new__, checking to see of one was defined
         # by the user; also check earlier enum classes in case a __new__ was
         # saved as __new_member__
-        if Flag is None and mcls.__name__ == 'FlagMeta':
-            __new__ = None
-        else:
-            __new__ = clsdict.get('__new__', None)
+        __new__ = clsdict.get('__new__', None)
         #
         # should __new__ be saved as __new_member__ later?
-        save_new = __new__ is not None
+        save_new = first_enum is not None and __new__ is not None
         #
         if __new__ is None:
             # check all possibles for __new_member__ before falling back to
@@ -2906,8 +2933,6 @@ class EnumType(StdlibEnumMeta or type):
                             object.__new__,
                             Enum.__new__,
                             StdlibEnum.__new__,
-                            Flag.__new__,
-                            StdlibFlag.__new__,
                             ):
                         __new__ = target
                         break
@@ -3057,8 +3082,8 @@ def _missing_name_(cls, name):
 
 @enum_dict
 def __repr__(self):
-    return "<%s.%s: %r>" % (
-            self.__class__.__name__, self._name_, self._value_)
+    v_repr = self.__class__._value_repr_ or self._value_.__class__.__repr__
+    return "<%s.%s: %s>" % (self.__class__.__name__, self._name_, v_repr(self._value_))
 
 @enum_dict
 def __str__(self):
