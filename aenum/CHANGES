@@ -1,13 +1,16 @@
 3.1.6
 =====
 
+Update `dir()` on mixed enums to include mixed data type methods and
+attributes.
+
 Rename `enum_property` to `property` to match stdlib.  Recommended usage is
 `aenum.property` (prefix with module name).
 
 Remove quadritic creation behavior.
 
 
-BREAKING CHANGES that don't affect most people
+BREAKING CHANGE BUG FIX that won't affect most people
 
 Enums with a custom `__new__` that:
 
@@ -16,6 +19,12 @@ Enums with a custom `__new__` that:
 
 will fail to generate a missing value.  To fix: remove the default value and
 instead specify it on the member creation line.
+
+BREAKING CHANGE
+
+In Python 3.11 the `str()` of mixed enums will now match its `format()` which
+will be the normal `str()` of the data type -- so for an IntEnum you'll see
+`5` instead of `Perm.R|X`.  This affects IntEnum, StrEnum, and IntFlag.
 
 
 3.1.5

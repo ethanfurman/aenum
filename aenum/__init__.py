@@ -1335,7 +1335,7 @@ class EnumConstants(NamedConstant):
     #
     # Ditto for Flag.
 
-Enum = Flag = EJECT = KEEP = None
+Enum = ReprEnum = Flag = EJECT = KEEP = None
 
 class enum(object):
     """
@@ -2470,6 +2470,26 @@ class EnumType(StdlibEnumMeta or type):
         #
         # double check that repr and friends are not the mixin's or various
         # things break (such as pickle)
+        #
+        # Also, special handling for ReprEnum
+        if ReprEnum is not None and ReprEnum in bases:
+            if member_type is object:
+                raise TypeError(
+                        'ReprEnum subclasses must be mixed with a data type (i.e.'
+                        ' int, str, float, etc.)'
+                        )
+            if '__format__' not in clsdict:
+                enum_class.__format__ = member_type.__format__
+                clsdict['__format__'] = enum_class.__format__
+            if '__str__' not in clsdict:
+                method = member_type.__str__
+                if method is object.__str__:
+                    # if member_type does not define __str__, object.__str__ will use
+                    # its __repr__ instead, so we'll also use its __repr__
+                    method = member_type.__repr__
+                enum_class.__str__ = method
+                clsdict['__str__'] = enum_class.__str__
+
         for name in ('__repr__', '__str__', '__format__', '__reduce_ex__'):
             enum_class_method = enum_class.__dict__.get(name, None)
             if enum_class_method:
@@ -2643,9 +2663,26 @@ class EnumType(StdlibEnumMeta or type):
                     )
         super(EnumType, cls).__delattr__(attr)
 
-    def __dir__(self):
-        return (['__class__', '__doc__', '__members__', '__module__'] +
-                self._member_names_)
+    def __dir__(cls):
+        interesting = set(cls._member_names_ + [
+                    '__class__', '__contains__', '__doc__', '__getitem__',
+                    '__iter__', '__len__', '__members__', '__module__',
+                    '__name__',
+                    ])
+        if cls._new_member_ is not object.__new__:
+            interesting.add('__new__')
+        if cls.__init_subclass__ is not Enum.__init_subclass__:
+            interesting.add('__init_subclass__')
+        if hasattr(object, '__qualname__'):
+            interesting.add('__qualname__')
+        for method in ('__init__', '__format__', '__repr__', '__str__'):
+            if getattr(cls, method) not in (getattr(Enum, method), getattr(Flag, method)):
+                interesting.add(method)
+        if cls._member_type_ is object:
+            return sorted(interesting)
+        else:
+            # return whatever mixed-in data type has
+            return sorted(set(dir(cls._member_type_)) | interesting)
 
     @_bltin_property
     def __members__(cls):
@@ -2719,7 +2756,7 @@ class EnumType(StdlibEnumMeta or type):
                       " _convert_ instead.", DeprecationWarning, stacklevel=2)
         return cls._convert_(*args, **kwds)
 
-    def _convert_(cls, name, module, filter, source=None, boundary=None):
+    def _convert_(cls, name, module, filter, source=None, boundary=None, as_global=False):
         """
         Create a new Enum subclass that replaces a collection of global constants
         """
@@ -2742,7 +2779,10 @@ class EnumType(StdlibEnumMeta or type):
             members.sort(key=lambda t: t[0])
         cls = cls(name, members, module=module, boundary=boundary or KEEP)
         cls.__reduce_ex__ = _reduce_ex_by_name
-        module_globals.update(cls.__members__)
+        if as_global:
+            global_enum(cls)
+        else:
+            module_globals.update(cls.__members__)
         module_globals[name] = cls
         return cls
 
@@ -3092,13 +3132,30 @@ def __str__(self):
 if PY3:
     @enum_dict
     def __dir__(self):
-        added_behavior = [
-                m
-                for cls in self.__class__.mro()
-                for m in cls.__dict__
-                if m[0] != '_' and m not in self._member_map_
-                ]
-        return (['__class__', '__doc__', '__module__', ] + added_behavior)
+        """
+        Returns all members and all public methods
+        """
+        if self.__class__._member_type_ is object:
+            interesting = set(['__class__', '__doc__', '__eq__', '__hash__', '__module__', 'name', 'value'])
+        else:
+            interesting = set(object.__dir__(self))
+        for name in getattr(self, '__dict__', []):
+            if name[0] != '_':
+                interesting.add(name)
+        for cls in self.__class__.mro():
+            for name, obj in cls.__dict__.items():
+                if name[0] == '_':
+                    continue
+                if isinstance(obj, property):
+                    # that's an enum.property
+                    if obj.fget is not None or name not in self._member_map_:
+                        interesting.add(name)
+                    else:
+                        # in case it was added by `dir(self)`
+                        interesting.discard(name)
+                else:
+                    interesting.add(name)
+        return sorted(interesting)
 
 @enum_dict
 def __format__(self, format_spec):
@@ -3210,13 +3267,19 @@ del enum_dict
 
     # Enum has now been created
 
-class IntEnum(int, Enum):
+class ReprEnum(Enum):
+    """
+    Only changes the repr(), leaving str() and format() to the mixed-in type.
+    """
+
+
+class IntEnum(int, ReprEnum):
     """
     Enum where members are also (and must be) ints
     """
 
 
-class StrEnum(str, Enum):
+class StrEnum(str, ReprEnum):
     """
     Enum where members are also (and must already be) strings
 
@@ -3839,7 +3902,7 @@ class Flag(Enum):
         return self._inverted_
 
 
-class IntFlag(int, Flag):
+class IntFlag(int, ReprEnum, Flag):
     """Support for integer-based Flags"""
 
     _boundary_ = EJECT
@@ -3884,6 +3947,61 @@ def _high_bit(value):
     """returns index of highest bit, or -1 if value is zero or negative"""
     return value.bit_length() - 1
 
+def global_enum_repr(self):
+    """
+    use module.enum_name instead of class.enum_name
+
+    the module is the last module in case of a multi-module name
+    """
+    module = self.__class__.__module__.split('.')[-1]
+    return '%s.%s' % (module, self._name_)
+
+def global_flag_repr(self):
+    """
+    use module.flag_name instead of class.flag_name
+
+    the module is the last module in case of a multi-module name
+    """
+    module = self.__class__.__module__.split('.')[-1]
+    cls_name = self.__class__.__name__
+    if self._name_ is None:
+        return "%s.%s(%r)" % (module, cls_name, self._value_)
+    if _is_single_bit(self):
+        return '%s.%s' % (module, self._name_)
+    if self._boundary_ is not FlagBoundary.KEEP:
+        return '|'.join(['%s.%s' % (module, name) for name in self.name.split('|')])
+    else:
+        name = []
+        for n in self._name_.split('|'):
+            if n[0].isdigit():
+                name.append(n)
+            else:
+                name.append('%s.%s' % (module, n))
+        return '|'.join(name)
+
+def global_str(self):
+    """
+    use enum_name instead of class.enum_name
+    """
+    if self._name_ is None:
+        return "%s(%r)" % (cls_name, self._value_)
+    else:
+        return self._name_
+
+def global_enum(cls, update_str=False):
+    """
+    decorator that makes the repr() of an enum member reference its module
+    instead of its class; also exports all members to the enum's module's
+    global namespace
+    """
+    if issubclass(cls, Flag):
+        cls.__repr__ = global_flag_repr
+    else:
+        cls.__repr__ = global_enum_repr
+    if not issubclass(cls, ReprEnum) or update_str:
+        cls.__str__ = global_str
+    _sys.modules[cls.__module__].__dict__.update(cls.__members__)
+    return cls
 
 
 class module(object):

@@ -776,16 +776,16 @@ Others
 While ``IntEnum`` is part of the ``aenum`` module, it would be very
 simple to implement independently::
 
-    class IntEnum(int, Enum):
+    class MyIntEnum(int, Enum):
         pass
 
 This demonstrates how similar derived enumerations can be defined; for example
-a ``StrEnum`` that mixes in ``str`` instead of ``int``.
+a ``MyStrEnum`` that mixes in ``str`` instead of ``int``.
 
 Some rules:
 
 1. When subclassing ``Enum``, mix-in types must appear before
-   ``Enum`` itself in the sequence of bases, as in the ``IntEnum``
+   ``Enum`` itself in the sequence of bases, as in the ``MyIntEnum``
    example above.
 2. While ``Enum`` can have members of any type, once you mix in an
    additional type, all the members must have values of that type or be
@@ -796,7 +796,7 @@ Some rules:
    equal.
 4. %-style formatting:  ``%s`` and ``%r`` call ``Enum``'s ``__str__`` and
    ``__repr__`` respectively; other codes (such as ``%i`` or ``%h`` for
-   IntEnum) treat the enum member as its mixed-in type.
+   MyIntEnum) treat the enum member as its mixed-in type.
 5. ``str.__format__`` (or ``format``) will use the mixed-in
    type's ``__format__``.  If the ``Enum``'s ``str`` or ``repr`` is desired
    use the ``!s`` or ``!r`` ``str`` format codes.

@@ -136,14 +136,16 @@ class TestEnumV3(TestCase):
         self.assertEqual(
             set(dir(Season)),
             set(['__class__', '__doc__', '__members__', '__module__',
-                'SPRING', 'SUMMER', 'AUTUMN', 'WINTER']),
-            )
+                'SPRING', 'SUMMER', 'AUTUMN', 'WINTER',
+                '__init_subclass__', '__name__', '__getitem__', '__len__',
+                '__contains__', '__iter__', '__qualname__',
+                ]))
 
     def test_dir_on_item(self):
         Season = self.Season
         self.assertEqual(
             set(dir(Season.WINTER)),
-            set(['__class__', '__doc__', '__module__', 'name', 'value', 'values']),
+            set(['__class__', '__doc__', '__eq__', '__hash__', '__module__', 'name', 'value', 'values']),
             )
 
     def test_dir_with_added_behavior(self):
@@ -154,11 +156,14 @@ class TestEnumV3(TestCase):
                 return ("Wowser! I'm %s!" % self.name)
         self.assertEqual(
                 set(dir(Test)),
-                set(['__class__', '__doc__', '__members__', '__module__', 'this', 'these']),
-                )
+                set([
+                    '__class__', '__doc__', '__members__', '__module__', 'this', 'these',
+                    '__init_subclass__', '__name__', '__getitem__', '__len__',
+                    '__contains__', '__iter__', '__qualname__',
+                    ]))
         self.assertEqual(
                 set(dir(Test.this)),
-                set(['__class__', '__doc__', '__module__', 'name', 'value', 'values', 'wowser']),
+                set(['__class__', '__doc__', '__eq__', '__hash__', '__module__', 'name', 'value', 'values', 'wowser']),
                 )
 
     def test_dir_on_sub_with_behavior_on_super(self):
@@ -170,7 +175,7 @@ class TestEnumV3(TestCase):
             sample = 5
         self.assertEqual(
                 set(dir(SubEnum.sample)),
-                set(['__class__', '__doc__', '__module__', 'name', 'value', 'values', 'invisible']),
+                set(['__class__', '__doc__', '__eq__', '__hash__', '__module__', 'name', 'value', 'values', 'invisible']),
                 )
 
     def test_members_are_always_ordered(self):

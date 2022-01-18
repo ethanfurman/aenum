@@ -38,6 +38,8 @@ try:
 except NameError:
     from aenum import any
 
+MODULE = __name__
+SHORT_MODULE = MODULE.split('.')[-1]
 
 def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite(aenum))
@@ -5095,30 +5097,30 @@ class TestIntFlag(TestCase):
 
     def test_str(self):
         Perm = self.Perm
-        self.assertEqual(str(Perm.R), 'Perm.R')
-        self.assertEqual(str(Perm.W), 'Perm.W')
-        self.assertEqual(str(Perm.X), 'Perm.X')
-        self.assertEqual(str(Perm.R | Perm.W), 'Perm.R|W')
-        self.assertEqual(str(Perm.R | Perm.W | Perm.X), 'Perm.R|W|X')
-        self.assertEqual(str(Perm(0)), 'Perm(0)')
-        self.assertEqual(str(~Perm.R), 'Perm.W|X')
-        self.assertEqual(str(~Perm.W), 'Perm.R|X')
-        self.assertEqual(str(~Perm.X), 'Perm.R|W')
-        self.assertEqual(str(~(Perm.R | Perm.W)), 'Perm.X')
-        self.assertEqual(str(~(Perm.R | Perm.W | Perm.X)), 'Perm(0)')
-        self.assertEqual(str(Perm(~0)), 'Perm.R|W|X')
+        self.assertEqual(str(Perm.R), '4')
+        self.assertEqual(str(Perm.W), '2')
+        self.assertEqual(str(Perm.X), '1')
+        self.assertEqual(str(Perm.R | Perm.W), '6')
+        self.assertEqual(str(Perm.R | Perm.W | Perm.X), '7')
+        self.assertEqual(str(Perm(0)), '0')
+        self.assertEqual(str(~Perm.R), '3')
+        self.assertEqual(str(~Perm.W), '5')
+        self.assertEqual(str(~Perm.X), '6')
+        self.assertEqual(str(~(Perm.R | Perm.W)), '1')
+        self.assertEqual(str(~(Perm.R | Perm.W | Perm.X)), '0')
+        self.assertEqual(str(Perm(~0)), '7')
 
         Open = self.Open
-        self.assertEqual(str(Open.RO), 'Open.RO')
-        self.assertEqual(str(Open.WO), 'Open.WO')
-        self.assertEqual(str(Open.AC), 'Open.AC')
-        self.assertEqual(str(Open.RO | Open.CE), 'Open.CE')
-        self.assertEqual(str(Open.WO | Open.CE), 'Open.WO|CE')
-        self.assertEqual(str(~Open.RO), 'Open.WO|RW|CE')
-        self.assertEqual(str(~Open.WO), 'Open.RW|CE')
-        self.assertEqual(str(~Open.AC), 'Open.CE')
-        self.assertEqual(str(~(Open.RO | Open.CE)), 'Open.AC')
-        self.assertEqual(str(~(Open.WO | Open.CE)), 'Open.RW')
+        self.assertEqual(str(Open.RO), '0')
+        self.assertEqual(str(Open.WO), '1')
+        self.assertEqual(str(Open.AC), '3')
+        self.assertEqual(str(Open.RO | Open.CE), '524288')
+        self.assertEqual(str(Open.WO | Open.CE), '524289')
+        self.assertEqual(str(~Open.RO), '524291')
+        self.assertEqual(str(~Open.WO), '524290')
+        self.assertEqual(str(~Open.AC), '524288')
+        self.assertEqual(str(~(Open.RO | Open.CE)), '3')
+        self.assertEqual(str(~(Open.WO | Open.CE)), '2')
 
     def test_repr_strict(self):
         class Perm(IntFlag):
@@ -5483,9 +5485,10 @@ class TestIntFlag(TestCase):
         self.assertEqual(Color.GREEN.value, 2)
         self.assertEqual(Color.BLUE.value, 4)
         self.assertEqual(Color.ALL.value, 7)
-        self.assertEqual(str(Color.BLUE), 'Color.BLUE')
+        self.assertEqual(str(Color.BLUE), '4')
         class Color(AllMixin, StrMixin, IntFlag):
             _order_ = 'RED GREEN BLUE'
+            __str__ = StrMixin.__str__
             RED = auto()
             GREEN = auto()
             BLUE = auto()
@@ -5496,6 +5499,7 @@ class TestIntFlag(TestCase):
         self.assertEqual(str(Color.BLUE), 'blue')
         class Color(StrMixin, AllMixin, IntFlag):
             _order_ = 'RED GREEN BLUE'
+            __str__ = StrMixin.__str__
             RED = auto()
             GREEN = auto()
             BLUE = auto()
@@ -6620,11 +6624,52 @@ CONVERT_TEST_SIGIOT = 4
 CONVERT_TEST_EIO = 7
 CONVERT_TEST_EBUS = 7    # and this one
 
-class TestIntEnumConvert(TestCase):
+CONVERT_STRING_TEST_NAME_D = 5
+CONVERT_STRING_TEST_NAME_C = 5
+CONVERT_STRING_TEST_NAME_B = 5
+CONVERT_STRING_TEST_NAME_A = 5  # This one should sort first.
+CONVERT_STRING_TEST_NAME_E = 5
+CONVERT_STRING_TEST_NAME_F = 5
+
+# global names for StrEnum._convert_ test
+CONVERT_STR_TEST_2 = 'goodbye'
+CONVERT_STR_TEST_1 = 'hello'
+
+# We also need values that cannot be compared:
+UNCOMPARABLE_A = 5
+UNCOMPARABLE_C = (9, 1)  # naming order is broken on purpose
+UNCOMPARABLE_B = 'value'
+
+COMPLEX_C = 1j
+COMPLEX_A = 2j
+COMPLEX_B = 3j
+
+
+class TestConvert(TestCase):
+
+    def tearDown(self):
+        # Reset the module-level test variables to their original integer
+        # values, otherwise the already created enum values get converted
+        # instead.
+        g = globals()
+        for suffix in ['A', 'B', 'C', 'D', 'E', 'F']:
+            g['CONVERT_TEST_NAME_%s' % suffix] = 5
+            g['CONVERT_STRING_TEST_NAME_%s' % suffix] = 5
+        for suffix, value in (('A', 5), ('B', (9, 1)), ('C', 'value')):
+            g['UNCOMPARABLE_%s' % suffix] = value
+        for suffix, value in (('A', 2j), ('B', 3j), ('C', 1j)):
+            g['COMPLEX_%s' % suffix] = value
+        for suffix, value in (('1', 'hello'), ('2', 'goodbye')):
+            g['CONVERT_STR_TEST_%s' % suffix] = value
+        g['CONVERT_TEST_SIGABRT'] = 4
+        g['CONVERT_TEST_SIGIOT'] = 4
+        g['CONVERT_TEST_EIO'] = 7
+        g['CONVERT_TEST_EBUS'] = 7
+
     def test_convert_value_lookup_priority(self):
         test_type = IntEnum._convert_(
                 'UnittestConvert',
-                '__main__',
+                MODULE,
                 filter=lambda x: x.startswith('CONVERT_TEST_'))
         # We don't want the reverse lookup value to vary when there are
         # multiple possible names for a given value.  It should always
@@ -6641,10 +6686,10 @@ class TestIntEnumConvert(TestCase):
                     ],
                 )
 
-    def test_convert_(self):
+    def test_convert_int(self):
         test_type = IntEnum._convert_(
                 'UnittestConvert',
-                '__main__',
+                MODULE,
                 filter=lambda x: x.startswith('CONVERT_TEST_'))
         # Ensure that test_type has all of the desired names and values.
         self.assertEqual(test_type.CONVERT_TEST_NAME_F,
@@ -6654,9 +6699,116 @@ class TestIntEnumConvert(TestCase):
         self.assertEqual(test_type.CONVERT_TEST_NAME_D, 5)
         self.assertEqual(test_type.CONVERT_TEST_NAME_E, 5)
         # Ensure that test_type only picked up names matching the filter.
-        self.assertEqual([name for name in dir(test_type)
-                          if name[0:2] not in ('CO', '__')],
-                         [], msg='Names other than CONVERT_TEST_* found.')
+        int_dir = dir(int) + [
+                'CONVERT_TEST_NAME_A', 'CONVERT_TEST_NAME_B', 'CONVERT_TEST_NAME_C',
+                'CONVERT_TEST_NAME_D', 'CONVERT_TEST_NAME_E', 'CONVERT_TEST_NAME_F',
+                'CONVERT_TEST_SIGABRT', 'CONVERT_TEST_SIGIOT',
+                'CONVERT_TEST_EIO', 'CONVERT_TEST_EBUS',
+                ]
+        extra = [name for name in dir(test_type) if name not in enum_dir(test_type)]
+        missing = [name for name in enum_dir(test_type) if name not in dir(test_type)]
+        self.assertEqual(
+                extra + missing,
+                [],
+                msg='extra names: %r;  missing names: %r' % (extra, missing),
+                )
+
+    @unittest.skipUnless(PY3, 'everything is comparable on Python 2')
+    def test_convert_uncomparable(self):
+        uncomp = Enum._convert_(
+                'Uncomparable',
+                MODULE,
+                filter=lambda x: x.startswith('UNCOMPARABLE_'))
+        # Should be ordered by `name` only:
+        self.assertEqual(
+            list(uncomp),
+            [uncomp.UNCOMPARABLE_A, uncomp.UNCOMPARABLE_B, uncomp.UNCOMPARABLE_C],
+            list(uncomp),
+            )
+
+    @unittest.skipUnless(PY3, 'everything is comparable on Python 2')
+    def test_convert_complex(self):
+        uncomp = Enum._convert_(
+            'Uncomparable',
+            MODULE,
+            filter=lambda x: x.startswith('COMPLEX_'))
+        # Should be ordered by `name` only:
+        self.assertEqual(
+            list(uncomp),
+            [uncomp.COMPLEX_A, uncomp.COMPLEX_B, uncomp.COMPLEX_C],
+            )
+
+    def test_convert_str(self):
+        test_type = StrEnum._convert_(
+                'UnittestConvert',
+                MODULE,
+                filter=lambda x: x.startswith('CONVERT_STR_'),
+                as_global=True)
+        # Ensure that test_type has all of the desired names and values.
+        self.assertEqual(test_type.CONVERT_STR_TEST_1, 'hello')
+        self.assertEqual(test_type.CONVERT_STR_TEST_2, 'goodbye')
+        # Ensure that test_type only picked up names matching the filter.
+        extra = [name for name in dir(test_type) if name not in enum_dir(test_type)]
+        missing = [name for name in enum_dir(test_type) if name not in dir(test_type)]
+        self.assertEqual(
+                extra + missing,
+                [],
+                msg='extra names: %r;  missing names: %r' % (extra, missing),
+                )
+        self.assertEqual(repr(test_type.CONVERT_STR_TEST_1), '%s.CONVERT_STR_TEST_1' % SHORT_MODULE)
+        self.assertEqual(str(test_type.CONVERT_STR_TEST_2), 'goodbye')
+        self.assertEqual(format(test_type.CONVERT_STR_TEST_1), 'hello')
+
+    def test_convert_repr_and_str(self):
+        test_type = IntEnum._convert_(
+                'UnittestConvert',
+                MODULE,
+                filter=lambda x: x.startswith('CONVERT_STRING_TEST_'),
+                as_global=True)
+        self.assertEqual(repr(test_type.CONVERT_STRING_TEST_NAME_A), '%s.CONVERT_STRING_TEST_NAME_A' % SHORT_MODULE)
+        self.assertEqual(str(test_type.CONVERT_STRING_TEST_NAME_A), '5')
+        self.assertEqual(format(test_type.CONVERT_STRING_TEST_NAME_A), '5')
+
+# helpers
+
+def enum_dir(cls):
+        interesting = set(cls._member_names_ + [
+                    '__class__', '__contains__', '__doc__', '__getitem__',
+                    '__iter__', '__len__', '__members__', '__module__',
+                    '__name__',
+                    ])
+        if cls._new_member_ is not object.__new__:
+            interesting.add('__new__')
+        if cls.__init_subclass__ is not Enum.__init_subclass__:
+            interesting.add('__init_subclass__')
+        if hasattr(object, '__qualname__'):
+            interesting.add('__qualname__')
+        for method in ('__init__', '__format__', '__repr__', '__str__'):
+            if getattr(cls, method) not in (getattr(Enum, method), getattr(Flag, method)):
+                interesting.add(method)
+        if cls._member_type_ is object:
+            return sorted(interesting)
+        else:
+            # return whatever mixed-in data type has
+            return sorted(set(dir(cls._member_type_)) | interesting)
+
+def member_dir(member):
+    if member.__class__._member_type_ is object:
+        allowed = set(['__class__', '__doc__', '__eq__', '__hash__', '__module__', 'name', 'value'])
+    else:
+        allowed = set(dir(member))
+    for cls in member.__class__.mro():
+        for name, obj in cls.__dict__.items():
+            if name[0] == '_':
+                continue
+            if isinstance(obj, enum.property):
+                if obj.fget is not None or name not in member._member_map_:
+                    allowed.add(name)
+                else:
+                    allowed.discard(name)
+            else:
+                allowed.add(name)
+    return sorted(allowed)
 
 
 
