@@ -1,6 +1,9 @@
 3.1.6
 =====
 
+Rename `enum_property` to `property` to match stdlib.  Recommended usage is
+`aenum.property` (prefix with module name).
+
 Remove quadritic creation behavior.
 
 
@@ -24,8 +27,7 @@ fix support of `auto()` kwds
 3.1.3
 =====
 
-rename `aenum.property` to `aenum.enum_property` (`aenum.property still exists,
-but was too easily confused with the built-in property)
+rename `aenum.property` to `aenum.enum_property`
 
 fix `enum_property` to work with `_init_` attributes
 

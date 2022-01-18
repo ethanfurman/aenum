@@ -53,7 +53,7 @@ __all__ = [
         'Flag', 'IntFlag',
         'AddValue', 'MagicValue', 'MultiValue', 'NoAlias', 'Unique',
         'AddValueEnum', 'MultiValueEnum', 'NoAliasEnum',
-        'enum', 'extend_enum', 'unique', 'property', 'enum_property',
+        'enum', 'extend_enum', 'unique', 'property',
         'NamedTuple', 'SqliteEnum',
         'FlagBoundary', 'STRICT', 'CONFORM', 'EJECT', 'KEEP',
         ]
@@ -223,7 +223,7 @@ except ImportError:
     base = object
     DynamicClassAttribute = None
 
-class enum_property(base):
+class property(base):
     """
     This is a descriptor, used to define attributes that act differently
     when accessed through an enum member and through an enum class.
@@ -238,7 +238,7 @@ class enum_property(base):
         self.fget = fget
         self.fset = fset
         self.fdel = fdel
-        # next two lines make enum_property act the same as _bltin_property
+        # next two lines make property act the same as _bltin_property
         self.__doc__ = doc or fget.__doc__
         self.overwrite_doc = doc is None
         # support for abstract methods
@@ -271,7 +271,7 @@ class enum_property(base):
             strings.append('%r' % member)
         if func:
             strings.append('function=%s' % func.__name__)
-        return 'enum_property(%s)' % ', '.join(strings)
+        return 'property(%s)' % ', '.join(strings)
 
     def __get__(self, instance, ownerclass=None):
         if instance is None:
@@ -279,7 +279,7 @@ class enum_property(base):
                 return ownerclass._member_map_[self.name]
             except KeyError:
                 raise AttributeError(
-                        '%s: no attribute %r' % (ownerclass.__name__, self.name)
+                        '%r has no attribute %r' % (ownerclass, self.name)
                         )
         else:
             if self.fget is not None:
@@ -287,21 +287,21 @@ class enum_property(base):
             else:
                 if self.fset is not None:
                     raise AttributeError(
-                            '%s: cannot read attribute %r' % (ownerclass.__name__, self.name)
+                            'cannot read attribute %r on %r' % (self.name, ownerclass)
                             )
                 else:
                     try:
                         return instance.__dict__[self.name]
                     except KeyError:
                         raise AttributeError(
-                                '%s: no attribute %r' % (ownerclass.__name__, self.name)
+                                '%r member has no attribute %r' % (ownerclass, self.name)
                                 )
 
     def __set__(self, instance, value):
         if self.fset is None:
             if self.fget is not None:
                 raise AttributeError(
-                        "%s: cannot set attribute %r" % (self.clsname, self.name)
+                        "cannot set attribute %r on <aenum %r>" % (self.name, self.clsname)
                         )
             else:
                 instance.__dict__[self.name] = value
@@ -312,13 +312,13 @@ class enum_property(base):
         if self.fdel is None:
             if self.fget or self.fset:
                 raise AttributeError(
-                        "%s: cannot delete attribute %r" % (self.clsname, self.name)
+                        "cannot delete attribute %r on <aenum %r>" % (self.name, self.clsname)
                         )
             elif self.name in instance.__dict__:
                 del instance.__dict__[self.name]
             else:
                 raise AttributeError(
-                        "%s: no attribute %r" % (self.clsname, self.name)
+                        "no attribute %r on <aenum %r> member" % (self.name, self.clsname)
                         )
         else:
             return self.fdel(instance)
@@ -328,11 +328,11 @@ class enum_property(base):
         self.clsname = ownerclass.__name__
         self.ownerclass = ownerclass
 
-_RouteClassAttributeToGetattr = enum_property
+_RouteClassAttributeToGetattr = property
 if DynamicClassAttribute is None:
-    DynamicClassAttribute = enum_property
+    DynamicClassAttribute = property
 # deprecated
-property = enum_property
+enum_property = property
 
 class NonMember(object):
     """
@@ -554,7 +554,7 @@ class _Addendum(object):
     def __call__(self, func):
         if isinstance(func, (staticmethod, classmethod)):
             name = func.__func__.__name__
-        elif isinstance(func, (enum_property, _bltin_property)):
+        elif isinstance(func, (property, _bltin_property)):
             name = (func.fget or func.fset or func.fdel).__name__
         else:
             name = func.__name__
@@ -1806,22 +1806,22 @@ class _proto_member:
         for base in enum_class.__mro__[1:]:
             descriptor = base.__dict__.get(member_name)
             if descriptor is not None:
-                if isinstance(descriptor, (enum_property, DynamicClassAttribute)):
+                if isinstance(descriptor, (property, DynamicClassAttribute)):
                     break
                 else:
                     need_override = True
                     if isinstance(descriptor, _bltin_property) and descriptor_property is None:
                         descriptor_property = descriptor
-                    # keep looking for an enum_property
+                    # keep looking for an enum.property
         descriptor = descriptor or descriptor_property
         if descriptor and not need_override:
-            # previous enum_property found, no further action needed
+            # previous enum.property found, no further action needed
             pass
         else:
-            redirect = enum_property()
+            redirect = property()
             redirect.__set_name__(enum_class, member_name)
             if descriptor and need_override:
-                # previous enum_property found, but some other inherited
+                # previous enum.property found, but some other inherited
                 # attribute is in the way; copy fget, fset, fdel to this one
                 redirect.fget = descriptor.fget
                 redirect.fset = descriptor.fset
@@ -1887,7 +1887,7 @@ class _EnumDict(dict):
         # list of temporary names
         self._ignore = []
         if self._magicvalue:
-            self._ignore = ['property', 'staticmethod', 'classmethod', 'enum_property']
+            self._ignore = ['property', 'staticmethod', 'classmethod']
         self._ignore_init_done = False
         # if _sunder_ values can be changed via the class body
         self._allow_init = True
@@ -1928,7 +1928,7 @@ class _EnumDict(dict):
             if key not in (
                     '_init_', '_settings_', '_order_', '_ignore_', '_start_',
                     '_create_pseudo_member_', '_create_pseudo_member_values_',
-                    '_generate_next_value_', '_boundary_',
+                    '_generate_next_value_', '_boundary_', '_numeric_repr_',
                     '_missing_', '_missing_value_', '_missing_name_',
                     '_iter_member_', '_iter_member_by_value_', '_iter_member_by_def_',
                     ):
@@ -1982,7 +1982,7 @@ class _EnumDict(dict):
                 self._magicvalue = allowed_settings['magicvalue']
                 self._locked = not self._magicvalue
                 if self._magicvalue and not self._ignore_init_done:
-                    self._ignore = ['property', 'classmethod', 'staticmethod', 'enum_property']
+                    self._ignore = ['property', 'classmethod', 'staticmethod']
                 if self._addvalue and self._init and 'value' not in self._init:
                     self._init.insert(0, 'value')
                 value = tuple(self._settings)
@@ -2635,9 +2635,9 @@ class EnumType(StdlibEnumMeta or type):
             raise AttributeError(
                     "%s: cannot delete constant %r" % (cls.__name__, attr),
                     )
-        elif isinstance(found_attr, enum_property):
+        elif isinstance(found_attr, property):
             raise AttributeError(
-                    "%s: cannot delete enum_property %r" % (cls.__name__, attr),
+                    "%s: cannot delete property %r" % (cls.__name__, attr),
                     )
         super(EnumType, cls).__delattr__(attr)
 
@@ -2705,9 +2705,9 @@ class EnumType(StdlibEnumMeta or type):
             raise AttributeError(
                     "%s: cannot rebind constant %r" % (cls.__name__, name),
                     )
-        elif isinstance(found_attr, enum_property):
+        elif isinstance(found_attr, property):
             raise AttributeError(
-                    "%s: cannot rebind enum_property %r" % (cls.__name__, name),
+                    "%s: cannot rebind property %r" % (cls.__name__, name),
                     )
         super(EnumType, cls).__setattr__(name, value)
 
@@ -3155,25 +3155,25 @@ def __reduce_ex__(self, proto):
     return self.__class__, (self._value_, )
 
 
-# enum_property is used to provide access to the `name`, `value', etc.,
+# enum.property is used to provide access to the `name`, `value', etc.,
 # properties of enum members while keeping some measure of protection
 # from modification, while still allowing for an enumeration to have
 # members named `name`, `value`, etc..  This works because enumeration
-# members are not set directly on the enum class -- enum_property will
+# members are not set directly on the enum class -- enum.property will
 # look them up in _member_map_.
 
 @enum_dict
-@enum_property
+@property
 def name(self):
     return self._name_
 
 @enum_dict
-@enum_property
+@property
 def value(self):
     return self._value_
 
 @enum_dict
-@enum_property
+@property
 def values(self):
     return self._values_
 
@@ -3384,7 +3384,7 @@ def extend_enum(enumeration, name, *args, **kwds):
     for base in enumeration.__mro__[1:]:
         descriptor = base.__dict__.get(name)
         if descriptor is not None:
-            if isinstance(descriptor, (enum_property, DynamicClassAttribute)):
+            if isinstance(descriptor, (property, DynamicClassAttribute)):
                 break
             else:
                 raise TypeError('%r already in use in superclass %r' % (name, base.__name__))
@@ -3535,13 +3535,13 @@ def _finalize_extend_enum(enumeration, new_member, name=None, bits=None, mask=No
     for base in enumeration.__mro__[1:]:
         descriptor = base.__dict__.get(name)
         if descriptor is not None:
-            if isinstance(descriptor, (enum_property, DynamicClassAttribute)):
+            if isinstance(descriptor, (property, DynamicClassAttribute)):
                 break
             else:
                 raise TypeError('%r already in use in superclass %r' % (name, base.__name__))
     if not descriptor:
         # get redirect in place before adding to _member_map_
-        redirect = enum_property()
+        redirect = property()
         redirect.__set_name__(enumeration, name)
         setattr(enumeration, name, redirect)
     if not is_alias:
@@ -3598,6 +3598,8 @@ class Flag(Enum):
     """
 
     _boundary_ = STRICT
+    _numeric_repr_ = repr
+
 
     def _generate_next_value_(name, start, count, last_values, *args, **kwds):
         """
@@ -3716,7 +3718,7 @@ class Flag(Enum):
         if members:
             pseudo_member._name_ = '|'.join([m._name_ for m in members])
             if unknown:
-                pseudo_member._name_ += '|0x%x' % unknown
+                pseudo_member._name_ += '|%s' % cls._numeric_repr_(unknown)
         else:
             pseudo_member._name_ = None
         # use setdefault in case another thread already created a composite
@@ -3765,18 +3767,18 @@ class Flag(Enum):
 
     def __repr__(self):
         cls = self.__class__
-        if self._name_ is not None:
-            return '<%s.%s: %r>' % (cls.__name__, self._name_, self._value_)
-        else:
+        if self._name_ is None:
             # only zero is unnamed by default
             return '<%s: %r>' % (cls.__name__, self._value_)
+        else:
+            return '<%s.%s: %r>' % (cls.__name__, self._name_, self._value_)
 
     def __str__(self):
         cls = self.__class__
-        if self._name_ is not None:
-            return '%s.%s' % (cls.__name__, self._name_)
-        else:
+        if self._name_ is None:
             return '%s(%s)' % (cls.__name__, self._value_)
+        else:
+            return '%s.%s' % (cls.__name__, self._name_)
 
     if PY2:
         def __nonzero__(self):

@@ -1254,7 +1254,7 @@ accessible as `EnumClass.member1.member2`.
     >>> FieldTypes.value.size
     Traceback (most recent call last):
     ...
-    AttributeError: FieldTypes: no attribute 'size'
+    AttributeError: <aenum 'FieldTypes'> member has no attribute 'size'
 
 The ``__members__`` attribute is only available on the class.
 

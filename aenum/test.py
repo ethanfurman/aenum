@@ -876,8 +876,8 @@ class TestEnumType(TestCase):
         class Huh(Hah, Enum):
             one = 1
             two = 2
-        self.assertRaisesRegex(AttributeError, 'cannot rebind enum_property', setattr, Huh, 'value', 'boom')
-        self.assertRaisesRegex(AttributeError, 'cannot delete enum_property', delattr, Huh, 'value')
+        self.assertRaisesRegex(AttributeError, 'cannot rebind property', setattr, Huh, 'value', 'boom')
+        self.assertRaisesRegex(AttributeError, 'cannot delete property', delattr, Huh, 'value')
         self.assertRaisesRegex(AttributeError, 'cannot set attribute', setattr, Huh.one, 'value', 'boom')
         self.assertRaisesRegex(AttributeError, 'cannot delete attribute', delattr, Huh.two, 'value')
         self.assertEqual(Huh.one.value, 1)
