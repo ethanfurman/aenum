@@ -1752,14 +1752,24 @@ class _proto_member:
             enum_class._member_names_.append(member_name)
         else:
             nonunique = defaultdict(list)
-            for name, canonical_member in enum_class._member_map_.items():
-                if canonical_member._value_ == enum_member._value_:
+            try:
+                try:
+                    # try to do a fast lookup to avoid the quadratic loop
+                    enum_member = enum_class._value2member_map_[value]
                     if enum_class._unique_:
-                        nonunique[name].append(member_name)
-                        continue
-                    enum_member = canonical_member
-                    break
-            else:
+                        nonunique[enum_member.name].append(member_name)
+                except TypeError:
+                    # unhashable members are stored elsewhere
+                    for unhashable_value, canonical_member in enum_class._value2member_seq_:
+                        name = canonical_member.name
+                        if unhashable_value == enum_member._value_:
+                            if enum_class._unique_:
+                                nonunique[name].append(member_name)
+                            enum_member = canonical_member
+                            break
+                    else:
+                        raise KeyError
+            except KeyError:
                 # this could still be an alias if the value is multi-bit and the
                 # class is a flag class
                 if (
@@ -1857,6 +1867,7 @@ class _EnumDict(dict):
         self._constructor_boundary = constructor_boundary
         self._generate_next_value = None
         self._member_names = []
+        self._member_names_set = set()
         self._settings = settings
         self._addvalue = addvalue = AddValue in settings
         self._magicvalue = MagicValue in settings
@@ -1937,7 +1948,7 @@ class _EnumDict(dict):
                 else:
                     value = list(value)
                 self._ignore = value
-                already = set(value) & set(self._member_names)
+                already = set(value) & self._member_names_set
                 if already:
                     raise ValueError('%r: _ignore_ cannot specify already set names %s' % (
                             self._cls_name,
@@ -2014,7 +2025,7 @@ class _EnumDict(dict):
                     value = classmethod(value)
             if _is_descriptor(value):
                 self._locked = True
-        elif key in self._member_names:
+        elif key in self._member_names_set:
             # descriptor overwriting an enum?
             raise TypeError('%r: attempt to reuse name: %r' % (self._cls_name, key))
         elif key in self._ignore:
@@ -2072,6 +2083,7 @@ class _EnumDict(dict):
                             % (self._cls_name, key, self._init, test_value)
                         )
             self._member_names.append(key)
+            self._member_names_set.add(key)
         else:
             # not a new member, turn off the autoassign magic
             self._locked = True
@@ -2104,12 +2116,6 @@ class _EnumDict(dict):
                 source_len = 1
             multi_args = len(self._init) > 1 or new_args
             if source_len < target_len :
-                # prev_values = []
-                # for v in self._last_values:
-                #     if isinstance(v, auto):
-                #         prev_values.append(v.value)
-                #     else:
-                #         prev_values.append(v)
                 values = self._gnv(key, values)
                 if value.args:
                     value._args = values
@@ -2151,15 +2157,6 @@ class EnumType(StdlibEnumMeta or type):
         order = None
         # inherit previous flags
         member_type, first_enum = metacls._get_mixins_(bases)
-        # if start is not None:
-        #     # if start is specifed, ensure AutoValue is enabled and 'value' is in init
-        #     settings.add('autovalue')
-        #     if init is None:
-        #         init = []
-        #     elif isinstance(init, basestring):
-        #         init = init.replace(',',' ').split()
-        #     if 'value' not in init:
-        #         init.insert(0, 'value')
         if first_enum is not None:
             generate = getattr(first_enum, '_generate_next_value_', None)
             generate = getattr(generate, 'im_func', generate)
@@ -2168,15 +2165,6 @@ class EnumType(StdlibEnumMeta or type):
             order = first_enum._order_function_
             if start is None:
                 start = first_enum._start_
-            # else:
-            #     # start was specified:
-            #     # if AutoValue in settings, ensure _init_ has 'value'
-            #     # otherwise, default to AutoNumber
-            #     if 'autovalue' in settings:
-            #         if 'value' not in init:
-            #             init.insert(0, 'value')
-            #     else:
-            #         settings.add('autonumber')
         else:
             # first time through -- creating Enum itself
             start = 1

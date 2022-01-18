@@ -1,6 +1,9 @@
 3.1.6
 =====
 
+Remove quadritic creation behavior.
+
+
 BREAKING CHANGES that don't affect most people
 
 Enums with a custom `__new__` that:
