@@ -61,7 +61,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 5
+version = 3, 1, 6, 5
 
 # shims
 try:
@@ -1613,6 +1613,23 @@ class auto(enum):
             return value
 
 
+class _EnumArgSpec(NamedTuple):
+    args = 0, 'all args except *args and **kwds'
+    varargs = 1, 'the name of the *args variable'
+    keywords = 2, 'the name of the **kwds variable'
+    defaults = 3, 'any default values'
+    required = 4, 'number of required values (no default available)'
+
+    def __new__(cls, _new_func):
+        argspec = getargspec(_new_func)
+        args, varargs, keywords, defaults = argspec
+        if defaults:
+            reqs = args[1:-len(defaults)]
+        else:
+            reqs = args[1:]
+        return tuple.__new__(_EnumArgSpec, (args, varargs, keywords, defaults, reqs))
+
+
 class _proto_member:
     """
     intermediate step for enum members between class execution and final creation
@@ -1688,7 +1705,7 @@ class _proto_member:
                     # divvy up according to number of params in each
                     init_args = args[-len(enum_class._creating_init_)+1:]
                     if not enum_class._auto_args_:
-                        args = args[:len(enum_class._new_args_)]
+                        args = args[:len(enum_class._new_args_.args)]
                     value = args[0]
                 elif enum_class._auto_init_:
                     # don't pass in value
@@ -1991,8 +2008,7 @@ class _EnumDict(dict):
             elif key == '__new__':  # and self._new_to_init:
                 if isinstance(value, staticmethod):
                     value = value.__func__
-                new_args = getargspec(value)[0][1:]
-                self._new_args = new_args
+                self._new_args = _EnumArgSpec(value)
             elif key == '__init_subclass__':
                 if not isinstance(value, classmethod):
                     value = classmethod(value)
@@ -2032,12 +2048,13 @@ class _EnumDict(dict):
                 # - init is specified; or
                 # - __new__ is specified;
                 # and either of them call for more values than are present
-                target_len = len(self._init or self._new_args)
+                new_args = () or self._new_args and self._new_args.required
+                target_len = len(self._init or new_args)
                 if isinstance(value, tuple):
                     source_len = len(value)
                 else:
                     source_len = 1
-                multi_args = len(self._init) > 1 or self._new_args
+                multi_args = len(self._init) > 1 or new_args
                 if source_len < target_len :
                     value = self._gnv(key, value)
             else:
@@ -2064,7 +2081,6 @@ class _EnumDict(dict):
                 self._last_values.append(value.value)
             elif isinstance(value, tuple) and value and isinstance(value[0], auto):
                 self._last_values.append(value[0].value)
-            # elif (self._multivalue or len(self._new_args) > 1  or self._init) and isinstance(value, tuple):
             elif isinstance(value, tuple):
                 if value:
                     self._last_values.append(value[0])
@@ -2080,12 +2096,13 @@ class _EnumDict(dict):
                 values = value.args
             else:
                 values = ()
-            target_len = len(self._init or self._new_args) or 1
+            new_args = () or self._new_args and self._new_args.required
+            target_len = len(self._init or new_args) or 1
             if isinstance(values, tuple):
                 source_len = len(values)
             else:
                 source_len = 1
-            multi_args = len(self._init) > 1 or self._new_args
+            multi_args = len(self._init) > 1 or new_args
             if source_len < target_len :
                 # prev_values = []
                 # for v in self._last_values:
@@ -2203,12 +2220,12 @@ class EnumType(StdlibEnumMeta or type):
                 enum_dict['__new__'] = __new__
             else:
                 try:
-                    enum_dict._new_args = getargspec(first_enum.__new_member__)[0][1:]
+                    enum_dict._new_args = _EnumArgSpec(first_enum.__new_member__)
                 except TypeError:
                     pass
         elif not initial_flag:
             if hasattr(first_enum, '__new_member__'):
-                enum_dict._new_args = getargspec(first_enum.__new_member__)[0][1:]
+                enum_dict._new_args = _EnumArgSpec(first_enum.__new_member__)
             if generate:
                 enum_dict['_generate_next_value_'] = generate
                 enum_dict._inherited_gnv = True
@@ -2217,7 +2234,7 @@ class EnumType(StdlibEnumMeta or type):
                     init = init.replace(',',' ').split()
                 enum_dict._init = init
         elif hasattr(first_enum, '__new_member__'):
-            enum_dict._new_args = getargspec(first_enum.__new_member__)[0][1:]
+            enum_dict._new_args = _EnumArgSpec(first_enum.__new_member__)
         if order is not None:
             enum_dict['_order_'] = staticmethod(order)
         return enum_dict
@@ -2357,15 +2374,12 @@ class EnumType(StdlibEnumMeta or type):
         # convert to regular dict
         clsdict = dict(clsdict.items())
         member_type, first_enum = metacls._get_mixins_(bases)
-        # print('member_type: %r' % member_type)
         # get the method to create enum members
         __new__, save_new, new_uses_args = metacls._find_new_(
                 clsdict,
                 member_type,
                 first_enum,
                 )
-        # print('discovered new: %r' % __new__)
-        # print('should be saved: %r' % save_new)
         clsdict['_new_member_'] = staticmethod(__new__)
         clsdict['_use_args_'] = new_uses_args
         #
@@ -2880,7 +2894,6 @@ class EnumType(StdlibEnumMeta or type):
         member_type: the data type whose __new__ will be used by default
         first_enum: enumeration to check for an overriding __new__
         """
-        # print('_find_new_:\n  member_type: %r\n  first_enum: %r\n  clsdict: %s'
         #         % (member_type, first_enum, pformat(clsdict)))
         # now find the correct __new__, checking to see of one was defined
         # by the user; also check earlier enum classes in case a __new__ was
@@ -2908,15 +2921,12 @@ class EnumType(StdlibEnumMeta or type):
                             Flag.__new__,
                             StdlibFlag.__new__,
                             ):
-                        # print('found target: %r' % target)
                         __new__ = target
                         break
                 if __new__ is not None:
                     break
             else:
-                # print('no target found, using object')
                 __new__ = object.__new__
-        # print('__new__ is str.__new__: %r' % (__new__ is str.__new__))
         # if a non-object.__new__ is used then whatever value/tuple was
         # assigned to the enum member name will be passed to __new__ and to the
         # new enum member's __init__
@@ -3390,7 +3400,6 @@ def extend_enum(enumeration, name, *args, **kwds):
                 break
             else:
                 raise TypeError('%r already in use in superclass %r' % (name, base.__name__))
-    # print('received args: %r' % (args, ))
     try:
         _member_map_ = enumeration._member_map_
         _member_names_ = enumeration._member_names_
@@ -3405,9 +3414,7 @@ def extend_enum(enumeration, name, *args, **kwds):
         _no_alias_ = NoAlias in enumeration._settings_
         _unique_ = Unique in enumeration._settings_
         _auto_init_ = enumeration._auto_init_ or []
-        # print('aenum enum')
     except AttributeError:
-        # print('standard enum')
         # standard Enum
         _value2member_seq_ = []
         _multi_value_ = False
@@ -3417,12 +3424,8 @@ def extend_enum(enumeration, name, *args, **kwds):
     if _multi_value_ and not args:
         # must specify values for multivalue enums
         raise ValueError('no values specified for MultiValue enum %r' % enumeration.__name__)
-    # print('_value2member_seq_: %r\n_multi_value_: %r\n_no_alias_: %r\n_unique_: %r\n_auto_init_: %r'
-    #         % (_value2member_seq_, _multi_value_, _no_alias_, _unique_, _auto_init_))
     mt_new = _member_type_.__new__
-    # print('initial mt_new: %r' % mt_new)
     _new = getattr(enumeration, '__new_member__', mt_new)
-    # print('final mt_new: %r' % mt_new)
     if not args:
         last_values = [m.value for m in enumeration]
         count = len(enumeration)
@@ -3436,16 +3439,13 @@ def extend_enum(enumeration, name, *args, **kwds):
             # must be a 3.4 or 3.5 Enum
             args = (start, )
     if _new is object.__new__:
-        # print('not using args')
         new_uses_args = False
     else:
-        # print('using args')
         new_uses_args = True
     if len(args) == 1:
         [value] = args
     else:
         value = args
-    # print('value: %r\nargs:%r' % (value, args))
     more_values = ()
     kwds = {}
     if isinstance(value, enum):
@@ -3455,7 +3455,6 @@ def extend_enum(enumeration, name, *args, **kwds):
         args = (value, )
     else:
         args = value
-    # print('value: %r\nmore_values:%r\nargs:%r' % (value, more_values, args))
     # tease value out of auto-init if specified
     if 'value' in _auto_init_:
         if 'value' in kwds:
@@ -3466,16 +3465,13 @@ def extend_enum(enumeration, name, *args, **kwds):
         value, more_values, args = args[0], args[1:], ()
         if new_uses_args:
             args = (value, )
-    # print('value: %r\nmore_values:%r\nargs:%r' % (value, more_values, args))
     if _member_type_ is tuple:
         args = (args, )
     if not new_uses_args:
-        # print("creating new member with no args:", _new, name, args, kwds)
         new_member = _new(enumeration)
         if not hasattr(new_member, '_value_'):
             new_member._value_ = value
     else:
-        # print("creating new member with args:", _new, name, args, kwds)
         new_member = _new(enumeration, *args, **kwds)
         if not hasattr(new_member, '_value_'):
             new_member._value_ = _member_type_(*args)

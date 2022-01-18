@@ -1,3 +1,17 @@
+3.1.6
+=====
+
+BREAKING CHANGES that don't affect most people
+
+Enums with a custom `__new__` that:
+
+- use the enum machinery to generate the values; AND
+- have keyword arguments set to a default (like `None`)
+
+will fail to generate a missing value.  To fix: remove the default value and
+instead specify it on the member creation line.
+
+
 3.1.5
 =====
 

@@ -976,6 +976,39 @@ class TestEnum(TestCase):
         self.assertEqual(Private._Private__major_, 'Hoolihan')
         self.assertFalse(isinstance(Private._Private__major_, Enum))
 
+    def test_new_with_keywords(self):
+        class Huh(IntEnum):
+            __order__ = 'PLAIN BOLD_ITALIC HIGHLIGHT'
+            def __new__(cls, docstring, open=None, close=None):
+                value = len(cls.__members__)
+                member = int.__new__(cls, value)
+                if open and close is None:
+                    close = open
+                member.open = open
+                member.close = close
+                member.__doc__ = docstring
+                member._value_ = value
+                return member
+            PLAIN           = 'normal'
+            BOLD_ITALIC     = '***really super important***', '***'
+            HIGHLIGHT       = 'please ==take notice==', '==', '=='
+        p = Huh.PLAIN
+        self.assertTrue(type(p) is Huh, type(p))
+        self.assertEqual(
+                (p.value, p.__doc__, p.open, p.close),
+                (0, 'normal', None, None),
+                )
+        bi = Huh.BOLD_ITALIC
+        self.assertEqual(
+                (bi.value, bi.__doc__, bi.open, bi.close),
+                (1, '***really super important***', '***', '***'),
+                )
+        h = Huh.HIGHLIGHT
+        self.assertEqual(
+                (h.value, h.__doc__, h.open, h.close),
+                (2, 'please ==take notice==', '==', '=='),
+                )
+
     def test_members_is_ordereddict_if_ordered(self):
         class Ordered(Enum):
             __order__ = 'first second third'
@@ -4025,6 +4058,42 @@ class TestFlag(TestCase):
         self.assertEqual(AnEnum.ONE.two, 'three')
         self.assertEqual(AnEnum.ONE.__dict__['two'], 'three')
 
+    def test_new_with_keywords(self):
+        class Huh(IntFlag):
+            __order__ = 'PLAIN BOLD_ITALIC HIGHLIGHT'
+            def __new__(cls, docstring, open=None, close=None):
+                if cls.__members__:
+                    value = 2 ** (len(cls.__members__)-1)
+                else:
+                    value = 0
+                member = int.__new__(cls, value)
+                if open and close is None:
+                    close = open
+                member.open = open
+                member.close = close
+                member.__doc__ = docstring
+                member._value_ = value
+                return member
+            PLAIN           = 'normal'
+            BOLD_ITALIC     = '***really super important***', '***'
+            HIGHLIGHT       = 'please ==take notice==', '==', '=='
+        p = Huh.PLAIN
+        self.assertTrue(type(p) is Huh, type(p))
+        self.assertEqual(
+                (p.value, p.__doc__, p.open, p.close),
+                (0, 'normal', None, None),
+                )
+        bi = Huh.BOLD_ITALIC
+        self.assertEqual(
+                (bi.value, bi.__doc__, bi.open, bi.close),
+                (1, '***really super important***', '***', '***'),
+                )
+        h = Huh.HIGHLIGHT
+        self.assertEqual(
+                (h.value, h.__doc__, h.open, h.close),
+                (2, 'please ==take notice==', '==', '=='),
+                )
+
     def test_private_names(self):
         class Private(Enum):
             __corporal = 'Radar'
@@ -4625,7 +4694,6 @@ class TestFlag(TestCase):
         self.assertEqual(Color.FG_Black.code, '30')
 
     def test_sub_subclass_1(self):
-        # print('\nStrFlag')
         class StrFlag(str, Flag):
             def __new__(cls, value, code):
                 str_value = '\x1b[%sm' % code
@@ -4640,11 +4708,6 @@ class TestFlag(TestCase):
                 code = ';'.join(m.code for m in members)
                 pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
-        # print(' ', StrFlag._settings_)
-        # print(' ', StrFlag._auto_init_)
-        # print(' ', StrFlag._generate_next_value_)
-            #
-        # print('\nColor')
         class Color(StrFlag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
                                       # # FOREGROUND - 30s  BACKGROUND - 40s:
@@ -4783,12 +4846,12 @@ class TestFlag(TestCase):
                 # calculate the code
                 members = list(cls._iter_member_(value))
                 code = ';'.join(m.code for m in members)
-                pseudo_member = super(Color, cls)._create_pseudo_member_(value, code)
+                pseudo_member = super(StrFlag, cls)._create_pseudo_member_(value, code)
                 return pseudo_member
             #
         class Color(StrFlag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
-            def __new__(cls, value, string, abbr=None):
+            def __new__(cls, value, string, abbr):
                 str_value = (abbr or '').title()
                 obj = str.__new__(cls, str_value)
                 obj._value_ = value
@@ -4832,7 +4895,7 @@ class TestFlag(TestCase):
     def test_subclass_a_bunch(self):
         class Color(str, Flag):
             _order_ = 'FG_Black FG_Red FG_Green FG_Blue BG_Yellow BG_Magenta BG_Cyan BG_White'
-            def __new__(cls, value, code=None):
+            def __new__(cls, value, code):
                 str_value = '\x1b[%sm' % code
                 obj = str.__new__(cls, str_value)
                 obj._value_ = value
