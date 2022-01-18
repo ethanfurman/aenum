@@ -3656,6 +3656,14 @@ class TestEnum(TestCase):
             REVERT_ALL = "REVERT_ALL"
             RETRY = "RETRY"
 
+    def test_value_auto_assign(self):
+        class Some(Enum):
+            def __new__(cls, val):
+                return object.__new__(cls)
+            x = 1
+            y = 2
+        self.assertEqual(Some.x.value, 1)
+        self.assertEqual(Some.y.value, 2)
 
     def test_enum_of_types(self):
         """Support using Enum to refer to types deliberately."""
