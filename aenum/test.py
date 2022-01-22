@@ -17,7 +17,7 @@ from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AddVa
 from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode, enum_property
-from aenum import pyver, PY2, PY3, PY26, PY33, PY34, PY35, PY36
+from aenum import pyver, PY2, PY3, PY2_6, PY3_3, PY3_4, PY3_5, PY3_6, PY3_11
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -1186,7 +1186,7 @@ class TestEnum(TestCase):
     def test_member_contains(self):
         self.assertRaises(TypeError, lambda: 'test' in self.Season.AUTUMN)
 
-    if pyver >= PY26:     # when `format` came into being
+    if pyver >= PY2_6:     # when `format` came into being
 
         def test_format_enum(self):
             Season = self.Season

@@ -2,7 +2,7 @@ from . import EnumMeta, Enum, IntEnum, Flag, IntFlag, StrEnum, UniqueEnum, AutoE
 from . import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
 from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum, auto
 from . import StdlibEnumMeta, StdlibEnum, StdlibIntEnum, StdlibFlag, StdlibIntFlag, StdlibStrEnum
-from . import pyver, PY33, PY34, PY35
+from . import pyver, PY3_3, PY3_4, PY3_5, PY3_11
 
 from collections import OrderedDict
 from datetime import timedelta
@@ -724,7 +724,7 @@ class TestEnumV3(TestCase):
                 gl_category              = 'Rn$(5,1)',      8     # G/L Category
                 warehouse_category       = 'Sn$(6,1)',      9     # Warehouse Category
 
-    if pyver >= PY33:
+    if pyver >= PY3_3:
         def test_missing(self):
             class Color(Enum):
                 red = 1
@@ -804,7 +804,7 @@ class TestEnumV3(TestCase):
             [Outer.a, Outer.b],
             )
 
-    if pyver == PY34:
+    if pyver == PY3_4:
         def test_class_nested_enum_and_pickle_protocol_four(self):
             # would normally just have this directly in the class namespace
             class NestedEnum(Enum):
@@ -819,7 +819,7 @@ class TestEnumV3(TestCase):
             test_pickle_dump_load(self.assertTrue, self.NestedEnum.twigs,
                     protocol=(4, HIGHEST_PROTOCOL))
 
-    elif pyver >= PY35:
+    elif pyver >= PY3_5:
         def test_class_nested_enum_and_pickle_protocol_four(self):
             # would normally just have this directly in the class namespace
             class NestedEnum(Enum):
@@ -831,7 +831,7 @@ class TestEnumV3(TestCase):
             test_pickle_dump_load(self.assertTrue, self.NestedEnum.twigs,
                     protocol=(0, HIGHEST_PROTOCOL))
 
-    if pyver >= PY34:
+    if pyver >= PY3_4:
         def test_enum_injection(self):
             class Color(Enum):
                 _order_ = 'BLACK WHITE'
@@ -1878,6 +1878,15 @@ class TestExtendEnumV3(TestCase):
             RED = 1
             GREEN = 2
             BLUE = 4
+        if pyver >= PY3_11:
+            # flags make more sense in 3.11
+            length = 5
+            MAGENTA = 8
+            mauve = 16
+        else:
+            length = 7
+            MAGENTA = 16
+            mauve = 32
         extend_enum(Color, 'PURPLE', 11)
         self.assertTrue(Color(11) is Color.PURPLE)
         self.assertTrue(isinstance(Color.PURPLE, Color))
@@ -1885,17 +1894,17 @@ class TestExtendEnumV3(TestCase):
         self.assertTrue(issubclass(Color, StdlibFlag))
         #
         extend_enum(Color, 'MAGENTA')
-        self.assertTrue(Color(16) is Color.MAGENTA)
+        self.assertTrue(Color(MAGENTA) is Color.MAGENTA)
         self.assertTrue(isinstance(Color.MAGENTA, Color))
-        self.assertEqual(Color.MAGENTA.value, 16)
+        self.assertEqual(Color.MAGENTA.value, MAGENTA)
         #
         extend_enum(Color, 'mauve')
         self.assertEqual(Color.mauve.name, 'mauve')
-        self.assertEqual(Color.mauve.value, 32)
+        self.assertEqual(Color.mauve.value, mauve)
         self.assertTrue(Color.mauve in Color)
-        self.assertEqual(Color(32), Color.mauve)
+        self.assertEqual(Color(mauve), Color.mauve)
         self.assertEqual(Color['mauve'], Color.mauve)
-        self.assertEqual(len(Color), 7)
+        self.assertEqual(len(Color), length, list(Color))
 
     @unittest.skipUnless(StdlibStrEnum, 'Stdlib StrEnum not available')
     def test_extend_strenum_stdlib(self):

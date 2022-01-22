@@ -1,3 +1,12 @@
+3.1.7
+=====
+
+update flag creation to (possibly) add bitwise operator methods to newly
+created flags
+
+update extend_enum() to work with 3.11 flags
+
+
 3.1.6
 =====
 

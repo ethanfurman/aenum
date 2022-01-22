@@ -6,11 +6,12 @@ import sys as _sys
 pyver = _sys.version_info[:2]
 PY2 = pyver < (3, )
 PY3 = pyver >= (3, )
-PY26 = (2, 6)
-PY33 = (3, 3)
-PY34 = (3, 4)
-PY35 = (3, 5)
-PY36 = (3, 6)
+PY2_6 = (2, 6)
+PY3_3 = (3, 3)
+PY3_4 = (3, 4)
+PY3_5 = (3, 5)
+PY3_6 = (3, 6)
+PY3_11 = (3, 11)
 
 import re
 
@@ -60,7 +61,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 6
+version = 3, 1, 7, 9
 
 # shims
 try:
@@ -382,7 +383,7 @@ def _is_sunder(name):
 
 def _is_internal_class(cls_name, obj):
     # only 3.3 and up, always return False in 3.2 and below
-    if pyver < PY33:
+    if pyver < PY3_3:
         return False
     else:
         qualname = getattr(obj, '__qualname__', False)
@@ -2457,7 +2458,7 @@ class EnumType(StdlibEnumMeta or type):
         #
         # if Python 3.5 or ealier, implement the __set_name__ and
         # __init_subclass__ protocols
-        if pyver < PY36:
+        if pyver < PY3_6:
             for name in member_names:
                 enum_class.__dict__[name].__set_name__(enum_class, name)
             for name, obj in enum_class.__dict__.items():
@@ -2491,8 +2492,7 @@ class EnumType(StdlibEnumMeta or type):
                 clsdict['__str__'] = enum_class.__str__
 
         for name in ('__repr__', '__str__', '__format__', '__reduce_ex__'):
-            enum_class_method = enum_class.__dict__.get(name, None)
-            if enum_class_method:
+            if name in clsdict:
                 # class has defined/imported/copied the method
                 continue
             class_method = getattr(enum_class, name)
@@ -2502,10 +2502,22 @@ class EnumType(StdlibEnumMeta or type):
                 if name == '__reduce_ex__' and unpicklable:
                     continue
                 setattr(enum_class, name, enum_method)
+                clsdict[name] = enum_method
+        #
+        # for Flag, add __or__, __and__, __xor__, and __invert__
+        if Flag is not None and issubclass(enum_class, Flag):
+            for name in (
+                    '__or__', '__and__', '__xor__',
+                    '__ror__', '__rand__', '__rxor__',
+                    '__invert__'
+                ):
+                if name not in clsdict:
+                    setattr(enum_class, name, getattr(Flag, name))
+                    clsdict[name] = enum_method
         #
         # method resolution and int's are not playing nice
         # Python's less than 2.6 use __cmp__
-        if pyver < PY26:
+        if pyver < PY2_6:
             #
             if issubclass(enum_class, int):
                 setattr(enum_class, '__cmp__', getattr(int, '__cmp__'))
@@ -3079,7 +3091,7 @@ def __new__(cls, value):
 @enum_dict
 @classmethod
 def __init_subclass__(cls, **kwds):
-    if pyver < PY36:
+    if pyver < PY3_6:
         # end of the line
         if kwds:
             raise TypeError('unconsumed keyword arguments: %r' % (kwds, ))
@@ -3186,7 +3198,7 @@ def __reduce_ex__(self, proto):
 ####################################
 # Python's less than 2.6 use __cmp__
 
-if pyver < PY26:
+if pyver < PY2_6:
 
     @enum_dict
     def __cmp__(self, other):
@@ -3351,7 +3363,7 @@ class AutoNumberEnum(Enum):
 
     Py3: numbers match creation order
     Py2: numbers are assigned alphabetically by member name
-    	 (unless `_order_` is specified)
+         (unless `_order_` is specified)
     """
 
     def __new__(cls, *args, **kwds):
@@ -3600,7 +3612,11 @@ def extend_enum(enumeration, name, *args, **kwds):
                             # aliases don't appear in member names (only in __members__ and _member_map_).
                             return _finalize_extend_enum(enumeration, canonical_member, name=name, bits=_all_bits_, mask=_flag_mask_, is_alias=True)
         # not a standard alias, but maybe a flag alias
-        if issubclass(enumeration, Flag) and hasattr(enumeration, '_all_bits_'):
+        if pyver < PY3_6:
+            flag_bases = Flag,
+        else:
+            flag_bases = Flag, StdlibFlag
+        if issubclass(enumeration, flag_bases) and hasattr(enumeration, '_all_bits_'):
             # handle the new flag type
             if _is_single_bit(value):
                 # a new member!  (an aliase would have been discovered in the previous loop)
@@ -3876,19 +3892,31 @@ class Flag(Enum):
             return bool(self._value_)
 
     def __or__(self, other):
-        if not isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
+            other_value = other._value_
+        elif self._member_type_ is not object and isinstance(other, self._member_type_):
+            other_value = other
+        else:
             return NotImplemented
-        return self.__class__(self._value_ | other._value_)
+        return self.__class__(self._value_ | other_value)
 
     def __and__(self, other):
-        if not isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
+            other_value = other._value_
+        elif self._member_type_ is not object and isinstance(other, self._member_type_):
+            other_value = other
+        else:
             return NotImplemented
-        return self.__class__(self._value_ & other._value_)
+        return self.__class__(self._value_ & other_value)
 
     def __xor__(self, other):
-        if not isinstance(other, self.__class__):
+        if isinstance(other, self.__class__):
+            other_value = other._value_
+        elif self._member_type_ is not object and isinstance(other, self._member_type_):
+            other_value = other
+        else:
             return NotImplemented
-        return self.__class__(self._value_ ^ other._value_)
+        return self.__class__(self._value_ ^ other_value)
 
     def __invert__(self):
         if self._inverted_ is None:
@@ -3901,46 +3929,16 @@ class Flag(Enum):
             self._inverted_._inverted_ = self
         return self._inverted_
 
+    __ror__ = __or__
+    __rand__ = __and__
+    __rxor__ = __xor__
+
+
 
 class IntFlag(int, ReprEnum, Flag):
     """Support for integer-based Flags"""
 
     _boundary_ = EJECT
-
-    def __or__(self, other):
-        if isinstance(other, self.__class__):
-            other = other._value_
-        elif isinstance(other, baseinteger):
-            other = other
-        else:
-            return NotImplemented
-        value = self._value_
-        return self.__class__(value | other)
-
-    def __and__(self, other):
-        if isinstance(other, self.__class__):
-            other = other._value_
-        elif isinstance(other, baseinteger):
-            other = other
-        else:
-            return NotImplemented
-        value = self._value_
-        return self.__class__(value & other)
-
-    def __xor__(self, other):
-        if isinstance(other, self.__class__):
-            other = other._value_
-        elif isinstance(other, baseinteger):
-            other = other
-        else:
-            return NotImplemented
-        value = self._value_
-        return self.__class__(value ^ other)
-
-    __ror__ = __or__
-    __rand__ = __and__
-    __rxor__ = __xor__
-    __invert__ = Flag.__invert__
 
 
 def _high_bit(value):
