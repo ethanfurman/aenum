@@ -61,7 +61,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 7
+version = 3, 1, 8, 8
 
 # shims
 try:
@@ -2589,6 +2589,7 @@ class EnumType(StdlibEnumMeta or type):
                             % (cls, ', '.join((str(i) for i in missed)))
                             )
             enum_class._flag_mask_ = single_bit_total
+            enum_class._all_bits_ = 2 ** ((single_bit_total).bit_length()) - 1
             #
             # set correct __iter__
             if [m._value_ for m in enum_class] != sorted([m._value_ for m in enum_class]):
