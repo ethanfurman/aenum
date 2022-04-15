@@ -124,11 +124,6 @@ except Exception:
     Answer = sys.exc_info()[1]
 
 try:
-    Theory = Enum('Theory', 'rule law supposition', qualname='spanish_inquisition')
-except Exception:
-    Theory = sys.exc_info()[1]
-
-try:
     class WhatsIt(NamedTuple):
         def what(self):
             return self[0]
@@ -6822,6 +6817,7 @@ def member_dir(member):
 
 if __name__ == '__main__':
     tempdir = tempfile.mkdtemp()
+    test = None
     try:
         if PY3:
             test_v3.tempdir = tempdir
@@ -6831,5 +6827,6 @@ if __name__ == '__main__':
             print("%s: %s" % (name, reason))
     finally:
         shutil.rmtree(tempdir, True)
-        sys.exit(len(test.result.errors or test.result.failures) and 1 or 0)
+        if test:
+            sys.exit(len(test.result.errors or test.result.failures) and 1 or 0)
 

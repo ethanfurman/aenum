@@ -3,6 +3,7 @@ from . import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, Mult
 from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum, auto
 from . import StdlibEnumMeta, StdlibEnum, StdlibIntEnum, StdlibFlag, StdlibIntFlag, StdlibStrEnum
 from . import pyver, PY3_3, PY3_4, PY3_5, PY3_11
+from . import add_stdlib_integration, remove_stdlib_integration
 
 from collections import OrderedDict
 from datetime import timedelta
@@ -19,6 +20,12 @@ try:
     import pyparsing
 except (ImportError, SyntaxError):
     pyparsing = None
+
+try:
+    RecursionError
+except NameError:
+    # python3.4
+    RecursionError = RuntimeError
 
 class TestEnumV3(TestCase):
 
@@ -59,8 +66,33 @@ class TestEnumV3(TestCase):
 
     @unittest.skipUnless(StdlibEnumMeta, 'Stdlib enum not available')
     def test_stdlib_inheritence(self):
-        self.assertTrue(isinstance(self.Season, StdlibEnumMeta))
         self.assertTrue(issubclass(self.Season, StdlibEnum))
+        self.assertTrue(isinstance(self.Season.SPRING, StdlibEnum))
+
+    @unittest.skipUnless(StdlibEnumMeta, 'Stdlib enum not available')
+    def test_stdlib_bad_getattribute(self):
+        class BadEnumType(StdlibEnumMeta):
+            def __getattribute__(cls, name):
+                obj = super().__getattribute__(name)
+                if isinstance(obj, cls):
+                    obj.deprecate()
+                return obj
+        with self.assertRaisesRegex(RecursionError, 'endless recursion'):
+            class OkayEnum(StdlibEnum, metaclass=BadEnumType):
+                FOO = 'bar'
+        try:
+            remove_stdlib_integration()
+            class OkayEnum(StdlibEnum, metaclass=BadEnumType):
+                FOO = 'bar'
+        finally:
+            add_stdlib_integration()
+
+    @unittest.skipUnless(pyver >= PY3_5, '__qualname__ requires python 3.5 or greater')
+    def test_pickle_enum_function_with_qualname(self):
+        Theory = Enum('Theory', 'rule law supposition', qualname='spanish_inquisition')
+        globals()['spanish_inquisition'] = Theory
+        test_pickle_dump_load(self.assertTrue, Theory.rule)
+        test_pickle_dump_load(self.assertTrue, Theory)
 
     def test_auto_init(self):
         class Planet(Enum, init='mass radius'):
