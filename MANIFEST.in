@@ -1,6 +1,6 @@
 exclude aenum/*
 include setup.py
-include README
+include README.rst
 include aenum/__init__.py
 include aenum/test.py
 include aenum/test_v3.py
