@@ -2,7 +2,7 @@ from . import EnumMeta, Enum, IntEnum, Flag, IntFlag, StrEnum, UniqueEnum, AutoE
 from . import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
 from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum, auto
 from . import StdlibEnumMeta, StdlibEnum, StdlibIntEnum, StdlibFlag, StdlibIntFlag, StdlibStrEnum
-from . import pyver, PY3_3, PY3_4, PY3_5, PY3_11
+from . import pyver, PY3_3, PY3_4, PY3_5, PY3_6, PY3_11
 from . import add_stdlib_integration, remove_stdlib_integration
 
 from collections import OrderedDict
@@ -66,8 +66,34 @@ class TestEnumV3(TestCase):
 
     @unittest.skipUnless(StdlibEnumMeta, 'Stdlib enum not available')
     def test_stdlib_inheritence(self):
+        # 3.4
         self.assertTrue(issubclass(self.Season, StdlibEnum))
         self.assertTrue(isinstance(self.Season.SPRING, StdlibEnum))
+        #
+        if pyver >= PY3_6:
+            class AFlag(Flag):
+                one = 1
+            self.assertTrue(issubclass(AFlag, StdlibEnum))
+            self.assertTrue(isinstance(AFlag.one, StdlibEnum))
+            self.assertTrue(issubclass(AFlag, StdlibFlag))
+            self.assertTrue(isinstance(AFlag.one, StdlibFlag))
+            #
+            class AnIntFlag(IntFlag):
+                one = 1
+            self.assertTrue(issubclass(AnIntFlag, StdlibEnum))
+            self.assertTrue(isinstance(AnIntFlag.one, StdlibEnum))
+            self.assertTrue(issubclass(AnIntFlag, StdlibFlag))
+            self.assertTrue(isinstance(AnIntFlag.one, StdlibFlag))
+            self.assertTrue(issubclass(AnIntFlag, StdlibIntFlag))
+            self.assertTrue(isinstance(AnIntFlag.one, StdlibIntFlag))
+        #
+        if pyver >= PY3_11:
+            class AStrEnum(StrFlag):
+                one = '1'
+            self.assertTrue(issubclass(AStrEnum, StdlibEnum))
+            self.assertTrue(isinstance(AStrEnum.one, StdlibEnum))
+            self.assertTrue(issubclass(AStrEnum, StdlibStrEnum))
+            self.assertTrue(isinstance(AStrEnum.one, StdlibStrEnum))
 
     @unittest.skipUnless(StdlibEnumMeta, 'Stdlib enum not available')
     def test_stdlib_bad_getattribute(self):
@@ -78,7 +104,9 @@ class TestEnumV3(TestCase):
                     obj.deprecate()
                 return obj
         with self.assertRaisesRegex(RecursionError, 'endless recursion'):
-            class OkayEnum(StdlibEnum, metaclass=BadEnumType):
+            class BaseEnum(StdlibEnum):
+                pass
+            class BadEnum(BaseEnum, metaclass=BadEnumType):
                 FOO = 'bar'
         try:
             remove_stdlib_integration()

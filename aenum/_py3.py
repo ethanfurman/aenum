@@ -7,6 +7,6 @@ def getargspec(method):
 def raise_with_traceback(exc, tb):
     raise exc.with_traceback(tb)
 
-def raise_from_none(exc, tb):
+def raise_from_none(exc):
     raise exc from None
 

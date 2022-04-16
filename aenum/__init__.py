@@ -63,7 +63,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 10, 3
+version = 3, 1, 10, 4
 
 # shims
 try:
@@ -4046,8 +4046,8 @@ if StdlibEnumMeta:
         except RecursionError:
             import sys
             exc, cls, tb = sys.exc_info()
-            exc = RecursionError('possible causes for endless recursion:\n- __getattribute__ is not ignoring __dunder__ attibutes\n- __instancecheck__ and/or __subclasscheck_ are (mutually) recursive\nsee `aenum.remove_stdlib_integration` for temporary work-around')
-            raise_from_none(exc, tb)
+            exc = RecursionError('possible causes for endless recursion:\n    - __getattribute__ is not ignoring __dunder__ attibutes\n    - __instancecheck__ and/or __subclasscheck_ are (mutually) recursive\n    see `aenum.remove_stdlib_integration` for temporary work-around')
+            raise_from_none(exc)
         if subclass in cls._subclass_cache_:
             return True
         # Check negative cache
@@ -4084,8 +4084,8 @@ if StdlibEnumMeta:
         except RecursionError:
             import sys
             exc, cls, tb = sys.exc_info()
-            exc = RecursionError('possible causes for endless recursion:\n- __getattribute__ is not ignoring __dunder__ attibutes\n- __instancecheck__ and/or __subclasscheck_ are (mutually) recursive\nsee `aenum.remove_stdlib_integration` for temporary work-around')
-            raise_from_none(exc, tb)
+            exc = RecursionError('possible causes for endless recursion:\n    - __getattribute__ is not ignoring __dunder__ attibutes\n    - __instancecheck__ and/or __subclasscheck_ are (mutually) recursive\n    see `aenum.remove_stdlib_integration` for temporary work-around')
+            raise_from_none(exc)
 
     StdlibEnumMeta.__subclasscheck__ = __subclasscheck__
     StdlibEnumMeta.__instancecheck__ = __instancecheck__
