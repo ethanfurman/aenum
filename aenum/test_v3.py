@@ -1951,8 +1951,4 @@ class TestExtendEnumV3(TestCase):
 
 
 if __name__ == '__main__':
-    tempdir = tempfile.mkdtemp()
-    try:
-        unittest.main()
-    finally:
-        shutil.rmtree(tempdir, True)
+    raise RuntimeError("'test_v3.py' should not be run by itself; it's included in 'test.py'")
