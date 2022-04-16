@@ -63,7 +63,7 @@ __all__ = [
 if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
-version = 3, 1, 10
+version = 3, 1, 11, 1
 
 # shims
 try:

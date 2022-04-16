@@ -2,10 +2,12 @@ exclude aenum/*
 include setup.py
 include README
 include aenum/__init__.py
+include aenum/_py2.py
+include aenum/_py3.py
 include aenum/test.py
 include aenum/test_v3.py
 include aenum/LICENSE
 include aenum/CHANGES
-include aenum/README
+include aenum/README.md
 include aenum/doc/aenum.pdf
 include aenum/doc/aenum.rst
