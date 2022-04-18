@@ -70,7 +70,7 @@ Utility functions include:
 
 data = dict(
        name='aenum',
-       version='3.1.8',
+       version='3.1.12a1',
        url='https://github.com/ethanfurman/aenum',
        packages=['aenum'],
        package_data={
@@ -106,8 +106,8 @@ data = dict(
             ],
     )
 
-py2_only = ()
-py3_only = ('aenum/test_v3.py', )
+py2_only = ('aenum/_py2.py', )
+py3_only = ('aenum/test_v3.py', 'aenum/_py3.py')
 make = [
         'rst2pdf aenum/doc/aenum.rst --output=aenum/doc/aenum.pdf',
         ]
