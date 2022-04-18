@@ -76,7 +76,7 @@ data = dict(
        package_data={
            'aenum' : [
                'LICENSE',
-               'README.rst',
+               'README.md',
                'doc/aenum.rst',
                'doc/aenum.pdf',
                ]
