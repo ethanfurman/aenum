@@ -70,13 +70,13 @@ Utility functions include:
 
 data = dict(
        name='aenum',
-       version='3.1.11',
+       version='3.1.12a1',
        url='https://github.com/ethanfurman/aenum',
        packages=['aenum'],
        package_data={
            'aenum' : [
                'LICENSE',
-               'README',
+               'README.md',
                'doc/aenum.rst',
                'doc/aenum.pdf',
                ]
