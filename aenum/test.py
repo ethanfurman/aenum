@@ -6585,6 +6585,30 @@ class TestIssues(TestCase):
         self.assertEqual((Item.A.value, Item.A.size, Item.A.requirements), (1, 100, {}))
         self.assertEqual((Item.B.value, Item.B.size, Item.B.requirements), (2, 200, {Item.A: 1}))
 
+    def test_auto_kwds_and_gnv(self):
+        class Item(Enum):
+            _order_ = 'A B'
+            #
+            def _generate_next_value_(name, start, count, values, *args, **kwds):
+                return name
+            A = auto(size=100, requirements={})
+            B = auto(size=200, requirements={A: 1})
+            #
+            def __new__(cls, value, size, requirements):
+                obj = object.__new__(cls)
+                obj._value_ = value
+                obj.size = size
+                # fix requirements
+                new_requirements = {}
+                for k, v in requirements.items():
+                    if isinstance(k, auto):
+                        k = k.enum_member
+                    new_requirements[k] = v
+                obj.requirements = new_requirements
+                return obj
+        self.assertEqual((Item.A.value, Item.A.size, Item.A.requirements), ('A', 100, {}))
+        self.assertEqual((Item.B.value, Item.B.size, Item.B.requirements), ('B', 200, {Item.A: 1}))
+
     def test_extend_flag(self):
         class FlagTest(Flag): # Or IntFlag
             NONE = 0

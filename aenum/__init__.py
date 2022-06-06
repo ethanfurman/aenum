@@ -340,6 +340,8 @@ if DynamicClassAttribute is None:
 # deprecated
 enum_property = property
 
+# more helpers
+
 class NonMember(object):
     """
     Protects item from becaming an Enum member during class creation.
