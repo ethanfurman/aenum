@@ -6009,6 +6009,25 @@ class TestNamedTuple(TestCase):
         self.assertEqual(Pixel3.b.__doc__, 'blue component')
         self.assertEqual(Pixel3.b.default, 37)
 
+    def test_inherit_from_existing(self):
+        class OERecTuple(NamedTuple):
+            #
+            @classmethod
+            def record_key(cls, rec):
+                return rec[1].upper()
+            #
+            @classmethod
+            def _review_(cls, args):
+                # set the last two args: _key and _primary
+                args[-1] = cls.record_key(args)
+        #
+        OERec = OERecTuple('OERec', ['id', 'xmlid', 'key'])
+        oe_1 = OERec(1, 'abc123')
+        oe_2 = OERec(2, 'xyz789')
+        self.assertEqual(oe_1, (1, 'abc123', 'ABC123'))
+        self.assertEqual(len(oe_1), 3)
+        self.assertEqual(oe_1.key, 'ABC123')
+
     def test_function_api_type(self):
         class Tester(NamedTuple):
             def howdy(self):

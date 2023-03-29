@@ -856,7 +856,7 @@ class _NamedTupleDict(OrderedDict):
         Single underscore (sunder) names are reserved.
         """
         if _is_sunder(key):
-            if key not in ('_size_', '_order_', '_fields_'):
+            if key not in ('_size_', '_order_', '_fields_', '_review_'):
                 raise ValueError(
                         '_sunder_ names, such as %r, are reserved for future NamedTuple use'
                         % (key, )
@@ -1107,7 +1107,7 @@ class NamedTupleMeta(type):
         subclass should have whatever arguments and/or keywords will be used to create an
         instance of the subclass
         """
-        if cls is NamedTuple:
+        if cls is NamedTuple or cls._defined_len_ == 0:
             original_args = args
             original_kwds = kwds.copy()
             # create a new subclass
@@ -1231,6 +1231,7 @@ def __new__(cls, *args, **kwds):
         if final_args[index] != undefined:
             raise TypeError('field %s specified more than once' % field)
         final_args[index] = value
+    cls._review_(final_args)
     missing = []
     for index, value in enumerate(final_args):
         if value is undefined:
@@ -1300,6 +1301,11 @@ def _replace(self, **kwds):
     current = self._asdict()
     current.update(kwds)
     return self.__class__(**current)
+
+@namedtuple_dict
+@classmethod
+def _review_(cls, final_args):
+    pass
 
 NamedTuple = NamedTupleMeta('NamedTuple', (object, ), namedtuple_dict.resolve())
 del namedtuple_dict
