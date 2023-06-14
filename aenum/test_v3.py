@@ -1,7 +1,7 @@
 from . import EnumMeta, Enum, IntEnum, Flag, IntFlag, StrEnum, UniqueEnum, AutoEnum, AddValueEnum
 from . import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
 from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum, auto
-from . import StdlibEnumMeta, StdlibEnum, StdlibIntEnum, StdlibFlag, StdlibIntFlag, StdlibStrEnum
+from ._enum import StdlibEnumMeta, StdlibEnum, StdlibIntEnum, StdlibFlag, StdlibIntFlag, StdlibStrEnum
 from . import pyver, PY3_3, PY3_4, PY3_5, PY3_6, PY3_11
 from . import add_stdlib_integration, remove_stdlib_integration
 

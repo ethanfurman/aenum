@@ -1,0 +1,7 @@
+dist/
+build/
+*.sw*
+.hgignore
+*.pyc
+*.pyo
+__pycache__/

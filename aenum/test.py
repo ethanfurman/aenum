@@ -18,6 +18,7 @@ from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode, enum_property
 from aenum import pyver, PY2, PY3, PY2_6, PY3_3, PY3_4, PY3_5, PY3_6, PY3_11
+from aenum._enum import _high_bit
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -721,31 +722,31 @@ class TestAutoValue(TestCase):
 
 
 class TestHelpers(TestCase):
-    # _is_descriptor, _is_sunder, _is_dunder
+    # is_descriptor, is_sunder, is_dunder
 
     def test_is_descriptor(self):
         class foo:
             pass
         for attr in ('__get__','__set__','__delete__'):
             obj = foo()
-            self.assertFalse(aenum._is_descriptor(obj))
+            self.assertFalse(aenum.is_descriptor(obj))
             setattr(obj, attr, 1)
-            self.assertTrue(aenum._is_descriptor(obj))
+            self.assertTrue(aenum.is_descriptor(obj))
 
     def test_is_sunder(self):
         for s in ('_a_', '_aa_'):
-            self.assertTrue(aenum._is_sunder(s))
+            self.assertTrue(aenum.is_sunder(s))
 
         for s in ('a', 'a_', '_a', '__a', 'a__', '__a__', '_a__', '__a_', '_',
                 '__', '___', '____', '_____',):
-            self.assertFalse(aenum._is_sunder(s))
+            self.assertFalse(aenum.is_sunder(s))
 
     def test_is_dunder(self):
         for s in ('__a__', '__aa__'):
-            self.assertTrue(aenum._is_dunder(s))
+            self.assertTrue(aenum.is_dunder(s))
         for s in ('a', 'a_', '_a', '__a', 'a__', '_a_', '_a__', '__a_', '_',
                 '__', '___', '____', '_____',):
-            self.assertFalse(aenum._is_dunder(s))
+            self.assertFalse(aenum.is_dunder(s))
 
     def test_auto(self):
         def tester(first, op, final, second=None):
@@ -1437,7 +1438,7 @@ class TestEnum(TestCase):
 
     def test_exploding_pickle(self):
         BadPickle = Enum('BadPickle', 'dill sweet bread-n-butter')
-        aenum._make_class_unpicklable(BadPickle)
+        aenum.make_class_unpicklable(BadPickle)
         globals()['BadPickle'] = BadPickle
         test_pickle_exception(self.assertRaises, TypeError, BadPickle.dill)
         test_pickle_exception(self.assertRaises, PicklingError, BadPickle)
@@ -1960,11 +1961,11 @@ class TestEnum(TestCase):
                 if hasattr(original_dict, '_member_names'):
                     for k in original_dict._member_names:
                         temp_dict[k] = original_dict[k]
-                    sunders = [k for k in original_dict.keys() if aenum._is_sunder(k)]
+                    sunders = [k for k in original_dict.keys() if aenum.is_sunder(k)]
                 else:
                     sunders = []
                     for k, v in original_dict.items():
-                        if aenum._is_sunder(k):
+                        if aenum.is_sunder(k):
                             sunders.append(k)
                         temp_dict[k] = v
                 classdict = metacls.__prepare__(cls, bases, {})
@@ -4608,13 +4609,14 @@ class TestFlag(TestCase):
                 error = False
                 for last_value in reversed(last_values):
                     try:
-                        high_bit = aenum._high_bit(last_value)
+                        high_bit = _high_bit(last_value)
                         break
-                    except Exception:
+                    except Exception as e:
+                        exc = e
                         error = True
                         break
                 if error:
-                    raise TypeError('Invalid Flag value: %r' % (last_value, ))
+                    raise exc
                 return (2 ** (high_bit+1), ) + args
             # TODO: actually test _create_pseudo_member
             @classmethod
