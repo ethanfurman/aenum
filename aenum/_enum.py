@@ -1,3 +1,4 @@
+from __future__ import print_function
 from ._common import *
 from ._constant import NamedConstant
 from ._tuple import NamedTuple
@@ -367,8 +368,7 @@ def is_single_bit(num):
     """
     True if only one bit set in num (should be an int)
     """
-    num &= num - 1
-    return num == 0
+    return (num != 0) and (num & (num - 1)) == 0
 
 def _check_auto_args(method):
     """check if new generate method supports *args and **kwds"""

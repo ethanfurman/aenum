@@ -18,6 +18,7 @@ from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode, enum_property
 from aenum import pyver, PY2, PY3, PY2_6, PY3_3, PY3_4, PY3_5, PY3_6, PY3_11
+from aenum._enum import _high_bit
 from collections import OrderedDict
 from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
@@ -4608,13 +4609,14 @@ class TestFlag(TestCase):
                 error = False
                 for last_value in reversed(last_values):
                     try:
-                        high_bit = aenum._high_bit(last_value)
+                        high_bit = _high_bit(last_value)
                         break
-                    except Exception:
+                    except Exception as e:
+                        exc = e
                         error = True
                         break
                 if error:
-                    raise TypeError('Invalid Flag value: %r' % (last_value, ))
+                    raise exc
                 return (2 ** (high_bit+1), ) + args
             # TODO: actually test _create_pseudo_member
             @classmethod
