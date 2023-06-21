@@ -48,6 +48,11 @@ IntEnum
 
 Base class for creating enumerated constants that are also subclasses of `int`.
 
+StrEnum
+-------
+
+Base class for creating enumerated constants that are also subclasses of `str`.
+
 AutoNumberEnum
 --------------
 
@@ -63,6 +68,12 @@ UniqueEnum
 
 Derived class that ensures only one name is bound to any one value.
 
+Flag
+----
+
+Base class for creating enumerated constants that can be combined using
+the bitwise operations without losing their `Flag` membership.
+
 IntFlag
 -------
 
@@ -70,12 +81,6 @@ Base class for creating enumerated constants that can be combined using
 the bitwise operators without losing their `IntFlag` membership.
 `IntFlag` members are also subclasses of `int`.
    
-Flag
-----
-
-Base class for creating enumerated constants that can be combined using
-the bitwise operations without losing their `Flag` membership.
-
 unique
 ------
 
@@ -110,13 +115,18 @@ module
 ------
 
 Function to take a `Constant` or `Enum` class and insert it into
-`sys.modules` with the affect of a module whose top-level constant and
+`sys.modules` with the effect of a module whose top-level constant and
 member names cannot be rebound.
 
-skip
-----
+member
+------
 
-Descriptor to add a normal (non-`Enum` member) attribute to an `Enum`
+Decorator to force a member in an `Enum` or `Constant`.
+
+nonmember
+---------
+
+Decorator to force a normal (non-`Enum` member) attribute in an `Enum`
 or `Constant`.
 
 

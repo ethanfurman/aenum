@@ -1,3 +1,30 @@
+3.1.13
+======
+
+- remove Python 2.6 code
+- add Python 3.12 enhancements
+- split source code into separate files
+- Enum and Flag inherit from stdlib versions
+
+
+3.1.12
+======
+
+support inheriting from empty NamedTuples
+
+
+3.1.10
+======
+
+prevent test_v3.py from being run as main
+
+
+3.1.9
+=====
+
+Move Py2/3 specific code to dedicated files
+
+
 3.1.8
 =====
 
