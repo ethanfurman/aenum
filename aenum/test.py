@@ -11,13 +11,13 @@ import textwrap
 import unittest
 import uuid
 import warnings
-from aenum import EnumType, EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum
+from aenum import EnumType, EnumMeta, Enum, IntEnum, StrEnum, LowerStrEnum, UpperStrEnum, ReprEnum
 from aenum import AutoNumberEnum, MultiValueEnum, OrderedEnum, UniqueEnum, AddValueEnum, Flag, IntFlag
 from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AddValue, Unique
 from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode, enum_property
-from aenum import pyver, PY2, PY3, PY2_6, PY3_3, PY3_4, PY3_5, PY3_6, PY3_11
+from aenum import pyver, PY2, PY3, PY2_6, PY3_3, PY3_4, PY3_5, PY3_6, PY3_7, PY3_11
 from aenum._enum import _high_bit
 from collections import OrderedDict
 from datetime import timedelta
@@ -89,9 +89,43 @@ try:
     class FlagStooges(Flag):
         LARRY = 1
         CURLY = 2
-        MOE = 3
+        MOE = 4
+        PMASK = 5
+        CMASK = 15
 except Exception as exc:
     FlagStooges = exc
+
+try:
+    class FlagStoogesWithZero(Flag):
+        NOFLAG = 0
+        LARRY = 1
+        CURLY = 2
+        MOE = 4
+        PMASK = 5
+        CMASK = 15
+except Exception as exc:
+    FlagStoogesWithZero = exc
+
+try:
+    class IntFlagStooges(IntFlag):
+        LARRY = 1
+        CURLY = 2
+        MOE = 4
+        PMASK = 5
+        CMASK = 15
+except Exception:
+    IntFlagStooges = exc
+
+try:
+    class IntFlagStoogesWithZero(IntFlag):
+        NOFLAG = 0
+        LARRY = 1
+        CURLY = 2
+        MOE = 4
+        PMASK = 5
+        CMASK = 15
+except Exception as exc:
+    IntFlagStoogesWithZero = exc
 
 try:
     LifeForm = NamedTuple('LifeForm', 'branch genus species', module=__name__)
@@ -172,11 +206,14 @@ def test_pickle_exception(assertion, exception, obj,
         raise ValueError('Failed with protocols: %s' % ', '.join(failures))
 
 if PY3:
-    from aenum.test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3, TestStackoverflowAnswersV3, TestIssuesV3, TestExtendEnumV3
-    from aenum import test_v3
+    from .test_v3 import TestEnumV3, TestOrderV3, TestNamedTupleV3, TestStackoverflowAnswersV3, TestIssuesV3, TestExtendEnumV3
+    from . import test_v3
     test_v3.IntStooges = IntStooges
     test_v3.test_pickle_exception = test_pickle_exception
     test_v3.test_pickle_dump_load = test_pickle_dump_load
+
+if pyver >= PY3_7:
+    from .test_v37 import TestEnumV37
 
 # for subclassing tests
 
@@ -914,13 +951,40 @@ class TestEnum(TestCase):
             WINTER = 4
         self.Season = Season
 
+        class ReprKonstants(float, ReprEnum):
+            E = 2.7182818
+            PI = 3.1415926
+            TAU = 2 * PI
+        self.ReprKonstants = ReprKonstants
+
+        class ReprGrades(IntEnum):
+            A = 5
+            B = 4
+            C = 3
+            D = 2
+            F = 0
+        self.ReprGrades = ReprGrades
+
+        class ReprDirectional(str, ReprEnum):
+            EAST = 'east'
+            WEST = 'west'
+            NORTH = 'north'
+            SOUTH = 'south'
+        self.ReprDirectional = ReprDirectional
+
+        from datetime import date
+        class ReprHoliday(date, ReprEnum):
+            NEW_YEAR = 2013, 1, 1
+            IDES_OF_MARCH = 2013, 3, 15
+        self.ReprHoliday = ReprHoliday
+
         class Konstants(float, Enum):
             E = 2.7182818
             PI = 3.1415926
             TAU = 2 * PI
         self.Konstants = Konstants
 
-        class Grades(IntEnum):
+        class Grades(int, Enum):
             A = 5
             B = 4
             C = 3
@@ -1161,108 +1225,152 @@ class TestEnum(TestCase):
 
     def test_contains(self):
         Season = self.Season
-        self.assertRaises(TypeError, lambda: 'AUTUMN' in Season)
+        self.assertFalse('AUTUMN' in Season)
         self.assertTrue(Season.AUTUMN in Season)
-        self.assertRaises(TypeError, lambda: 3 not in Season)
+        self.assertTrue(3 in Season)
         val = Season(3)
         self.assertTrue(val in Season)
+        self.assertFalse([] in Season)
         #
         class OtherEnum(Enum):
             one = 1; two = 2
         self.assertTrue(OtherEnum.two not in Season)
+        #
+        class NumericEnum(IntEnum):
+            one = 1; two = 2
+        self.assertTrue(NumericEnum.two in Season)
+        self.assertTrue(Season(NumericEnum.two) is Season.SUMMER)
         #
         class Wierd(Enum):
             this = [1, 2, 3]
             that = (1, 2, 3)
             those = {1: 1, 2: 2, 3: 3}
         self.assertTrue(Wierd.this in Wierd)
-        self.assertRaises(TypeError, lambda: [1, 2, 3] in Wierd)
-        self.assertRaises(TypeError, lambda: {1: 1, 2: 2, 3: 3} in Wierd)
+        self.assertTrue((1, 2, 3) in Wierd)
+        self.assertTrue({1: 1, 2: 2, 3: 3} in Wierd)
+        self.assertFalse({1:1} in Wierd)
 
     def test_member_contains(self):
         self.assertRaises(TypeError, lambda: 'test' in self.Season.AUTUMN)
 
-    if pyver >= PY2_6:     # when `format` came into being
+    def test_format_enum(self):
+        Season = self.Season
+        self.assertEqual('{0}'.format(Season.SPRING),
+                         '{0}'.format(str(Season.SPRING)))
+        self.assertEqual( '{0:}'.format(Season.SPRING),
+                          '{0:}'.format(str(Season.SPRING)))
+        self.assertEqual('{0:20}'.format(Season.SPRING),
+                         '{0:20}'.format(str(Season.SPRING)))
+        self.assertEqual('{0:^20}'.format(Season.SPRING),
+                         '{0:^20}'.format(str(Season.SPRING)))
+        self.assertEqual('{0:>20}'.format(Season.SPRING),
+                         '{0:>20}'.format(str(Season.SPRING)))
+        self.assertEqual('{0:<20}'.format(Season.SPRING),
+                         '{0:<20}'.format(str(Season.SPRING)))
 
-        def test_format_enum(self):
-            Season = self.Season
-            self.assertEqual('{0}'.format(Season.SPRING),
-                             '{0}'.format(str(Season.SPRING)))
-            self.assertEqual( '{0:}'.format(Season.SPRING),
-                              '{0:}'.format(str(Season.SPRING)))
-            self.assertEqual('{0:20}'.format(Season.SPRING),
-                             '{0:20}'.format(str(Season.SPRING)))
-            self.assertEqual('{0:^20}'.format(Season.SPRING),
-                             '{0:^20}'.format(str(Season.SPRING)))
-            self.assertEqual('{0:>20}'.format(Season.SPRING),
-                             '{0:>20}'.format(str(Season.SPRING)))
-            self.assertEqual('{0:<20}'.format(Season.SPRING),
-                             '{0:<20}'.format(str(Season.SPRING)))
+    def test_custom_format(self):
+        class TestFloat(float, Enum):
+            one = 1.0
+            two = 2.0
+            def __format__(self, spec):
+                return 'TestFloat success!'
+        self.assertEqual(str(TestFloat.one), 'TestFloat.one')
+        self.assertEqual('{0}'.format(TestFloat.one), 'TestFloat success!')
 
-        def test_custom_format(self):
-            class TestFloat(float, Enum):
-                one = 1.0
-                two = 2.0
-                def __format__(self, spec):
-                    return 'TestFloat success!'
-            self.assertEqual(str(TestFloat.one), 'TestFloat.one')
-            self.assertEqual('{0}'.format(TestFloat.one), 'TestFloat success!')
+    def test_format_with_custom_str(self):
+        class TestInt(int, Enum):
+            one = 1
+            two = 2
+            def __str__(self):
+                return self.name * 3
+        self.assertEqual(str(TestInt.two), 'twotwotwo')
+        self.assertEqual('{0}'.format(TestInt.two), 'twotwotwo')
 
-        def test_format_with_custom_str(self):
-            class TestInt(int, Enum):
-                one = 1
-                two = 2
-                def __str__(self):
-                    return self.name * 3
-            self.assertEqual(str(TestInt.two), 'twotwotwo')
-            self.assertEqual('{0}'.format(TestInt.two), 'twotwotwo')
+    def assertFormatIsName(self, spec, member):
+        self.assertEqual(spec.format(member), spec.format(str(member)))
 
-        def assertFormatIsValue(self, spec, member):
-            self.assertEqual(spec.format(member), spec.format(member.value))
+    def test_format_enum_date(self):
+        Holiday = self.Holiday
+        self.assertFormatIsName('{0}', Holiday.IDES_OF_MARCH)
+        self.assertFormatIsName('{0:}', Holiday.IDES_OF_MARCH)
+        self.assertFormatIsName('{0:20}', Holiday.IDES_OF_MARCH)
+        self.assertFormatIsName('{0:^20}', Holiday.IDES_OF_MARCH)
+        self.assertFormatIsName('{0:>20}', Holiday.IDES_OF_MARCH)
+        self.assertFormatIsName('{0:<20}', Holiday.IDES_OF_MARCH)
 
-        def test_format_enum_date(self):
-            Holiday = self.Holiday
-            self.assertFormatIsValue('{0}', Holiday.IDES_OF_MARCH)
-            self.assertFormatIsValue('{0:}', Holiday.IDES_OF_MARCH)
-            self.assertFormatIsValue('{0:20}', Holiday.IDES_OF_MARCH)
-            self.assertFormatIsValue('{0:^20}', Holiday.IDES_OF_MARCH)
-            self.assertFormatIsValue('{0:>20}', Holiday.IDES_OF_MARCH)
-            self.assertFormatIsValue('{0:<20}', Holiday.IDES_OF_MARCH)
-            self.assertFormatIsValue('{0:%Y %m}', Holiday.IDES_OF_MARCH)
-            self.assertFormatIsValue('{0:%Y %m %M:00}', Holiday.IDES_OF_MARCH)
+    def test_format_enum_float(self):
+        Konstants = self.Konstants
+        self.assertFormatIsName('{0}', Konstants.TAU)
+        self.assertFormatIsName('{0:}', Konstants.TAU)
+        self.assertFormatIsName('{0:20}', Konstants.TAU)
+        self.assertFormatIsName('{0:^20}', Konstants.TAU)
+        self.assertFormatIsName('{0:>20}', Konstants.TAU)
+        self.assertFormatIsName('{0:<20}', Konstants.TAU)
 
-        def test_format_enum_float(self):
-            Konstants = self.Konstants
-            self.assertFormatIsValue('{0}', Konstants.TAU)
-            self.assertFormatIsValue('{0:}', Konstants.TAU)
-            self.assertFormatIsValue('{0:20}', Konstants.TAU)
-            self.assertFormatIsValue('{0:^20}', Konstants.TAU)
-            self.assertFormatIsValue('{0:>20}', Konstants.TAU)
-            self.assertFormatIsValue('{0:<20}', Konstants.TAU)
-            self.assertFormatIsValue('{0:n}', Konstants.TAU)
-            self.assertFormatIsValue('{0:5.2}', Konstants.TAU)
-            self.assertFormatIsValue('{0:f}', Konstants.TAU)
+    def test_format_enum_int(self):
+        Grades = self.Grades
+        self.assertFormatIsName('{0}', Grades.C)
+        self.assertFormatIsName('{0:}', Grades.C)
+        self.assertFormatIsName('{0:20}', Grades.C)
+        self.assertFormatIsName('{0:^20}', Grades.C)
+        self.assertFormatIsName('{0:>20}', Grades.C)
+        self.assertFormatIsName('{0:<20}', Grades.C)
 
-        def test_format_enum_int(self):
-            Grades = self.Grades
-            self.assertFormatIsValue('{0}', Grades.C)
-            self.assertFormatIsValue('{0:}', Grades.C)
-            self.assertFormatIsValue('{0:20}', Grades.C)
-            self.assertFormatIsValue('{0:^20}', Grades.C)
-            self.assertFormatIsValue('{0:>20}', Grades.C)
-            self.assertFormatIsValue('{0:<20}', Grades.C)
-            self.assertFormatIsValue('{0:+}', Grades.C)
-            self.assertFormatIsValue('{0:08X}', Grades.C)
-            self.assertFormatIsValue('{0:b}', Grades.C)
+    def test_format_enum_str(self):
+        Directional = self.Directional
+        self.assertFormatIsName('{0}', Directional.WEST)
+        self.assertFormatIsName('{0:}', Directional.WEST)
+        self.assertFormatIsName('{0:20}', Directional.WEST)
+        self.assertFormatIsName('{0:^20}', Directional.WEST)
+        self.assertFormatIsName('{0:>20}', Directional.WEST)
+        self.assertFormatIsName('{0:<20}', Directional.WEST)
 
-        def test_format_enum_str(self):
-            Directional = self.Directional
-            self.assertFormatIsValue('{0}', Directional.WEST)
-            self.assertFormatIsValue('{0:}', Directional.WEST)
-            self.assertFormatIsValue('{0:20}', Directional.WEST)
-            self.assertFormatIsValue('{0:^20}', Directional.WEST)
-            self.assertFormatIsValue('{0:>20}', Directional.WEST)
-            self.assertFormatIsValue('{0:<20}', Directional.WEST)
+    def assertFormatIsValue(self, spec, member):
+        self.assertEqual(spec.format(member), spec.format(member.value))
+
+    def test_format_reprenum_date(self):
+        ReprHoliday = self.ReprHoliday
+        self.assertFormatIsValue('{0}', ReprHoliday.IDES_OF_MARCH)
+        self.assertFormatIsValue('{0:}', ReprHoliday.IDES_OF_MARCH)
+        self.assertFormatIsValue('{0:20}', ReprHoliday.IDES_OF_MARCH)
+        self.assertFormatIsValue('{0:^20}', ReprHoliday.IDES_OF_MARCH)
+        self.assertFormatIsValue('{0:>20}', ReprHoliday.IDES_OF_MARCH)
+        self.assertFormatIsValue('{0:<20}', ReprHoliday.IDES_OF_MARCH)
+        self.assertFormatIsValue('{0:%Y %m}', ReprHoliday.IDES_OF_MARCH)
+        self.assertFormatIsValue('{0:%Y %m %M:00}', ReprHoliday.IDES_OF_MARCH)
+
+    def test_format_reprenum_float(self):
+        ReprKonstants = self.ReprKonstants
+        self.assertFormatIsValue('{0}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:20}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:^20}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:>20}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:<20}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:n}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:5.2}', ReprKonstants.TAU)
+        self.assertFormatIsValue('{0:f}', ReprKonstants.TAU)
+
+    def test_format_reprenum_int(self):
+        ReprGrades = self.ReprGrades
+        self.assertFormatIsValue('{0}', ReprGrades.C)
+        self.assertFormatIsValue('{0:}', ReprGrades.C)
+        self.assertFormatIsValue('{0:20}', ReprGrades.C)
+        self.assertFormatIsValue('{0:^20}', ReprGrades.C)
+        self.assertFormatIsValue('{0:>20}', ReprGrades.C)
+        self.assertFormatIsValue('{0:<20}', ReprGrades.C)
+        self.assertFormatIsValue('{0:+}', ReprGrades.C)
+        self.assertFormatIsValue('{0:08X}', ReprGrades.C)
+        self.assertFormatIsValue('{0:b}', ReprGrades.C)
+
+    def test_format_reprenum_str(self):
+        ReprDirectional = self.ReprDirectional
+        self.assertFormatIsValue('{0}', ReprDirectional.WEST)
+        self.assertFormatIsValue('{0:}', ReprDirectional.WEST)
+        self.assertFormatIsValue('{0:20}', ReprDirectional.WEST)
+        self.assertFormatIsValue('{0:^20}', ReprDirectional.WEST)
+        self.assertFormatIsValue('{0:>20}', ReprDirectional.WEST)
+        self.assertFormatIsValue('{0:<20}', ReprDirectional.WEST)
 
     def test_hash(self):
         Season = self.Season
@@ -3046,7 +3154,10 @@ class TestEnum(TestCase):
     def test_auto_w_multiple_arg(self):
         class AutoName(Enum):
             def _generate_next_value_(name, start, count, last, *args, **kwds):
-                return (name, ) + args
+                if args:
+                    return (name, ) + args
+                else:
+                    return name
         #
         class Planet(AutoName):
             _init_ = 'value mass radius'
@@ -3824,6 +3935,77 @@ class TestEnum(TestCase):
         self.assertFalse(NeverEnum.__dict__.get('_test1', False))
         self.assertFalse(NeverEnum.__dict__.get('_test2', False))
 
+    def test_init_exception(self):
+        class Base(object):
+            def __new__(cls, *args):
+                return object.__new__(cls)
+            def __init__(self, x):
+                raise ValueError("I don't like", x)
+        with self.assertRaises(TypeError):
+            class MyEnum(Base, Enum):
+                A = 'a'
+                def __init__(self, y):
+                    self.y = y
+        with self.assertRaises(ValueError):
+            class MyEnum(Base, Enum):
+                A = 'a'
+                def __init__(self, y):
+                    self.y = y
+                def __new__(cls, value):
+                    member = Base.__new__(cls)
+                    member._value_ = Base(value)
+                    return member
+
+    def test_namedtuple_as_value(self):
+        from collections import namedtuple
+        TTuple = namedtuple('TTuple', 'id a blist')
+        class NTEnum(Enum):
+            NONE = TTuple(0, 0, [])
+            A = TTuple(1, 2, [4])
+            B = TTuple(2, 4, [0, 1, 2])
+        self.assertEqual(repr(NTEnum.NONE), "<NTEnum.NONE: TTuple(id=0, a=0, blist=[])>")
+        self.assertEqual(NTEnum.NONE.value, TTuple(id=0, a=0, blist=[]))
+        self.assertEqual(
+                [x.value for x in NTEnum],
+                [TTuple(id=0, a=0, blist=[]), TTuple(id=1, a=2, blist=[4]), TTuple(id=2, a=4, blist=[0, 1, 2])],
+                )
+
+    def test_gnv_is_static(self):
+        class LazyGNV(Enum):
+            def _generate_next_value_(name, start, last, values):
+                pass
+        class BusyGNV(Enum):
+            @staticmethod
+            def _generate_next_value_(name, start, last, values):
+                pass
+        self.assertTrue(type(LazyGNV.__dict__['_generate_next_value_']) is staticmethod)
+        self.assertTrue(type(BusyGNV.__dict__['_generate_next_value_']) is staticmethod)
+
+    def test_namedtuple_as_value(self):
+        from collections import namedtuple
+        TTuple = namedtuple('TTuple', 'id a blist')
+        class NTEnum(Enum):
+            NONE = TTuple(0, 0, [])
+            A = TTuple(1, 2, [4])
+            B = TTuple(2, 4, [0, 1, 2])
+        self.assertEqual(repr(NTEnum.NONE), "<NTEnum.NONE: TTuple(id=0, a=0, blist=[])>")
+        self.assertEqual(NTEnum.NONE.value, TTuple(id=0, a=0, blist=[]))
+        self.assertEqual(
+                [x.value for x in NTEnum],
+                [TTuple(id=0, a=0, blist=[]), TTuple(id=1, a=2, blist=[4]), TTuple(id=2, a=4, blist=[0, 1, 2])],
+                )
+
+    def test_multiple_auto_assignment(self):
+        class Many(Enum):
+            _order_ = 'A B C'
+            A = auto(), 2, auto()
+            B = 4, 5, auto()
+            C = auto(), auto(), auto()
+        self.assertEqual(len(Many), 3)
+        self.assertEqual(Many.A.value, (1, 2, 2))
+        self.assertEqual(Many.B.value, (4, 5, 3))
+        self.assertEqual(Many.C.value, (4, 5, 6))
+
 
 class TestStrEnum(TestCase):
 
@@ -4132,14 +4314,14 @@ class TestFlag(TestCase):
     def test_membership(self):
         Color = self.Color
         Open = self.Open
-        self.assertRaises(TypeError, lambda: 'BLACK' in Color)
-        self.assertRaises(TypeError, lambda: 'RO' in Open)
+        self.assertFalse('BLACK' in Color)
+        self.assertFalse('RO' in Open)
         self.assertTrue(Color.BLACK in Color)
         self.assertTrue(Open.RO in Open)
         self.assertFalse(Color.BLACK in Open)
         self.assertFalse(Open.RO in Color)
-        self.assertRaises(TypeError, lambda: 0 in Color)
-        self.assertRaises(TypeError, lambda: 0 in Open)
+        self.assertTrue(0 in Color)
+        self.assertTrue(0 in Open)
 
     def test_member_contains(self):
         Color = self.Color
@@ -4445,8 +4627,153 @@ class TestFlag(TestCase):
     def test_pickle(self):
         if isinstance(FlagStooges, Exception):
             raise FlagStooges
-        test_pickle_dump_load(self.assertIs, FlagStooges.CURLY|FlagStooges.MOE)
-        test_pickle_dump_load(self.assertIs, FlagStooges)
+        test_pickle_dump_load(
+                self.assertIs,
+                FlagStooges.CURLY | FlagStooges.MOE,
+                )
+        test_pickle_dump_load(
+                self.assertIs,
+                FlagStooges,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStooges.CURLY & ~FlagStooges.CURLY,
+                )
+        test_pickle_dump_load(
+                self.assertIs,
+                FlagStooges,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStooges.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStooges.CURLY | FlagStooges.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStooges.PMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStooges.CURLY | FlagStooges.PMASK,
+                )
+
+        test_pickle_dump_load(
+                self.assertIs,
+                FlagStoogesWithZero.CURLY,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStoogesWithZero.CURLY | FlagStoogesWithZero.MOE,
+                )
+        test_pickle_dump_load(
+                self.assertIs,
+                FlagStoogesWithZero.NOFLAG,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStoogesWithZero.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStoogesWithZero.CURLY | FlagStoogesWithZero.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStoogesWithZero.PMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                FlagStoogesWithZero.CURLY | FlagStoogesWithZero.PMASK,
+                )
+
+        test_pickle_dump_load(
+                self.assertIs,
+                IntFlagStooges.CURLY,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.CURLY | IntFlagStooges.MOE,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.CURLY | IntFlagStooges.MOE|0x30,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges(0),
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges(0x30),
+                )
+        test_pickle_dump_load(
+                self.assertIs,
+                IntFlagStooges,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.CMASK | 1,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.CURLY | IntFlagStooges.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.PMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.PMASK | 1,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStooges.CURLY | IntFlagStooges.PMASK,
+                )
+
+        test_pickle_dump_load(
+                self.assertIs,
+                IntFlagStoogesWithZero.CURLY,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStoogesWithZero.CURLY | IntFlagStoogesWithZero.MOE,
+                )
+        test_pickle_dump_load(
+                self.assertIs,
+                IntFlagStoogesWithZero.NOFLAG,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStoogesWithZero.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStoogesWithZero.CMASK | 1,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStoogesWithZero.CURLY | IntFlagStoogesWithZero.CMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStoogesWithZero.PMASK,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStoogesWithZero.PMASK | 1,
+                )
+        test_pickle_dump_load(
+                self.assertEqual,
+                IntFlagStoogesWithZero.CURLY | IntFlagStoogesWithZero.PMASK,
+                )
 
     def test_containment(self):
         Perm = self.Perm
@@ -4507,11 +4834,11 @@ class TestFlag(TestCase):
         self.assertEqual([Dupes.first, Dupes.second, Dupes.third], list(Dupes))
 
     def test_bizarre(self):
-        with self.assertRaisesRegex(TypeError, r"invalid Flag 'Bizarre' -- missing values: 1, 2"):
-            class Bizarre(Flag):
-                b = 3
-                c = 4
-                d = 6
+        class Bizarre(Flag):
+            b = 3
+            c = 4
+            d = 6
+        # no error means the bizarre flag was created
 
     def test_multiple_mixin(self):
         class AllMixin(object):
@@ -5063,19 +5390,19 @@ class TestIntFlag(TestCase):
     def test_membership(self):
         Color = self.Color
         Open = self.Open
-        self.assertRaises(TypeError, lambda: 'GREEN' in Color)
-        self.assertRaises(TypeError, lambda: 'RW' in Open)
+        self.assertFalse('GREEN' in Color)
+        self.assertFalse('RW' in Open)
         self.assertTrue(Color.GREEN in Color)
         self.assertTrue(Open.RW in Open)
-        self.assertFalse(Color.GREEN in Open)
-        self.assertFalse(Open.RW in Color)
-        self.assertRaises(TypeError, lambda: 2 in Color)
-        self.assertRaises(TypeError, lambda: 2 in Open)
+        self.assertTrue(Color.GREEN in Open)    # True because Open(2) is valid
+        self.assertTrue(Open.RW in Color)      # True because Color(2) is valid
+        self.assertTrue(2 in Color)
+        self.assertTrue(2 in Open)
 
     def test_member_contains(self):
         Color = self.Color
         self.assertRaises(TypeError, lambda: 'test' in Color.RED)
-        self.assertRaises(TypeError, lambda: 1 in Color.RED)
+        self.assertTrue(1 in Color.RED)
         self.assertTrue(Color.RED in Color.RED)
         self.assertTrue(Color.RED in Color.PURPLE)
 
@@ -5128,6 +5455,7 @@ class TestIntFlag(TestCase):
         self.assertEqual(str(~(Open.WO | Open.CE)), '2')
 
     def test_repr_strict(self):
+        # test with complete flag
         class Perm(IntFlag):
             _order_ = 'R W X'
             R = 1 << 2
@@ -5146,14 +5474,42 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
         self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
         #
-        with self.assertRaisesRegex(ValueError, r'invalid value: 12'):
+        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
             repr(Perm.R | 8)
-        with self.assertRaisesRegex(ValueError, r'invalid value: 12'):
+        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
             repr(~(Perm.R | 8))
-        with self.assertRaisesRegex(ValueError, r'invalid value: -9'):
+        with self.assertRaisesRegex(ValueError, r'-9 is not a valid Perm'):
+            repr(Perm(~8))
+        #
+        # test with open flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            FUTURE = 31
+        Perm._boundary_ = aenum.STRICT
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        #
+        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
+            repr(Perm.R | 8)
+        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
+            repr(~(Perm.R | 8))
+        with self.assertRaisesRegex(ValueError, r'-9 is not a valid Perm'):
             repr(Perm(~8))
 
     def test_repr_conform(self):
+        # test with complete flag
         class Perm(IntFlag):
             _order_ = 'R W X'
             R = 1 << 2
@@ -5175,8 +5531,33 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Perm(8)), '<Perm: 0>')
         self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
         self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+        #
+        # test with open flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            FUTURE = 31
+        Perm._boundary_ = aenum.CONFORM
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 0>')
+        self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
 
     def test_repr_eject(self):
+        # test with complete flag
         class Perm(IntFlag):
             _order_ = 'R W X'
             _boundary_ = EJECT
@@ -5198,6 +5579,78 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Perm(8)), '8')
         self.assertEqual(repr(~(Perm.R | 8)), '-13')
         self.assertEqual(repr(Perm(~8)), '-9')
+        #
+        # test with open flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            _boundary_ = EJECT
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            FUTURE = 31
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '12')
+        self.assertEqual(repr(Perm(8)), '8')
+        self.assertEqual(repr(~(Perm.R | 8)), '-13')
+        self.assertEqual(repr(Perm(~8)), '-9')
+
+    def test_repr_keep(self):
+        # test with complete flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+        Perm._boundary_ = aenum.CONFORM
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 0>')
+        self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+        #
+        # test with open flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            FUTURE = 31
+        Perm._boundary_ = aenum.CONFORM
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 0>')
+        self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
 
     def test_repr_open(self):
         class Open(IntFlag):
@@ -5218,9 +5671,9 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
-        with self.assertRaisesRegex(ValueError, r'invalid value: -5'):
+        with self.assertRaisesRegex(ValueError, r'-5 is not a valid Open'):
             repr(Open(~4))
-        with self.assertRaisesRegex(ValueError, r'invalid value: 4'):
+        with self.assertRaisesRegex(ValueError, r'4 is not a valid Open'):
             repr(Open(4))
         #
         class Open(IntFlag):
@@ -5590,7 +6043,6 @@ class TestIntFlag(TestCase):
         self.assertEqual(WhereEnum.__dict__['_test2'], 'OurEnum')
         self.assertFalse(NeverEnum.__dict__.get('_test1', False))
         self.assertFalse(NeverEnum.__dict__.get('_test2', False))
-
 
 
 class TestEmptyAndNonLatinStrings(unittest.TestCase):
