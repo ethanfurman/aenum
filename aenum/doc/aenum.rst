@@ -681,9 +681,7 @@ it reverts to an int (``EJECT``):
     >>> Perm.X | 8
     Traceback (most recent call last):
     ...
-    ValueError: Perm: invalid value: 9
-        given 0b0 1001
-      allowed 0b0 0111
+    ValueError: 9 is not a valid Perm
 
     >>> Perm._boundary_ = EJECT
     >>> Perm.X | 8
@@ -1237,24 +1235,22 @@ member instances.
 Finer Points
 ^^^^^^^^^^^^
 
-``Enum`` members are instances of an ``Enum`` class, but are not
-accessible as `EnumClass.member1.member2`.
-(changed in version 1.1.1 to be accessible)
-(changed in version 2.2.4 to be inaccessible)::
+``Enum`` members are instances of an ``Enum`` class, and are
+accessible as `EnumClass.member1.member2` -- but only if no other
+constant/property exists::
 
     >>> class FieldTypes(Enum):
     ...     name = 1
     ...     value = 2
     ...     size = 3
     ...
-    >>> FieldTypes.size.value
-    3
     >>> FieldTypes.size
     <FieldTypes.size: 3>
     >>> FieldTypes.value.size
-    Traceback (most recent call last):
-    ...
-    AttributeError: <aenum 'FieldTypes'> member has no attribute 'size'
+    <FieldTypes.size: 3>
+    >>> FieldTypes.size.value    # NOT <FieldTypes.value: 2>
+    3
+
 
 The ``__members__`` attribute is only available on the class.
 

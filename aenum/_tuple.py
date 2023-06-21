@@ -369,13 +369,13 @@ class NamedTupleMeta(type):
                 namedtuple_instance.__init__(*args, **kwds)
             return namedtuple_instance
 
-    @_bltin_property
+    @bltin_property
     def __fields__(cls):
         return list(cls._fields_)
     # collections.namedtuple compatibility
     _fields = __fields__
 
-    @_bltin_property
+    @bltin_property
     def __aliases__(cls):
         return list(cls._aliases_)
 
@@ -442,18 +442,18 @@ def __str__(self):
             )
 
 @namedtuple_dict
-@_bltin_property
+@bltin_property
 def _fields_(self):
     return list(self.__class__._fields_)
 
     # compatibility methods with stdlib namedtuple
 @namedtuple_dict
-@_bltin_property
+@bltin_property
 def __aliases__(self):
     return list(self.__class__._aliases_)
 
 @namedtuple_dict
-@_bltin_property
+@bltin_property
 def _fields(self):
     return list(self.__class__._fields_)
 

@@ -14,7 +14,7 @@ __all__ = [
         'NamedConstant', 'Constant', 'constant', 'skip', 'nonmember', 'member', 'no_arg',
         'Member', 'NonMember', 'bin', 
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
-        'StrEnum', 'UpperStrEnum', 'LowerStrEnum',
+        'StrEnum', 'UpperStrEnum', 'LowerStrEnum', 'ReprEnum',
         'Flag', 'IntFlag', 'enum_property',
         'AddValue', 'MagicValue', 'MultiValue', 'NoAlias', 'Unique',
         'AddValueEnum', 'MultiValueEnum', 'NoAliasEnum',

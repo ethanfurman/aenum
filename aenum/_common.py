@@ -1,13 +1,13 @@
 from __future__ import print_function
 
 __all__ = [
-        'pyver', 'PY2', 'PY2_6', 'PY3', 'PY3_3', 'PY3_4', 'PY3_5', 'PY3_6', 'PY3_11',
+        'pyver', 'PY2', 'PY2_6', 'PY3', 'PY3_3', 'PY3_4', 'PY3_5', 'PY3_6', 'PY3_7', 'PY3_11',
         '_or_', '_and_', '_xor_', '_inv_', '_abs_', '_add_', '_floordiv_', '_lshift_',
         '_rshift_', '_mod_', '_mul_', '_neg_', '_pos_', '_pow_', '_truediv_', '_sub_',
         'unicode', 'basestring', 'baseinteger', 'long', 'NoneType', '_Addendum',
         'is_descriptor', 'is_dunder', 'is_sunder', 'is_internal_class', 'is_private_name',
         'get_attr_from_chain', '_value', 'constant',
-        'make_class_unpicklable', '_bltin_property',
+        'make_class_unpicklable', 'bltin_property',
         'skip', 'nonmember', 'member', 'Member', 'NonMember', 'OrderedDict',
         ]
 
@@ -22,6 +22,7 @@ PY3_3 = (3, 3)
 PY3_4 = (3, 4)
 PY3_5 = (3, 5)
 PY3_6 = (3, 6)
+PY3_7 = (3, 7)
 PY3_11 = (3, 11)
 
 import re
@@ -41,7 +42,7 @@ if PY3:
     from ._py3 import *
     __all__.extend(_py3.__all__)
 
-_bltin_property = property
+bltin_property = property
 
 # shims
 
@@ -90,7 +91,7 @@ class _Addendum(object):
     def __call__(self, func):
         if isinstance(func, (staticmethod, classmethod)):
             name = func.__func__.__name__
-        elif isinstance(func, (property, _bltin_property)):
+        elif isinstance(func, (property, bltin_property)):
             name = (func.fget or func.fset or func.fdel).__name__
         else:
             name = func.__name__

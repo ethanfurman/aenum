@@ -2,7 +2,7 @@ from . import EnumMeta, Enum, IntEnum, Flag, IntFlag, StrEnum, UniqueEnum, AutoE
 from . import NamedTuple, TupleSize, MagicValue, AddValue, NoAlias, Unique, MultiValue
 from . import AutoNumberEnum,MultiValueEnum, OrderedEnum, unique, skip, extend_enum, auto
 from ._enum import StdlibEnumMeta, StdlibEnum, StdlibIntEnum, StdlibFlag, StdlibIntFlag, StdlibStrEnum
-from . import pyver, PY3_3, PY3_4, PY3_5, PY3_6, PY3_11
+from . import pyver, PY3_3, PY3_4, PY3_5, PY3_6, PY3_7, PY3_11
 from . import add_stdlib_integration, remove_stdlib_integration
 
 from collections import OrderedDict
@@ -88,7 +88,7 @@ class TestEnumV3(TestCase):
             self.assertTrue(isinstance(AnIntFlag.one, StdlibIntFlag))
         #
         if pyver >= PY3_11:
-            class AStrEnum(StrFlag):
+            class AStrEnum(StrEnum):
                 one = '1'
             self.assertTrue(issubclass(AStrEnum, StdlibEnum))
             self.assertTrue(isinstance(AStrEnum.one, StdlibEnum))
@@ -803,19 +803,9 @@ class TestEnumV3(TestCase):
                         # trigger not found
                         return None
             self.assertIs(Color('three'), Color.blue)
-            self.assertRaises(ValueError, Color, 7)
-            try:
-                Color('bad return')
-            except TypeError as exc:
-                self.assertTrue(isinstance(exc.__cause__, ValueError))
-            else:
-                raise Exception('Exception not raised.')
-            try:
-                Color('error out')
-            except ZeroDivisionError as exc:
-                self.assertTrue(isinstance(exc.__cause__, ValueError))
-            else:
-                raise Exception('Exception not raised.')
+            self.assertRaisesRegex(ValueError, '7 is not a valid Color', Color, 7)
+            self.assertRaisesRegex(TypeError, 'error in .*_missing_', Color, 'bad return')
+            self.assertRaises(ZeroDivisionError, Color, 'error out')
 
     def test_enum_of_types(self):
         """Support using Enum to refer to types deliberately."""
@@ -961,6 +951,13 @@ class TestEnumV3(TestCase):
             test_pickle_dump_load(self.assertEqual, NI5, 5, protocol=(4, HIGHEST_PROTOCOL))
             self.assertEqual(NEI.y.value, 2)
             test_pickle_dump_load(self.assertTrue, NEI.y, protocol=(4, HIGHEST_PROTOCOL))
+
+    def test_multiple_superclasses_repr(self):
+        class _EnumSuperClass(metaclass=EnumMeta):
+            pass
+        class E(_EnumSuperClass, Enum):
+            A = 1
+        self.assertEqual(repr(E.A), "<E.A: 1>")
 
 
 class TestOrderV3(TestCase):
@@ -1430,7 +1427,7 @@ class TestExtendEnumV3(TestCase):
             red = 1
             green = 2
             blue = 3
-        self.assertRaisesRegex(TypeError, '.blue. already in use as property..Color.blue: 3.', extend_enum, Color, 'blue', 5)
+        self.assertRaisesRegex(TypeError, '.blue. already in use as .Color.blue: 3.', extend_enum, Color, 'blue', 5)
         #
         extend_enum(Color, 'brown', 4)
         self.assertEqual(Color.brown.name, 'brown')
