@@ -97,6 +97,11 @@ class _Addendum(object):
             name = func.__name__
         self.dict[name] = func
         self.added.add(name)
+        return func
+    def __getitem__(self, name):
+        return self.dict[name]
+    def __setitem__(self, name, value):
+        self.dict[name] = value
     def resolve(self):
         ns = self.ns
         for name in self.added:

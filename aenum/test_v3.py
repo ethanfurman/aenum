@@ -69,6 +69,10 @@ class TestEnumV3(TestCase):
         # 3.4
         self.assertTrue(issubclass(self.Season, StdlibEnum))
         self.assertTrue(isinstance(self.Season.SPRING, StdlibEnum))
+        self.assertTrue(issubclass(self.Grades, StdlibEnum))
+        self.assertFalse(issubclass(self.Grades, StdlibIntEnum))
+        self.assertTrue(isinstance(self.Grades.A, StdlibEnum))
+        self.assertFalse(isinstance(self.Grades.A, StdlibIntEnum))
         #
         if pyver >= PY3_6:
             class AFlag(Flag):
@@ -84,36 +88,37 @@ class TestEnumV3(TestCase):
             self.assertTrue(isinstance(AnIntFlag.one, StdlibEnum))
             self.assertTrue(issubclass(AnIntFlag, StdlibFlag))
             self.assertTrue(isinstance(AnIntFlag.one, StdlibFlag))
-            self.assertTrue(issubclass(AnIntFlag, StdlibIntFlag))
-            self.assertTrue(isinstance(AnIntFlag.one, StdlibIntFlag))
+            self.assertFalse(issubclass(AnIntFlag, StdlibIntFlag))
+            self.assertFalse(isinstance(AnIntFlag.one, StdlibIntFlag))
         #
         if pyver >= PY3_11:
             class AStrEnum(StrEnum):
                 one = '1'
             self.assertTrue(issubclass(AStrEnum, StdlibEnum))
             self.assertTrue(isinstance(AStrEnum.one, StdlibEnum))
-            self.assertTrue(issubclass(AStrEnum, StdlibStrEnum))
-            self.assertTrue(isinstance(AStrEnum.one, StdlibStrEnum))
+            self.assertFalse(issubclass(AStrEnum, StdlibStrEnum))
+            self.assertFalse(isinstance(AStrEnum.one, StdlibStrEnum))
 
     @unittest.skipUnless(StdlibEnumMeta, 'Stdlib enum not available')
     def test_stdlib_bad_getattribute(self):
-        class BadEnumType(StdlibEnumMeta):
-            def __getattribute__(cls, name):
-                obj = super().__getattribute__(name)
-                if isinstance(obj, cls):
-                    obj.deprecate()
-                return obj
-        with self.assertRaisesRegex(RecursionError, 'endless recursion'):
-            class BaseEnum(StdlibEnum):
-                pass
-            class BadEnum(BaseEnum, metaclass=BadEnumType):
-                FOO = 'bar'
         try:
-            remove_stdlib_integration()
-            class OkayEnum(StdlibEnum, metaclass=BadEnumType):
-                FOO = 'bar'
-        finally:
             add_stdlib_integration()
+            class BadEnumType(StdlibEnumMeta):
+                def __getattribute__(cls, name):
+                    obj = super().__getattribute__(name)
+                    if isinstance(obj, cls):
+                        obj.deprecate()
+                    return obj
+            with self.assertRaisesRegex(RecursionError, 'endless recursion'):
+                class BaseEnum(StdlibEnum):
+                    pass
+                class BadEnum(BaseEnum, metaclass=BadEnumType):
+                    FOO = 'bar'
+        finally:
+            remove_stdlib_integration()
+        #
+        class OkayEnum(StdlibEnum, metaclass=BadEnumType):
+            FOO = 'bar'
 
     @unittest.skipUnless(pyver >= PY3_5, '__qualname__ requires python 3.5 or greater')
     def test_pickle_enum_function_with_qualname(self):
@@ -1879,7 +1884,7 @@ class TestExtendEnumV3(TestCase):
         self.assertEqual(Color.PURPLE.value, 11)
         self.assertTrue(issubclass(Color, StdlibFlag))
 
-    @unittest.skipUnless(StdlibFlag, 'Stdlib Flag not available')
+    @unittest.skipUnless(StdlibFlag and pyver < PY3_11, 'Stdlib Flag not available')
     def test_extend_flag_backwards_stdlib(self):
         class Color(StdlibFlag):
             BLACK = 0
@@ -1902,6 +1907,31 @@ class TestExtendEnumV3(TestCase):
         self.assertEqual(Color.mauve.value, 32)
         self.assertTrue(Color.mauve in Color)
         self.assertEqual(Color(32), Color.mauve)
+        self.assertEqual(Color['mauve'], Color.mauve)
+
+    @unittest.skipUnless(StdlibFlag and pyver >= PY3_11, 'Stdlib Flag not available')
+    def test_extend_flag_backwards_stdlib(self):
+        class Color(StdlibFlag):
+            BLACK = 0
+            RED = 1
+            GREEN = 2
+            BLUE = 4
+        extend_enum(Color, 'PURPLE', 11)
+        self.assertTrue(Color(11) is Color.PURPLE)
+        self.assertTrue(isinstance(Color.PURPLE, Color))
+        self.assertEqual(Color.PURPLE.value, 11)
+        self.assertTrue(issubclass(Color, StdlibFlag))
+        #
+        extend_enum(Color, 'MAGENTA')
+        self.assertTrue(Color(8) is Color.MAGENTA)
+        self.assertTrue(isinstance(Color.MAGENTA, Color))
+        self.assertEqual(Color.MAGENTA.value,8)
+        #
+        extend_enum(Color, 'mauve')
+        self.assertEqual(Color.mauve.name, 'mauve')
+        self.assertEqual(Color.mauve.value, 16)
+        self.assertTrue(Color.mauve in Color)
+        self.assertEqual(Color(16), Color.mauve)
         self.assertEqual(Color['mauve'], Color.mauve)
 
     @unittest.skipUnless(StdlibIntFlag, 'Stdlib IntFlag not available')
