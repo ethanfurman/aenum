@@ -24,6 +24,7 @@ try:
     import sqlite3
 except ImportError:
     sqlite3 = None
+    __all__.remove('SqliteEnum')
 
 try:
     RecursionError
