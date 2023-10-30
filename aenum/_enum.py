@@ -137,14 +137,6 @@ def bit_count(num):
         count += 1
     return count
 
-def is_single_bit(value):
-    """
-    True if only one bit set in value (should be an int)
-    """
-    if value == 0:
-        return False
-    value &= value - 1
-    return value == 0
 
 def _iter_bits_lsb(value):
     """
@@ -2944,7 +2936,7 @@ def _create_pseudo_member_(cls, *values):
     neg_value = (None, value)[value < 0]
     #
     if neg_value:
-        if neg_value <= ~all_bits:
+        if neg_value < ~all_bits:
             if boundary is EJECT:
                 return error_value
             elif boundary is KEEP:
@@ -3126,9 +3118,10 @@ def __xor__(self, other):
 @flag_dict
 def __invert__(self):
     if self._inverted_ is None:
-        self._inverted_ = self.__class__(self._singles_mask_ & ~self._value_)
-        if isinstance(self._inverted_, self.__class__):
-            self._inverted_._inverted_ = self
+        if self._boundary_ in (EJECT, KEEP):
+            self._inverted_ = self.__class__(~self._value_)
+        else:
+            self._inverted_ = self.__class__(self._singles_mask_ & ~self._value_)
     return self._inverted_
 
 flag_dict['__ror__'] = __or__

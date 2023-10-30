@@ -4223,6 +4223,66 @@ class TestFlag(TestCase):
             CE = 1<<19
         self.Open = Open
 
+    def test_closed_invert_expectations(self):
+        class ClosedAB(Flag):
+            A = 1
+            B = 2
+            MASK = 3
+        A, B = ClosedAB
+        AB_MASK = ClosedAB.MASK
+        #
+        self.assertIs(~A, B)
+        self.assertIs(ClosedAB(~1), B)
+        self.assertIs(~AB_MASK, ClosedAB(0))
+        self.assertIs(ClosedAB(~3), ClosedAB(0))
+        self.assertIs(ClosedAB(~0), A|B)
+        self.assertIs(~(A|B), ClosedAB(0))
+        #
+        class ClosedXYZ(Flag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 7
+        X, Y, Z = ClosedXYZ
+        XYZ_MASK = ClosedXYZ.MASK
+        #
+        self.assertIs(~X, Y|Z)
+        self.assertIs(ClosedXYZ(~4), Y|Z)
+        self.assertIs(~XYZ_MASK, ClosedXYZ(0))
+        self.assertIs(ClosedXYZ(~7), ClosedXYZ(0))
+        self.assertIs(ClosedXYZ(~0), X|Y|Z)
+        self.assertIs(~(X|Y|Z), ClosedXYZ(0))
+
+    def test_open_invert_expectations(self):
+        class OpenAB(Flag):
+            A = 1
+            B = 2
+            MASK = 7
+        A, B = OpenAB
+        AB_MASK = OpenAB.MASK
+        #
+        self.assertIs(~A, B)
+        self.assertIs(OpenAB(~1), B)
+        self.assertIs(~AB_MASK, OpenAB(0))
+        self.assertIs(OpenAB(~3), OpenAB(0))
+        self.assertIs(OpenAB(~0), A|B)
+        self.assertIs(~(A|B), OpenAB(0))
+        #
+        class OpenXYZ(Flag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 31
+        X, Y, Z = OpenXYZ
+        XYZ_MASK = OpenXYZ.MASK
+        #
+        self.assertIs(~X, Y|Z)
+        self.assertIs(OpenXYZ(~4), Y|Z)
+        self.assertIs(~XYZ_MASK, OpenXYZ(0))
+        self.assertIs(OpenXYZ(~7), OpenXYZ(0))
+        self.assertIs(OpenXYZ(~0), X|Y|Z)
+        self.assertIs(~(X|Y|Z), OpenXYZ(0))
+
     def test_set_name(self):
         class Descriptor(object):
             name = None
@@ -5323,6 +5383,90 @@ class TestFlag(TestCase):
         self.assertEqual(Perm.MSB64, Perm(0x8000000000000000))
         self.assertEqual(Perm.MSB64|Perm.WRITE, Perm(0x8000000000000002))
 
+    def test_closed_invert_expectations(self):
+        class ClosedAB(Flag):
+            A = 1
+            B = 2
+            MASK = 3
+        A, B = ClosedAB
+        AB_MASK = ClosedAB.MASK
+        #
+        self.assertIs(~A, B)
+        self.assertIs(~B, A)
+        self.assertIs(~(A|B), ClosedAB(0))
+        self.assertIs(~AB_MASK, ClosedAB(0))
+        self.assertIs(~ClosedAB(0), (A|B))
+        #
+        class ClosedXYZ(Flag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 7
+        X, Y, Z = ClosedXYZ
+        XYZ_MASK = ClosedXYZ.MASK
+        #
+        self.assertIs(~X, Y|Z)
+        self.assertIs(~Y, X|Z)
+        self.assertIs(~Z, X|Y)
+        self.assertIs(~(X|Y), Z)
+        self.assertIs(~(X|Z), Y)
+        self.assertIs(~(Y|Z), X)
+        self.assertIs(~(X|Y|Z), ClosedXYZ(0))
+        self.assertIs(~XYZ_MASK, ClosedXYZ(0))
+        self.assertIs(~ClosedXYZ(0), (X|Y|Z))
+
+    def test_open_invert_expectations(self):
+        class OpenAB(Flag):
+            A = 1
+            B = 2
+            MASK = 255
+        A, B = OpenAB
+        AB_MASK = OpenAB.MASK
+        #
+        if OpenAB._boundary_ in (EJECT, KEEP):
+            self.assertIs(~A, OpenAB(254))
+            self.assertIs(~B, OpenAB(253))
+            self.assertIs(~(A|B), OpenAB(252))
+            self.assertIs(~AB_MASK, OpenAB(0))
+            self.assertIs(~OpenAB(0), AB_MASK)
+        else:
+            self.assertIs(~A, B)
+            self.assertIs(~B, A)
+            self.assertIs(~(A|B), OpenAB(0))
+            self.assertIs(~AB_MASK, OpenAB(0))
+            self.assertIs(~OpenAB(0), (A|B))
+        #
+        class OpenXYZ(Flag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 31
+        X, Y, Z = OpenXYZ
+        XYZ_MASK = OpenXYZ.MASK
+        #
+        if OpenXYZ._boundary_ in (EJECT, KEEP):
+            self.assertIs(~X, OpenXYZ(27))
+            self.assertIs(~Y, OpenXYZ(29))
+            self.assertIs(~Z, OpenXYZ(30))
+            self.assertIs(~(X|Y), OpenXYZ(25))
+            self.assertIs(~(X|Z), OpenXYZ(26))
+            self.assertIs(~(Y|Z), OpenXYZ(28))
+            self.assertIs(~(X|Y|Z), OpenXYZ(24))
+            self.assertIs(~XYZ_MASK, OpenXYZ(0))
+            self.assertTrue(~OpenXYZ(0), XYZ_MASK)
+        else:
+            self.assertIs(~X, Y|Z)
+            self.assertIs(~Y, X|Z)
+            self.assertIs(~Z, X|Y)
+            self.assertIs(~(X|Y), Z)
+            self.assertIs(~(X|Z), Y)
+            self.assertIs(~(Y|Z), X)
+            self.assertIs(~(X|Y|Z), OpenXYZ(0))
+            self.assertIs(~XYZ_MASK, OpenXYZ(0))
+            self.assertTrue(~OpenXYZ(0), (X|Y|Z))
+
+
+
 
 class TestIntFlag(TestCase):
     """Tests of the IntFlags."""
@@ -5353,6 +5497,66 @@ class TestIntFlag(TestCase):
         self.Perm = Perm
         self.Color = Color
         self.Open = Open
+
+    def test_closed_invert_expectations(self):
+        class ClosedAB(IntFlag):
+            A = 1
+            B = 2
+            MASK = 3
+        A, B = ClosedAB
+        AB_MASK = ClosedAB.MASK
+        #
+        self.assertIs(~A, B)
+        self.assertIs(ClosedAB(~1), B)
+        self.assertIs(~AB_MASK, ClosedAB(0))
+        self.assertIs(ClosedAB(~3), ClosedAB(0))
+        self.assertIs(ClosedAB(~0), A|B)
+        self.assertIs(~(A|B), ClosedAB(0))
+        #
+        class ClosedXYZ(IntFlag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 7
+        X, Y, Z = ClosedXYZ
+        XYZ_MASK = ClosedXYZ.MASK
+        #
+        self.assertIs(~X, Y|Z)
+        self.assertIs(ClosedXYZ(~4), Y|Z)
+        self.assertIs(~XYZ_MASK, ClosedXYZ(0))
+        self.assertIs(ClosedXYZ(~7), ClosedXYZ(0))
+        self.assertIs(ClosedXYZ(~0), X|Y|Z)
+        self.assertIs(~(X|Y|Z), ClosedXYZ(0))
+
+    def test_open_invert_expectations(self):
+        class OpenAB(IntFlag):
+            A = 1
+            B = 2
+            MASK = 7
+        A, B = OpenAB
+        AB_MASK = OpenAB.MASK
+        #
+        self.assertIs(~A, B)
+        self.assertIs(OpenAB(~1), B)
+        self.assertIs(~AB_MASK, OpenAB(0))
+        self.assertIs(OpenAB(~3), OpenAB(0))
+        self.assertIs(OpenAB(~0), A|B)
+        self.assertIs(~(A|B), OpenAB(0))
+        #
+        class OpenXYZ(IntFlag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 31
+        X, Y, Z = OpenXYZ
+        XYZ_MASK = OpenXYZ.MASK
+        #
+        self.assertIs(~X, Y|Z)
+        self.assertIs(OpenXYZ(~4), Y|Z)
+        self.assertIs(~XYZ_MASK, OpenXYZ(0))
+        self.assertIs(OpenXYZ(~7), OpenXYZ(0))
+        self.assertIs(OpenXYZ(~0), X|Y|Z)
+        self.assertIs(~(X|Y|Z), OpenXYZ(0))
 
     def test_set_name(self):
         class Descriptor(object):
@@ -6043,6 +6247,88 @@ class TestIntFlag(TestCase):
         self.assertEqual(WhereEnum.__dict__['_test2'], 'OurEnum')
         self.assertFalse(NeverEnum.__dict__.get('_test1', False))
         self.assertFalse(NeverEnum.__dict__.get('_test2', False))
+
+    def test_closed_invert_expectations(self):
+        class ClosedAB(IntFlag):
+            A = 1
+            B = 2
+            MASK = 3
+        A, B = ClosedAB
+        AB_MASK = ClosedAB.MASK
+        #
+        self.assertIs(~A, B)
+        self.assertIs(~B, A)
+        self.assertIs(~(A|B), ClosedAB(0))
+        self.assertIs(~AB_MASK, ClosedAB(0))
+        self.assertIs(~ClosedAB(0), (A|B))
+        #
+        class ClosedXYZ(IntFlag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 7
+        X, Y, Z = ClosedXYZ
+        XYZ_MASK = ClosedXYZ.MASK
+        #
+        self.assertIs(~X, Y|Z)
+        self.assertIs(~Y, X|Z)
+        self.assertIs(~Z, X|Y)
+        self.assertIs(~(X|Y), Z)
+        self.assertIs(~(X|Z), Y)
+        self.assertIs(~(Y|Z), X)
+        self.assertIs(~(X|Y|Z), ClosedXYZ(0))
+        self.assertIs(~XYZ_MASK, ClosedXYZ(0))
+        self.assertIs(~ClosedXYZ(0), (X|Y|Z))
+
+    def test_open_invert_expectations(self):
+        class OpenAB(IntFlag):
+            A = 1
+            B = 2
+            MASK = 255
+        A, B = OpenAB
+        AB_MASK = OpenAB.MASK
+        #
+        if OpenAB._boundary_ in (EJECT, KEEP):
+            self.assertIs(~A, OpenAB(254))
+            self.assertIs(~B, OpenAB(253))
+            self.assertIs(~(A|B), OpenAB(252))
+            self.assertIs(~AB_MASK, OpenAB(0))
+            self.assertIs(~OpenAB(0), AB_MASK)
+        else:
+            self.assertIs(~A, B)
+            self.assertIs(~B, A)
+            self.assertIs(~(A|B), OpenAB(0))
+            self.assertIs(~AB_MASK, OpenAB(0))
+            self.assertIs(~OpenAB(0), (A|B))
+        #
+        class OpenXYZ(IntFlag):
+            X = 4
+            Y = 2
+            Z = 1
+            MASK = 31
+        X, Y, Z = OpenXYZ
+        XYZ_MASK = OpenXYZ.MASK
+        #
+        if OpenXYZ._boundary_ in (EJECT, KEEP):
+            self.assertIs(~X, OpenXYZ(27))
+            self.assertIs(~Y, OpenXYZ(29))
+            self.assertIs(~Z, OpenXYZ(30))
+            self.assertIs(~(X|Y), OpenXYZ(25))
+            self.assertIs(~(X|Z), OpenXYZ(26))
+            self.assertIs(~(Y|Z), OpenXYZ(28))
+            self.assertIs(~(X|Y|Z), OpenXYZ(24))
+            self.assertIs(~XYZ_MASK, OpenXYZ(0))
+            self.assertTrue(~OpenXYZ(0), XYZ_MASK)
+        else:
+            self.assertIs(~X, Y|Z)
+            self.assertIs(~Y, X|Z)
+            self.assertIs(~Z, X|Y)
+            self.assertIs(~(X|Y), Z)
+            self.assertIs(~(X|Z), Y)
+            self.assertIs(~(Y|Z), X)
+            self.assertIs(~(X|Y|Z), OpenXYZ(0))
+            self.assertIs(~XYZ_MASK, OpenXYZ(0))
+            self.assertTrue(~OpenXYZ(0), (X|Y|Z))
 
 
 class TestEmptyAndNonLatinStrings(unittest.TestCase):
@@ -7017,7 +7303,7 @@ class TestExtendEnum(TestCase):
         self.assertEqual(Color.BLACK.name, 'BLACK')
         self.assertEqual(Color.BLACK.value, 'black')
         self.assertEqual(len(Color), 4)
-
+        
 
 class TestIssues(TestCase):
 

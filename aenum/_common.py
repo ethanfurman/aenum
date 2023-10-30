@@ -6,7 +6,7 @@ __all__ = [
         '_rshift_', '_mod_', '_mul_', '_neg_', '_pos_', '_pow_', '_truediv_', '_sub_',
         'unicode', 'basestring', 'baseinteger', 'long', 'NoneType', '_Addendum',
         'is_descriptor', 'is_dunder', 'is_sunder', 'is_internal_class', 'is_private_name',
-        'get_attr_from_chain', '_value', 'constant',
+        'get_attr_from_chain', '_value', 'constant', 'undefined',
         'make_class_unpicklable', 'bltin_property',
         'skip', 'nonmember', 'member', 'Member', 'NonMember', 'OrderedDict',
         ]
@@ -79,6 +79,14 @@ try:
     NoneType
 except NameError:
     NoneType = type(None)
+
+class undefined(object):
+    def __repr__(self):
+        return 'undefined'
+    def __bool__(self):
+        return False
+    __nonzero__ = __bool__
+undefined = undefined()
 
 class _Addendum(object):
     def __init__(self, dict, doc, ns):

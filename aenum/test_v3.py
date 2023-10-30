@@ -2005,5 +2005,11 @@ class TestExtendEnumV3(TestCase):
         self.assertEqual(len(Color), 4)
 
 
+    def test_extend_error(self):
+        class MyEnum(Enum, init="var1 var2"):
+            pass
+        self.assertRaisesRegex(TypeError, 'missing value for: .var2.', extend_enum, MyEnum, "NEW_MEMBER", "my_var1")
+
+
 if __name__ == '__main__':
     raise RuntimeError("'test_v3.py' should not be run by itself; it's included in 'test.py'")

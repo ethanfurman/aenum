@@ -66,13 +66,6 @@ class _TupleAttributeAtIndex(object):
         return '%s(%d)' % (self.__class__.__name__, self.index)
 
 
-class undefined(object):
-    def __repr__(self):
-        return 'undefined'
-    def __bool__(self):
-        return False
-    __nonzero__ = __bool__
-undefined = undefined()
 
 
 class TupleSize(NamedConstant):
