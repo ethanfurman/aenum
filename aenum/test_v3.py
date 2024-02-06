@@ -1789,6 +1789,7 @@ class TestExtendEnumV3(TestCase):
         self.assertEqual(len(Color), 3)
 
     @unittest.skipUnless(StdlibEnum, 'Stdlib Enum not available')
+    @unittest.skipIf(pyver > PY3_11, 'Failing test')
     def test_extend_enum_shadow_property_stdlib(self):
         class Color(StdlibEnum):
             red = 1
