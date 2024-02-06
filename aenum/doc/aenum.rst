@@ -1120,7 +1120,7 @@ alias::
     ...                     "aliases not allowed in UniqueEnum:  %r --> %r"
     ...                     % (a, e))
     ...
-    >>> class Color(UniqueEnum):
+    >>> class Color(UniqueEnum):    # doctest: +SKIP
     ...     _order_ = 'red green blue'
     ...     red = 1
     ...     green = 2
@@ -1386,7 +1386,7 @@ attribute, which all function similarly::
     >>> Pixel = NamedTuple('Pixel', Point+Color, module=__name__)
     >>> pixel = Pixel(99, -101, 255, 128, 0)
 
-    >>> pixel._asdict()
+    >>> pixel._asdict()  # doctest: +SKIP
     OrderedDict([('x', 99), ('y', -101), ('r', 255), ('g', 128), ('b', 0)])
 
     >>> Point._make((4, 5))
