@@ -74,7 +74,7 @@ class TupleSize(NamedConstant):
     variable = constant('variable', 'tuple length can be anything')
 
 class NamedTupleMeta(type):
-    """Metaclass for NamedTuple"""
+    "Metaclass for NamedTuple"
 
     @classmethod
     def __prepare__(metacls, cls, bases, size=undefined, **kwds):

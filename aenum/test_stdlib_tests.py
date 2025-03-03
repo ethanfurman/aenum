@@ -123,7 +123,7 @@ def test_pickle_exception(assertion, exception, obj):
             dumps(obj, protocol=protocol)
 
 class TestHelpers(unittest.TestCase):
-    # _is_descriptor, _is_sunder, _is_dunder
+    # is_descriptor, is_sunder, is_dunder
 
     sunder_names = '_bad_', '_good_', '_what_ho_'
     dunder_names = '__mal__', '__bien__', '__que_que__'
@@ -136,38 +136,38 @@ class TestHelpers(unittest.TestCase):
             pass
         for attr in ('__get__','__set__','__delete__'):
             obj = foo()
-            self.assertFalse(enum._is_descriptor(obj))
+            self.assertFalse(enum.is_descriptor(obj))
             setattr(obj, attr, 1)
-            self.assertTrue(enum._is_descriptor(obj))
+            self.assertTrue(enum.is_descriptor(obj))
 
     def test_sunder(self):
         for name in self.sunder_names + self.private_and_sunder_names:
-            self.assertTrue(enum._is_sunder(name), '%r is a not sunder name?' % name)
+            self.assertTrue(enum.is_sunder(name), '%r is a not sunder name?' % name)
         for name in self.dunder_names + self.private_names + self.random_names:
-            self.assertFalse(enum._is_sunder(name), '%r is a sunder name?' % name)
+            self.assertFalse(enum.is_sunder(name), '%r is a sunder name?' % name)
         for s in ('_a_', '_aa_'):
-            self.assertTrue(enum._is_sunder(s))
+            self.assertTrue(enum.is_sunder(s))
         for s in ('a', 'a_', '_a', '__a', 'a__', '__a__', '_a__', '__a_', '_',
                 '__', '___', '____', '_____',):
-            self.assertFalse(enum._is_sunder(s))
+            self.assertFalse(enum.is_sunder(s))
 
     def test_dunder(self):
         for name in self.dunder_names:
-            self.assertTrue(enum._is_dunder(name), '%r is a not dunder name?' % name)
+            self.assertTrue(enum.is_dunder(name), '%r is a not dunder name?' % name)
         for name in self.sunder_names + self.private_names + self.private_and_sunder_names + self.random_names:
-            self.assertFalse(enum._is_dunder(name), '%r is a dunder name?' % name)
+            self.assertFalse(enum.is_dunder(name), '%r is a dunder name?' % name)
         for s in ('__a__', '__aa__'):
-            self.assertTrue(enum._is_dunder(s))
+            self.assertTrue(enum.is_dunder(s))
         for s in ('a', 'a_', '_a', '__a', 'a__', '_a_', '_a__', '__a_', '_',
                 '__', '___', '____', '_____',):
-            self.assertFalse(enum._is_dunder(s))
+            self.assertFalse(enum.is_dunder(s))
 
 
     def test_is_private(self):
         for name in self.private_names + self.private_and_sunder_names:
-            self.assertTrue(enum._is_private('MyEnum', name), '%r is a not private name?')
+            self.assertTrue(enum.is_private('MyEnum', name), '%r is a not private name?')
         for name in self.sunder_names + self.dunder_names + self.random_names:
-            self.assertFalse(enum._is_private('MyEnum', name), '%r is a private name?')
+            self.assertFalse(enum.is_private('MyEnum', name), '%r is a private name?')
 
     def test_iter_bits_lsb(self):
         self.assertEqual(list(_iter_bits_lsb(7)), [1, 2, 4])
@@ -1404,7 +1404,7 @@ class TestSpecial(unittest.TestCase):
         class ReplaceGlobalInt(IntEnum):
             ONE = 1
             TWO = 2
-        ReplaceGlobalInt.__reduce_ex__ = enum._reduce_ex_by_global_name
+        ReplaceGlobalInt.__reduce_ex__ = enum._reduce_ex_by_name
         for proto in range(HIGHEST_PROTOCOL):
             self.assertEqual(ReplaceGlobalInt.TWO.__reduce_ex__(proto), 'TWO')
 
@@ -1413,7 +1413,7 @@ class TestSpecial(unittest.TestCase):
                 'BadPickle', 'dill sweet bread-n-butter', module=__name__)
         globals()['BadPickle'] = BadPickle
         # now break BadPickle to test exception raising
-        enum._make_class_unpicklable(BadPickle)
+        enum.make_class_unpicklable(BadPickle)
         test_pickle_exception(self.assertRaises, TypeError, BadPickle.dill)
         test_pickle_exception(self.assertRaises, PicklingError, BadPickle)
 
@@ -3979,21 +3979,21 @@ class TestInternals(unittest.TestCase):
 
     def test_sunder(self):
         for name in self.sunder_names + self.private_and_sunder_names:
-            self.assertTrue(enum._is_sunder(name), '%r is a not sunder name?' % name)
+            self.assertTrue(enum.is_sunder(name), '%r is a not sunder name?' % name)
         for name in self.dunder_names + self.private_names + self.random_names:
-            self.assertFalse(enum._is_sunder(name), '%r is a sunder name?' % name)
+            self.assertFalse(enum.is_sunder(name), '%r is a sunder name?' % name)
 
     def test_dunder(self):
         for name in self.dunder_names:
-            self.assertTrue(enum._is_dunder(name), '%r is a not dunder name?' % name)
+            self.assertTrue(enum.is_dunder(name), '%r is a not dunder name?' % name)
         for name in self.sunder_names + self.private_names + self.private_and_sunder_names + self.random_names:
-            self.assertFalse(enum._is_dunder(name), '%r is a dunder name?' % name)
+            self.assertFalse(enum.is_dunder(name), '%r is a dunder name?' % name)
 
     def test_is_private(self):
         for name in self.private_names + self.private_and_sunder_names:
-            self.assertTrue(enum._is_private('MyEnum', name), '%r is a not private name?')
+            self.assertTrue(enum.is_private('MyEnum', name), '%r is a not private name?')
         for name in self.sunder_names + self.dunder_names + self.random_names:
-            self.assertFalse(enum._is_private('MyEnum', name), '%r is a private name?')
+            self.assertFalse(enum.is_private('MyEnum', name), '%r is a private name?')
 
     def test_auto_number(self):
         class Color(Enum):
@@ -4175,11 +4175,12 @@ class TestEnumTypeSubclassing(unittest.TestCase):
 expected_help_output_with_docs = """\
 Help on class Color in module %s:
 
-class Color(enum.Enum)
+class Color(aenum._enum.Enum)
  |  Color(*values)
  |
  |  Method resolution order:
  |      Color
+ |      aenum._enum.Enum
  |      enum.Enum
  |      builtins.object
  |
@@ -4192,7 +4193,7 @@ class Color(enum.Enum)
  |  YELLOW = <Color.YELLOW: 3>
  |
  |  ----------------------------------------------------------------------
- |  Data descriptors inherited from enum.Enum:
+ |  Data descriptors inherited from aenum._enum.Enum:
  |
  |  name
  |      The name of the Enum member.
@@ -4201,26 +4202,26 @@ class Color(enum.Enum)
  |      The value of the Enum member.
  |
  |  ----------------------------------------------------------------------
- |  Methods inherited from enum.EnumType:
+ |  Methods inherited from aenum._enum.EnumType:
  |
- |  __contains__(value) from enum.EnumType
+ |  __contains__(value) from aenum._enum.EnumType
  |      Return True if `value` is in `cls`.
  |
  |      `value` is in `cls` if:
  |      1) `value` is a member of `cls`, or
  |      2) `value` is the value of one of the `cls`'s members.
  |
- |  __getitem__(name) from enum.EnumType
+ |  __getitem__(name) from aenum._enum.EnumType
  |      Return the member matching `name`.
  |
- |  __iter__() from enum.EnumType
+ |  __iter__() from aenum._enum.EnumType
  |      Return members in definition order.
  |
- |  __len__() from enum.EnumType
+ |  __len__() from aenum._enum.EnumType
  |      Return the number of members (no aliases)
  |
  |  ----------------------------------------------------------------------
- |  Readonly properties inherited from enum.EnumType:
+ |  Readonly properties inherited from aenum._enum.EnumType:
  |
  |  __members__
  |      Returns a mapping of member name->value.
@@ -4231,11 +4232,12 @@ class Color(enum.Enum)
 expected_help_output_without_docs = """\
 Help on class Color in module %s:
 
-class Color(enum.Enum)
+class Color(aenum._enum.Enum)
  |  Color(*values)
  |
  |  Method resolution order:
  |      Color
+ |      aenum._enum.Enum
  |      enum.Enum
  |      builtins.object
  |
@@ -4248,14 +4250,14 @@ class Color(enum.Enum)
  |  CYAN = <Color.CYAN: 1>
  |
  |  ----------------------------------------------------------------------
- |  Data descriptors inherited from enum.Enum:
+ |  Data descriptors inherited from aenum._enum.Enum:
  |
  |  name
  |
  |  value
  |
  |  ----------------------------------------------------------------------
- |  Data descriptors inherited from enum.EnumType:
+ |  Data descriptors inherited from aenum._enum.EnumType:
  |
  |  __members__"""
 
@@ -4603,7 +4605,7 @@ def member_dir(member):
                     allowed.add(name)
                 else:
                     allowed.discard(name)
-            else:
+            elif name not in memmber._member_map_:
                 allowed.add(name)
     return sorted(allowed)
 

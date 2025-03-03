@@ -217,14 +217,14 @@ class property(base):
         return result
 
     def setter(self, fset):
-        fdoc = fget.__doc__ if self.overwrite_doc else None
-        result = type(self)(self.fget, fset, self.fdel, self.__doc__)
+        fdoc = fset.__doc__ if self.overwrite_doc else None
+        result = type(self)(self.fget, fset, self.fdel, fdoc or self.__doc__)
         result.overwrite_doc = self.__doc__ is None
         return result
 
     def deleter(self, fdel):
-        fdoc = fget.__doc__ if self.overwrite_doc else None
-        result = type(self)(self.fget, self.fset, fdel, self.__doc__)
+        fdoc = fdel.__doc__ if self.overwrite_doc else None
+        result = type(self)(self.fget, self.fset, fdel, fdoc or self.__doc__)
         result.overwrite_doc = self.__doc__ is None
         return result
 
@@ -1871,7 +1871,10 @@ class EnumType(type):
     __nonzero__ = __bool__
 
     def __repr__(cls):
-        return "<aenum %r>" % (cls.__name__, )
+        if Enum is not None and isinstance(cls, Enum):
+            return "<enum %r>" % (cls.__name__, )
+        elif Flag is not None and isinstance(cls, Flag):
+            return "<flag %r>" % (cls.__name__, )
 
     def __setattr__(cls, name, value):
         """Block attempts to reassign Enum members/constants.
@@ -2298,14 +2301,14 @@ if PY3:
     @enum_dict
     def __dir__(self):
         """
-        Returns all members and all public methods
+        Returns all public methods
         """
         if self.__class__._member_type_ is object:
             interesting = set(['__class__', '__doc__', '__eq__', '__hash__', '__module__'])
         else:
             interesting = set(n for n in object.__dir__(self) if n not in self._member_map_)
         for name in getattr(self, '__dict__', []):
-            if name[0] != '_':
+            if name[0] != '_' and name not in self._member_map_:
                 interesting.add(name)
         for cls in self.__class__.mro():
             for name, obj in cls.__dict__.items():
@@ -2728,7 +2731,7 @@ def extend_enum(enumeration, name, *args, **kwds):
             if missed:
                 raise TypeError(
                         'invalid Flag %r -- missing values: %s'
-                        % (cls, ', '.join((str(i) for i in missed)))
+                        % (enumeration.__name__, ', '.join((str(i) for i in missed)))
                         )
     # If another member with the same value was already defined, the
     # new member becomes an alias to the existing one.
