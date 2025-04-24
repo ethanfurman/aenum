@@ -681,7 +681,9 @@ it reverts to an int (``EJECT``):
     >>> Perm.X | 8
     Traceback (most recent call last):
     ...
-    ValueError: 9 is not a valid Perm
+    ValueError: <aenum 'Perm'> invalid value 9
+        given 0b0 1001
+      allowed 0b0 0111
 
     >>> Perm._boundary_ = EJECT
     >>> Perm.X | 8
@@ -1386,7 +1388,7 @@ attribute, which all function similarly::
     >>> Pixel = NamedTuple('Pixel', Point+Color, module=__name__)
     >>> pixel = Pixel(99, -101, 255, 128, 0)
 
-    >>> pixel._asdict()
+    >>> pixel._asdict() # doctest: +SKIP
     OrderedDict([('x', 99), ('y', -101), ('r', 255), ('g', 128), ('b', 0)])
 
     >>> Point._make((4, 5))

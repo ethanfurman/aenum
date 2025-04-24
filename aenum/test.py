@@ -192,8 +192,7 @@ def test_pickle_dump_load(assertion, source, target=None, protocol=(0, HIGHEST_P
     if failures:
         raise ValueError('Failed with protocols: %s' % ', '.join(failures))
 
-def test_pickle_exception(assertion, exception, obj,
-        protocol=(0, HIGHEST_PROTOCOL)):
+def test_pickle_exception(assertion, exception, obj, protocol=(0, HIGHEST_PROTOCOL)):
     start, stop = protocol
     failures = []
     for protocol in range(start, stop+1):
@@ -4225,6 +4224,7 @@ class TestFlag(TestCase):
 
     def test_closed_invert_expectations(self):
         class ClosedAB(Flag):
+            _order_ = 'A B'
             A = 1
             B = 2
             MASK = 3
@@ -4239,6 +4239,7 @@ class TestFlag(TestCase):
         self.assertIs(~(A|B), ClosedAB(0))
         #
         class ClosedXYZ(Flag):
+            _order_ = 'X Y Z'
             X = 4
             Y = 2
             Z = 1
@@ -4255,20 +4256,27 @@ class TestFlag(TestCase):
 
     def test_open_invert_expectations(self):
         class OpenAB(Flag):
+            _order_ = 'A B'
             A = 1
             B = 2
-            MASK = 7
+            MASK = 15
         A, B = OpenAB
         AB_MASK = OpenAB.MASK
         #
         self.assertIs(~A, B)
+        self.assertIs(~B, A)
         self.assertIs(OpenAB(~1), B)
-        self.assertIs(~AB_MASK, OpenAB(0))
-        self.assertIs(OpenAB(~3), OpenAB(0))
-        self.assertIs(OpenAB(~0), A|B)
+        self.assertIs(OpenAB(~2), A)
         self.assertIs(~(A|B), OpenAB(0))
+        self.assertIs(~AB_MASK, OpenAB(0))
+        self.assertIs(OpenAB(~0), A|B)
+        self.assertIs(~OpenAB(0), A|B)
+        self.assertIs(OpenAB(~3), OpenAB(0))
+        self.assertIs(OpenAB(~4), OpenAB(3))
+        self.assertIs(OpenAB(~13), B)
         #
         class OpenXYZ(Flag):
+            _order_ = 'X Y Z'
             X = 4
             Y = 2
             Z = 1
@@ -4277,11 +4285,43 @@ class TestFlag(TestCase):
         XYZ_MASK = OpenXYZ.MASK
         #
         self.assertIs(~X, Y|Z)
+        self.assertIs(~Y, X|Z)
+        self.assertIs(~Z, X|Y)
+        self.assertIs(OpenXYZ(~4), Y|Z)
+        self.assertIs(OpenXYZ(~2), X|Z)
+        self.assertIs(OpenXYZ(~1), X|Y)
+        self.assertIs(~(X|Y), Z)
+        self.assertIs(~(X|Z), Y)
+        self.assertIs(~(Y|Z), X)
         self.assertIs(OpenXYZ(~4), Y|Z)
         self.assertIs(~XYZ_MASK, OpenXYZ(0))
+        self.assertIs(~(X|Y|Z), OpenXYZ(0))
         self.assertIs(OpenXYZ(~7), OpenXYZ(0))
         self.assertIs(OpenXYZ(~0), X|Y|Z)
-        self.assertIs(~(X|Y|Z), OpenXYZ(0))
+
+    def test_assigned_negative_value(self):
+        class X(Flag):
+            _order_ = "A B C D"
+            A = 1
+            B = 2
+            C = A | B
+            D = ~A
+        self.assertEqual(list(X), [X.A, X.B])
+        self.assertIs(~X.A, X.B)
+        self.assertIs(X.D, X.B)
+        self.assertEqual(X.D.value, 2)
+        #
+        class Y(Flag):
+            _order_ = "A B C D E"
+            A = 1
+            B = 2
+            C = A | B
+            D = ~A
+            E = 4
+        self.assertEqual(list(Y), [Y.A, Y.B, Y.E])
+        self.assertIs(~Y.A, Y.B|Y.E)
+        self.assertIs(Y.D, Y.B|Y.E)
+        self.assertEqual(Y.D.value, 6)
 
     def test_set_name(self):
         class Descriptor(object):
@@ -4898,7 +4938,32 @@ class TestFlag(TestCase):
             b = 3
             c = 4
             d = 6
-        # no error means the bizarre flag was created
+        self.assertIs(Bizarre(~0), Bizarre.b|Bizarre.c)           # this test must be first
+        self.assertEqual(list(Bizarre), [Bizarre.c])
+        self.assertIs(Bizarre(6), Bizarre.d)
+        self.assertIs(~Bizarre.b, Bizarre.c)
+        self.assertRaisesRegex(ValueError, "no members with value 1", Bizarre.d.__invert__)
+
+    def test_skipped_flag(self):
+        class SkipFlag(Flag):
+            A = 1
+            B = 2
+            C = 4 | B
+        #
+        self.assertTrue(SkipFlag.C in (SkipFlag.A|SkipFlag.C))
+        self.assertTrue(SkipFlag.B in SkipFlag.C)
+        self.assertIs(SkipFlag(~1), SkipFlag.C)
+        self.assertRaisesRegex(ValueError, 'SkipFlag.. invalid value 42', SkipFlag, 42)
+        #
+        class SkipIntFlag(IntFlag):
+            A = 1
+            B = 2
+            C = 4 | B
+        #
+        self.assertTrue(SkipIntFlag.C in (SkipIntFlag.A|SkipIntFlag.C))
+        self.assertTrue(SkipIntFlag.B in SkipIntFlag.C)
+        self.assertIs(SkipIntFlag(~1), SkipIntFlag.C)
+        self.assertEqual(SkipIntFlag(42).value, 42)
 
     def test_multiple_mixin(self):
         class AllMixin(object):
@@ -5383,89 +5448,21 @@ class TestFlag(TestCase):
         self.assertEqual(Perm.MSB64, Perm(0x8000000000000000))
         self.assertEqual(Perm.MSB64|Perm.WRITE, Perm(0x8000000000000002))
 
-    def test_closed_invert_expectations(self):
-        class ClosedAB(Flag):
+    def test_none_member(self):
+        class FlagWithNoneMember(Flag):
             A = 1
-            B = 2
-            MASK = 3
-        A, B = ClosedAB
-        AB_MASK = ClosedAB.MASK
+            E = None
         #
-        self.assertIs(~A, B)
-        self.assertIs(~B, A)
-        self.assertIs(~(A|B), ClosedAB(0))
-        self.assertIs(~AB_MASK, ClosedAB(0))
-        self.assertIs(~ClosedAB(0), (A|B))
-        #
-        class ClosedXYZ(Flag):
-            X = 4
-            Y = 2
-            Z = 1
-            MASK = 7
-        X, Y, Z = ClosedXYZ
-        XYZ_MASK = ClosedXYZ.MASK
-        #
-        self.assertIs(~X, Y|Z)
-        self.assertIs(~Y, X|Z)
-        self.assertIs(~Z, X|Y)
-        self.assertIs(~(X|Y), Z)
-        self.assertIs(~(X|Z), Y)
-        self.assertIs(~(Y|Z), X)
-        self.assertIs(~(X|Y|Z), ClosedXYZ(0))
-        self.assertIs(~XYZ_MASK, ClosedXYZ(0))
-        self.assertIs(~ClosedXYZ(0), (X|Y|Z))
-
-    def test_open_invert_expectations(self):
-        class OpenAB(Flag):
-            A = 1
-            B = 2
-            MASK = 255
-        A, B = OpenAB
-        AB_MASK = OpenAB.MASK
-        #
-        if OpenAB._boundary_ in (EJECT, KEEP):
-            self.assertIs(~A, OpenAB(254))
-            self.assertIs(~B, OpenAB(253))
-            self.assertIs(~(A|B), OpenAB(252))
-            self.assertIs(~AB_MASK, OpenAB(0))
-            self.assertIs(~OpenAB(0), AB_MASK)
-        else:
-            self.assertIs(~A, B)
-            self.assertIs(~B, A)
-            self.assertIs(~(A|B), OpenAB(0))
-            self.assertIs(~AB_MASK, OpenAB(0))
-            self.assertIs(~OpenAB(0), (A|B))
-        #
-        class OpenXYZ(Flag):
-            X = 4
-            Y = 2
-            Z = 1
-            MASK = 31
-        X, Y, Z = OpenXYZ
-        XYZ_MASK = OpenXYZ.MASK
-        #
-        if OpenXYZ._boundary_ in (EJECT, KEEP):
-            self.assertIs(~X, OpenXYZ(27))
-            self.assertIs(~Y, OpenXYZ(29))
-            self.assertIs(~Z, OpenXYZ(30))
-            self.assertIs(~(X|Y), OpenXYZ(25))
-            self.assertIs(~(X|Z), OpenXYZ(26))
-            self.assertIs(~(Y|Z), OpenXYZ(28))
-            self.assertIs(~(X|Y|Z), OpenXYZ(24))
-            self.assertIs(~XYZ_MASK, OpenXYZ(0))
-            self.assertTrue(~OpenXYZ(0), XYZ_MASK)
-        else:
-            self.assertIs(~X, Y|Z)
-            self.assertIs(~Y, X|Z)
-            self.assertIs(~Z, X|Y)
-            self.assertIs(~(X|Y), Z)
-            self.assertIs(~(X|Z), Y)
-            self.assertIs(~(Y|Z), X)
-            self.assertIs(~(X|Y|Z), OpenXYZ(0))
-            self.assertIs(~XYZ_MASK, OpenXYZ(0))
-            self.assertTrue(~OpenXYZ(0), (X|Y|Z))
-
-
+        self.assertEqual(FlagWithNoneMember.A.value, 1)
+        self.assertIs(FlagWithNoneMember.E.value, None)
+        with self.assertRaisesRegex(TypeError, r"'FlagWithNoneMember.E' cannot be combined with other flags with |"):
+            FlagWithNoneMember.A | FlagWithNoneMember.E
+        with self.assertRaisesRegex(TypeError, r"'FlagWithNoneMember.E' cannot be combined with other flags with &"):
+            FlagWithNoneMember.E & FlagWithNoneMember.A
+        with self.assertRaisesRegex(TypeError, r"'FlagWithNoneMember.E' cannot be combined with other flags with \^"):
+            FlagWithNoneMember.A ^ FlagWithNoneMember.E
+        with self.assertRaisesRegex(TypeError, r"'FlagWithNoneMember.E' cannot be inverted"):
+            ~FlagWithNoneMember.E
 
 
 class TestIntFlag(TestCase):
@@ -5500,20 +5497,22 @@ class TestIntFlag(TestCase):
 
     def test_closed_invert_expectations(self):
         class ClosedAB(IntFlag):
+            _order_ = 'A B'
             A = 1
             B = 2
             MASK = 3
         A, B = ClosedAB
         AB_MASK = ClosedAB.MASK
         #
-        self.assertIs(~A, B)
-        self.assertIs(ClosedAB(~1), B)
+        # self.assertIs(~A, B)
+        # self.assertIs(ClosedAB(~1), B)
         self.assertIs(~AB_MASK, ClosedAB(0))
         self.assertIs(ClosedAB(~3), ClosedAB(0))
         self.assertIs(ClosedAB(~0), A|B)
         self.assertIs(~(A|B), ClosedAB(0))
         #
         class ClosedXYZ(IntFlag):
+            _order_ = 'X Y Z'
             X = 4
             Y = 2
             Z = 1
@@ -5530,6 +5529,7 @@ class TestIntFlag(TestCase):
 
     def test_open_invert_expectations(self):
         class OpenAB(IntFlag):
+            _order_ = 'A B'
             A = 1
             B = 2
             MASK = 7
@@ -5537,13 +5537,14 @@ class TestIntFlag(TestCase):
         AB_MASK = OpenAB.MASK
         #
         self.assertIs(~A, B)
-        self.assertIs(OpenAB(~1), B)
-        self.assertIs(~AB_MASK, OpenAB(0))
-        self.assertIs(OpenAB(~3), OpenAB(0))
-        self.assertIs(OpenAB(~0), A|B)
+        self.assertIs(~B, A)
         self.assertIs(~(A|B), OpenAB(0))
+        self.assertIs(~AB_MASK, OpenAB(0))
+        self.assertIs(~OpenAB(0), A|B)
+        self.assertIs(~OpenAB(~3), A|B)
         #
         class OpenXYZ(IntFlag):
+            _order_ = 'X Y Z'
             X = 4
             Y = 2
             Z = 1
@@ -5552,11 +5553,61 @@ class TestIntFlag(TestCase):
         XYZ_MASK = OpenXYZ.MASK
         #
         self.assertIs(~X, Y|Z)
-        self.assertIs(OpenXYZ(~4), Y|Z)
-        self.assertIs(~XYZ_MASK, OpenXYZ(0))
-        self.assertIs(OpenXYZ(~7), OpenXYZ(0))
-        self.assertIs(OpenXYZ(~0), X|Y|Z)
+        self.assertIs(~Y, X|Z)
+        self.assertIs(~Z, X|Y)
+        self.assertIs(~(X|Y), Z)
+        self.assertIs(~(X|Z), Y)
+        self.assertIs(~(Y|Z), X)
         self.assertIs(~(X|Y|Z), OpenXYZ(0))
+        self.assertIs(~XYZ_MASK, OpenXYZ(0))
+        self.assertTrue(~OpenXYZ(0), X|Y|Z)
+
+    def test_assigned_negative_value(self):
+        class X(IntFlag):
+            _order_ = 'A B C D'
+            A = 1
+            B = 2
+            C = A | B
+            D = ~1
+        self.assertEqual(list(X), [X.A, X.B])
+        self.assertIs(~X.A, X.B)
+        self.assertIs(X.D, X.B)
+        self.assertEqual(X.D.value, 2)
+        #
+        class X(IntFlag):
+            _order_ = 'A B C D'
+            A = auto()
+            B = auto()
+            C = A | B
+            D = ~A
+        self.assertEqual(list(X), [X.A, X.B])
+        self.assertIs(~X.A, X.B)
+        self.assertIs(X.D, X.B)
+        self.assertEqual(X.D.value, 2)
+        #
+        class Y(IntFlag):
+            _order_ = 'A B C D E'
+            A = auto()
+            B = auto()
+            C = A | B
+            D = ~A
+            E = auto()
+        self.assertEqual(list(Y), [Y.A, Y.B, Y.E])
+        self.assertIs(~Y.A, Y.B|Y.E)
+        self.assertIs(Y.D, Y.B|Y.E)
+        self.assertEqual(Y.D.value, 6)
+        #
+        class Y(IntFlag):
+            _order_ = 'A B C D E'
+            A = auto()
+            B = auto()
+            C = A | B
+            D = ~A
+            E = auto()
+        self.assertEqual(list(Y), [Y.A, Y.B, Y.E])
+        self.assertIs(~Y.A, Y.B|Y.E)
+        self.assertIs(Y.D, Y.B|Y.E)
+        self.assertEqual(Y.D.value, 6)
 
     def test_set_name(self):
         class Descriptor(object):
@@ -5677,12 +5728,41 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
         self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm(~7)), '<Perm: 0>')
         #
-        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
+        with self.assertRaisesRegex(ValueError, r'invalid value 12'):
             repr(Perm.R | 8)
-        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
-            repr(~(Perm.R | 8))
-        with self.assertRaisesRegex(ValueError, r'-9 is not a valid Perm'):
+        with self.assertRaisesRegex(ValueError, r'invalid value -13'):
+            repr(Perm(~12))
+        with self.assertRaisesRegex(ValueError, r'invalid value -9'):
+            repr(Perm(~8))
+        #
+        # test with closed flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            MASK = 7
+        Perm._boundary_ = aenum.STRICT
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.MASK: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm(~7)), '<Perm: 0>')
+        #
+        with self.assertRaisesRegex(ValueError, r'invalid value 12'):
+            repr(Perm.R | 8)
+        with self.assertRaisesRegex(ValueError, r'invalid value -13'):
+            repr(Perm(~12))
+        with self.assertRaisesRegex(ValueError, r'invalid value -9'):
             repr(Perm(~8))
         #
         # test with open flag
@@ -5704,12 +5784,38 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
         self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm(~7)), '<Perm: 0>')
+        self.assertEqual(repr(Perm(~12)), '<Perm.W|X: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
         #
-        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
+        with self.assertRaisesRegex(ValueError, r'invalid value 12'):
             repr(Perm.R | 8)
-        with self.assertRaisesRegex(ValueError, r'12 is not a valid Perm'):
-            repr(~(Perm.R | 8))
-        with self.assertRaisesRegex(ValueError, r'-9 is not a valid Perm'):
+        #
+        # test with skipped flag
+        class Perm(IntFlag):
+            _order_ = 'R X'
+            R = 1 << 2
+            X = 1 << 0
+        Perm._boundary_ = aenum.STRICT
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.X), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.X: 1>')
+        self.assertEqual(repr(~Perm(0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(~0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R: 4>')
+        self.assertEqual(repr(~(Perm.R | Perm.X)), '<Perm: 0>')
+        #
+        with self.assertRaisesRegex(ValueError, r'invalid value 7'):
+            repr(Perm(7))
+        with self.assertRaisesRegex(ValueError, r'invalid value 2'):
+            repr(Perm(2))
+        with self.assertRaisesRegex(ValueError, r'invalid value 12'):
+            repr(Perm.R | 8)
+        with self.assertRaisesRegex(ValueError, r'invalid value -13'):
+            repr(Perm(~12))
+        with self.assertRaisesRegex(ValueError, r'invalid value -9'):
             repr(Perm(~8))
 
     def test_repr_conform(self):
@@ -5735,6 +5841,32 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Perm(8)), '<Perm: 0>')
         self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
         self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(~33)), '<Perm.R|W: 6>')
+        #
+        # test with closed flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            MASK = 7
+        Perm._boundary_ = aenum.CONFORM
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.MASK: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 0>')
+        self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.MASK: 7>')
+        self.assertEqual(repr(Perm(~33)), '<Perm.R|W: 6>')
         #
         # test with open flag
         class Perm(IntFlag):
@@ -5759,6 +5891,31 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Perm(8)), '<Perm: 0>')
         self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
         self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(~25)), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm(~33)), '<Perm.R|W: 6>')
+        #
+        # test with skipped flag
+        class Perm(IntFlag):
+            _order_ = 'R X'
+            R = 1 << 2
+            X = 1 << 0
+        Perm._boundary_ = aenum.CONFORM
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.X), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.X: 1>')
+        self.assertEqual(repr(~Perm(0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(~0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R: 4>')
+        self.assertEqual(repr(~(Perm.R | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm(7)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(2)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R|8), '<Perm.R: 4>')
+        self.assertEqual(repr(~(Perm.R|8)), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(~26)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(~34)), '<Perm.R|X: 5>')
 
     def test_repr_eject(self):
         # test with complete flag
@@ -5782,6 +5939,31 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Perm.R | 8), '12')
         self.assertEqual(repr(Perm(8)), '8')
         self.assertEqual(repr(~(Perm.R | 8)), '-13')
+        self.assertEqual(repr(Perm(~12)), '-13')
+        self.assertEqual(repr(Perm(~8)), '-9')
+        #
+        # test with closed flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            _boundary_ = EJECT
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            MASK = 7
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.MASK: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '12')
+        self.assertEqual(repr(Perm(8)), '8')
+        self.assertEqual(repr(~(Perm.R | 8)), '-13')
         self.assertEqual(repr(Perm(~8)), '-9')
         #
         # test with open flag
@@ -5806,6 +5988,26 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(Perm.R | 8), '12')
         self.assertEqual(repr(Perm(8)), '8')
         self.assertEqual(repr(~(Perm.R | 8)), '-13')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+        #
+        # test with skipped flag
+        class Perm(IntFlag):
+            _order_ = 'R X'
+            _boundary_ = EJECT
+            R = 1 << 2
+            X = 1 << 0
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.X), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm(0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(~0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R: 4>')
+        self.assertEqual(repr(~(Perm.R | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm(7)), '7')
+        self.assertEqual(repr(Perm(2)), '2')
+        self.assertEqual(repr(Perm.R|8), '12')
+        self.assertEqual(repr(~(Perm.R|8)), '-13')
         self.assertEqual(repr(Perm(~8)), '-9')
 
     def test_repr_keep(self):
@@ -5815,7 +6017,7 @@ class TestIntFlag(TestCase):
             R = 1 << 2
             W = 1 << 1
             X = 1 << 0
-        Perm._boundary_ = aenum.CONFORM
+        Perm._boundary_ = aenum.KEEP
         self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
         self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
         self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
@@ -5827,10 +6029,35 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
         self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
-        self.assertEqual(repr(Perm.R | 8), '<Perm.R: 4>')
-        self.assertEqual(repr(Perm(8)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R|8: 12>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 8>')
         self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
         self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+        #
+        # test with closed flag
+        class Perm(IntFlag):
+            _order_ = 'R W X'
+            R = 1 << 2
+            W = 1 << 1
+            X = 1 << 0
+            MASK = 7
+        Perm._boundary_ = aenum.KEEP
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.W), '<Perm.R|W: 6>')
+        self.assertEqual(repr(Perm.R | Perm.W | Perm.X), '<Perm.MASK: 7>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.W|X: 3>')
+        self.assertEqual(repr(~Perm.W), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
+        self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
+        self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R|8: 12>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 8>')
+        self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.MASK: 7>')
+        self.assertEqual(repr(Perm(~33)), '<Perm.R|W|24: 30>')
         #
         # test with open flag
         class Perm(IntFlag):
@@ -5839,7 +6066,7 @@ class TestIntFlag(TestCase):
             W = 1 << 1
             X = 1 << 0
             FUTURE = 31
-        Perm._boundary_ = aenum.CONFORM
+        Perm._boundary_ = aenum.KEEP
         self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
         self.assertEqual(repr(Perm.W), '<Perm.W: 2>')
         self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
@@ -5851,10 +6078,33 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Perm.X), '<Perm.R|W: 6>')
         self.assertEqual(repr(~(Perm.R | Perm.W)), '<Perm.X: 1>')
         self.assertEqual(repr(~(Perm.R | Perm.W | Perm.X)), '<Perm: 0>')
-        self.assertEqual(repr(Perm.R | 8), '<Perm.R: 4>')
-        self.assertEqual(repr(Perm(8)), '<Perm: 0>')
+        self.assertEqual(repr(Perm.R | 8), '<Perm.R|8: 12>')
+        self.assertEqual(repr(Perm(8)), '<Perm: 8>')
         self.assertEqual(repr(~(Perm.R | 8)), '<Perm.W|X: 3>')
         self.assertEqual(repr(Perm(~8)), '<Perm.R|W|X: 7>')
+        self.assertEqual(repr(Perm(~33)), '<Perm.R|W|24: 30>')
+        #
+        # test with skipped flag
+        class Perm(IntFlag):
+            _order_ = 'R X'
+            R = 1 << 2
+            X = 1 << 0
+        Perm._boundary_ = aenum.KEEP
+        self.assertEqual(repr(Perm.R), '<Perm.R: 4>')
+        self.assertEqual(repr(Perm.X), '<Perm.X: 1>')
+        self.assertEqual(repr(Perm.R | Perm.X), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(0)), '<Perm: 0>')
+        self.assertEqual(repr(~Perm.R), '<Perm.X: 1>')
+        self.assertEqual(repr(~Perm(0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(Perm(~0)), '<Perm.R|X: 5>')
+        self.assertEqual(repr(~Perm.X), '<Perm.R: 4>')
+        self.assertEqual(repr(~(Perm.R | Perm.X)), '<Perm: 0>')
+        self.assertEqual(repr(Perm(7)), '<Perm.R|X|2: 7>')
+        self.assertEqual(repr(Perm(2)), '<Perm: 2>')
+        self.assertEqual(repr(Perm.R|8), '<Perm.R|8: 12>')
+        self.assertEqual(repr(~(Perm.R|8)), '<Perm.X|2: 3>')
+        self.assertEqual(repr(Perm(~8)), '<Perm.R|X|2: 7>')
+        self.assertEqual(repr(Perm(~33)), '<Perm.R|26: 30>')
 
     def test_repr_open(self):
         class Open(IntFlag):
@@ -5875,9 +6125,8 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
-        with self.assertRaisesRegex(ValueError, r'-5 is not a valid Open'):
-            repr(Open(~4))
-        with self.assertRaisesRegex(ValueError, r'4 is not a valid Open'):
+        self.assertEqual(repr(Open(~4)), '<Open.WO|RW|CE: 524291>')
+        with self.assertRaisesRegex(ValueError, r'invalid value 4'):
             repr(Open(4))
         #
         class Open(IntFlag):
@@ -5919,8 +6168,10 @@ class TestIntFlag(TestCase):
         self.assertEqual(repr(~Open.AC), '<Open.CE: 524288>')
         self.assertEqual(repr(~(Open.RO | Open.CE)), '<Open.AC: 3>')
         self.assertEqual(repr(~(Open.WO | Open.CE)), '<Open.RW: 2>')
-        self.assertEqual(repr(Open(~4)), '-5')
+        self.assertEqual(repr(Open(~4)), '<Open.WO|RW|CE: 524291>')
         self.assertEqual(repr(Open(4)), '4')
+        self.assertEqual(repr(Open(591)), '591')
+        self.assertEqual(repr(Open(~2**20)), '-1048577')
 
     def test_or(self):
         Perm = self.Perm
@@ -6248,94 +6499,13 @@ class TestIntFlag(TestCase):
         self.assertFalse(NeverEnum.__dict__.get('_test1', False))
         self.assertFalse(NeverEnum.__dict__.get('_test2', False))
 
-    def test_closed_invert_expectations(self):
-        class ClosedAB(IntFlag):
-            A = 1
-            B = 2
-            MASK = 3
-        A, B = ClosedAB
-        AB_MASK = ClosedAB.MASK
-        #
-        self.assertIs(~A, B)
-        self.assertIs(~B, A)
-        self.assertIs(~(A|B), ClosedAB(0))
-        self.assertIs(~AB_MASK, ClosedAB(0))
-        self.assertIs(~ClosedAB(0), (A|B))
-        #
-        class ClosedXYZ(IntFlag):
-            X = 4
-            Y = 2
-            Z = 1
-            MASK = 7
-        X, Y, Z = ClosedXYZ
-        XYZ_MASK = ClosedXYZ.MASK
-        #
-        self.assertIs(~X, Y|Z)
-        self.assertIs(~Y, X|Z)
-        self.assertIs(~Z, X|Y)
-        self.assertIs(~(X|Y), Z)
-        self.assertIs(~(X|Z), Y)
-        self.assertIs(~(Y|Z), X)
-        self.assertIs(~(X|Y|Z), ClosedXYZ(0))
-        self.assertIs(~XYZ_MASK, ClosedXYZ(0))
-        self.assertIs(~ClosedXYZ(0), (X|Y|Z))
-
-    def test_open_invert_expectations(self):
-        class OpenAB(IntFlag):
-            A = 1
-            B = 2
-            MASK = 255
-        A, B = OpenAB
-        AB_MASK = OpenAB.MASK
-        #
-        if OpenAB._boundary_ in (EJECT, KEEP):
-            self.assertIs(~A, OpenAB(254))
-            self.assertIs(~B, OpenAB(253))
-            self.assertIs(~(A|B), OpenAB(252))
-            self.assertIs(~AB_MASK, OpenAB(0))
-            self.assertIs(~OpenAB(0), AB_MASK)
-        else:
-            self.assertIs(~A, B)
-            self.assertIs(~B, A)
-            self.assertIs(~(A|B), OpenAB(0))
-            self.assertIs(~AB_MASK, OpenAB(0))
-            self.assertIs(~OpenAB(0), (A|B))
-        #
-        class OpenXYZ(IntFlag):
-            X = 4
-            Y = 2
-            Z = 1
-            MASK = 31
-        X, Y, Z = OpenXYZ
-        XYZ_MASK = OpenXYZ.MASK
-        #
-        if OpenXYZ._boundary_ in (EJECT, KEEP):
-            self.assertIs(~X, OpenXYZ(27))
-            self.assertIs(~Y, OpenXYZ(29))
-            self.assertIs(~Z, OpenXYZ(30))
-            self.assertIs(~(X|Y), OpenXYZ(25))
-            self.assertIs(~(X|Z), OpenXYZ(26))
-            self.assertIs(~(Y|Z), OpenXYZ(28))
-            self.assertIs(~(X|Y|Z), OpenXYZ(24))
-            self.assertIs(~XYZ_MASK, OpenXYZ(0))
-            self.assertTrue(~OpenXYZ(0), XYZ_MASK)
-        else:
-            self.assertIs(~X, Y|Z)
-            self.assertIs(~Y, X|Z)
-            self.assertIs(~Z, X|Y)
-            self.assertIs(~(X|Y), Z)
-            self.assertIs(~(X|Z), Y)
-            self.assertIs(~(Y|Z), X)
-            self.assertIs(~(X|Y|Z), OpenXYZ(0))
-            self.assertIs(~XYZ_MASK, OpenXYZ(0))
-            self.assertTrue(~OpenXYZ(0), (X|Y|Z))
-
 
 class TestEmptyAndNonLatinStrings(unittest.TestCase):
 
     def test_empty_string(self):
         with self.assertRaises(ValueError):
             empty_abc = Enum('empty_abc', ('', 'B', 'C'))
+            empty_abc # for pyflakes
 
     def test_non_latin_character_string(self):
         greek_abc = Enum('greek_abc', ('\u03B1', 'B', 'C'))

@@ -1,5 +1,6 @@
 try:
     import setuptools
+    setuptools
 except ImportError:
     pass
 from distutils.core import setup
@@ -104,6 +105,8 @@ data = dict(
             'Programming Language :: Python :: 3.9',
             'Programming Language :: Python :: 3.10',
             'Programming Language :: Python :: 3.11',
+            'Programming Language :: Python :: 3.12',
+            'Programming Language :: Python :: 3.13',
             ],
     )
 
@@ -115,7 +118,7 @@ make = [
 
 if __name__ == '__main__':
     if 'install' in sys.argv:
-        import os, sys
+        import os
         if sys.version_info[0] != 2:
             for file in py2_only:
                 try:

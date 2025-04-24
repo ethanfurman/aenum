@@ -3,6 +3,7 @@ from ._common import *
 from ._constant import NamedConstant
 from ._tuple import NamedTuple
 from collections import defaultdict
+import textwrap
 import sys as _sys
 
 __all__ = [
@@ -151,23 +152,27 @@ def _iter_bits_lsb(value):
         yield bit
         value ^= bit
 
-def bin(value, max_bits=None):
+def bin(value, max_bits=None, invert=False):
     """
-    Like built-in bin(), except negative values are represented in
-    twos-compliment, and the leading bit always indicates sign
-    (0=positive, 1=negative).
+    Like built-in bin(), except negative values are either represented
+    in twos-compliment with the leading bit indicating sign (0=positive, 1=negative),
+    or shown as positive with a sign bit of '~'.
 
     >>> bin(10)
     '0b0 1010'
     >>> bin(~10)   # ~10 is -11
     '0b1 0101'
+    >>> bin(~10, invert=True)   # ~10 is -11
+    '0b~ 1010'
     """
 
     ceiling = 2 ** (value).bit_length()
     if value >= 0:
         s = _bltin_bin(value + ceiling).replace('1', '0', 1)
-    else:
+    elif not invert:
         s = _bltin_bin(~value ^ (ceiling - 1) + ceiling)
+    else:
+        s = _bltin_bin(~value + ceiling).replace('1', '0', 1)
     sign = s[:3]
     digits = s[3:]
     if not digits:
@@ -175,6 +180,8 @@ def bin(value, max_bits=None):
     if max_bits is not None:
         if len(digits) < max_bits:
             digits = (sign[-1] * max_bits + digits)[-max_bits:]
+    if value < 0 and invert:
+        sign = sign[:2] + '~'
     return "%s %s" % (sign, digits)
 
 def show_flag_values(value):
@@ -188,6 +195,43 @@ except ImportError:
     base = object
     DynamicClassAttribute = None
 
+def info(enum):
+    """
+    show details about given enum/flag
+    """
+    text = textwrap.dedent("""\
+            %%r    member type: %(_member_type_)r    members: %%r
+            __new__:  %(_new_member_)r
+            use args: %(_use_args_)r
+            settings: %(_settings_)r
+            member names: %(_member_names_)r
+            start value:  %(_start_)r
+            auto init:    %(_auto_init_)r
+            new args:     %(_new_args_)r
+            auto args:    %(_auto_args_)r
+            ordering:     %(_order_function_)r
+            value repr:   %(_value_repr_)r
+            """ % enum.__dict__)
+    text %= (enum, len(enum))
+    if issubclass(enum, Flag):
+        max_bits = enum._all_bits_.bit_length()
+        text += textwrap.dedent("""\
+            boundary:     %(boundary)r
+            all bits:     %(all_bits)r   (%(iall_bits)r)
+            flag mask:    %(flag_mask)r   (%(iflag_mask)r)
+            singles mask: %(singles_mask)r   (%(isingles_mask)r)
+            """ % ({
+                'boundary': enum._boundary_,
+                'all_bits': bin(enum._all_bits_, max_bits=max_bits),
+                'iall_bits': enum._all_bits_,
+                'flag_mask': bin(enum._flag_mask_, max_bits=max_bits),
+                'iflag_mask': enum._flag_mask_,
+                'singles_mask': bin(enum._singles_mask_, max_bits=max_bits),
+                'isingles_mask': enum._singles_mask_,
+                }))
+    print(text)
+
+
 class property(base):
     """
     This is a descriptor, used to define attributes that act differently
@@ -198,6 +242,8 @@ class property(base):
 
     # inherit from DynamicClassAttribute if we can in order to get `inspect`
     # support
+
+    member = None
 
     def __init__(self, fget=None, fset=None, fdel=None, doc=None):
         self.fget = fget
@@ -229,20 +275,19 @@ class property(base):
         return result
 
     def __repr__(self):
-        member = self.ownerclass._member_map_.get(self.name)
         func = self.fget or self.fset or self.fdel
         strings = []
-        if member:
-            strings.append('%r' % member)
+        if self.member is not None:
+            strings.append('%r' % self.member)
         if func:
             strings.append('function=%s' % func.__name__)
         return 'property(%s)' % ', '.join(strings)
 
     def __get__(self, instance, ownerclass=None):
         if instance is None:
-            try:
-                return ownerclass._member_map_[self.name]
-            except KeyError:
+            if self.member is not None:
+                return self.member
+            else:
                 raise AttributeError(
                         '%r has no attribute %r' % (ownerclass, self.name)
                         )
@@ -291,7 +336,6 @@ class property(base):
     def __set_name__(self, ownerclass, name):
         self.name = name
         self.clsname = ownerclass.__name__
-        self.ownerclass = ownerclass
 
 _RouteClassAttributeToGetattr = property
 if DynamicClassAttribute is None:
@@ -434,6 +478,8 @@ class EnumConstants(NamedConstant):
     NoAlias = constant('noalias', 'duplicate valued members are distinct, not aliased')
     Unique = constant('unique', 'duplicate valued members are not allowed')
     def __repr__(self):
+        if self._name_ is None:
+            raise ValueError('EnumConstant for %r has no name' % self._value_)
         return self._name_
 
 
@@ -856,11 +902,12 @@ class _proto_member:
         enum_member.__init__(*init_args, **kwds)
         enum_member._sort_order_ = len(enum_class._member_names_)
 
-        if Flag is not None and issubclass(enum_class, Flag):
-            enum_class._flag_mask_ |= value
+        if Flag is not None and issubclass(enum_class, Flag) and value is not None:
+            if value != enum_class._all_bits_:
+                enum_class._flag_mask_ |= value
             if is_single_bit(value):
                 enum_class._singles_mask_ |= value
-            enum_class._all_bits_ = 2 ** ((enum_class._flag_mask_).bit_length()) - 1
+            # enum_class._all_bits_ = 2 ** ((enum_class._flag_mask_).bit_length()) - 1
 
         # If another member with the same value was already defined, the
         # new member becomes an alias to the existing one.
@@ -898,7 +945,7 @@ class _proto_member:
                 elif (
                         Flag is not None
                         and issubclass(enum_class, Flag)
-                        and is_single_bit(value)
+                        and (value is None or is_single_bit(value))
                     ):
                     # no other instances found, record this member in _member_names_
                     enum_class._member_names_.append(member_name)
@@ -993,7 +1040,7 @@ class EnumDict(dict):
         self._member_names = []
         self._member_names_set = set()
         self._settings = settings
-        self._addvalue = addvalue = AddValue in settings
+        self._addvalue = AddValue in settings
         self._magicvalue = MagicValue in settings
         self._multivalue = MultiValue in settings
         if self._addvalue and self._magicvalue:
@@ -1206,7 +1253,6 @@ class EnumDict(dict):
                     source_len = len(value)
                 else:
                     source_len = 1
-                multi_args = len(self._init) > 1 or new_args
                 if source_len < target_len :
                     value = self._gnv(key, value)
             else:
@@ -1259,7 +1305,6 @@ class EnumDict(dict):
                 source_len = len(values)
             else:
                 source_len = 1
-            multi_args = len(self._init) > 1 or new_args
             if source_len < target_len :
                 values = self._gnv(key, values)
                 self._auto_called = True
@@ -1524,9 +1569,18 @@ class EnumType(type):
         clsdict['_use_args_'] = new_uses_args
         #
         # convert future enum members into temporary _proto_members
+        # and record integer values in case this will be a Flag
+        flag_mask = 0
         for name in member_names:
-            value = clsdict[name]
+            value = test_value = clsdict[name]
+            if isinstance(value, auto) and value.value is not _auto_null:
+                test_value = value.value
+            if isinstance(test_value, baseinteger) and test_value > 0: # and is_single_bit(test_value):
+                flag_mask |= test_value
+            if isinstance(test_value, tuple) and test_value and isinstance(test_value[0], baseinteger) and test_value[0] > 0:
+                flag_mask |= test_value[0]
             clsdict[name] = _proto_member(value)
+        all_bits = 2 ** ((flag_mask).bit_length()) - 1
         #
         # temp stuff
         clsdict['_creating_init_'] = creating_init
@@ -1557,8 +1611,20 @@ class EnumType(type):
                 )
         clsdict['_flag_mask_'] = 0
         clsdict['_singles_mask_'] = 0
-        clsdict['_all_bits_'] = 0
+        clsdict['_all_bits_'] = all_bits
         clsdict['_inverted_'] = None
+        # check for negative flag values and invert if found (using _proto_members)
+        if Flag is not None and bases and issubclass(bases[-1], Flag):
+            for n in member_names:
+                p = clsdict[n]
+                if isinstance(p.value, int):
+                    if p.value < 0:
+                        p.value = flag_mask & p.value
+                elif p.value is None:
+                    pass
+                elif isinstance(p.value, auto):
+                    if p.value.value < 0:
+                        p.value.value = flag_mask & p.value.value
         #
         # move skipped values out of the descriptor
         for name, obj in clsdict.items():
@@ -1597,8 +1663,13 @@ class EnumType(type):
             # a RuntimeError, so get that original exception back and raise
             # it instead
             exc = e.__cause__ or e
-        if exc is not None:
             raise exc
+        except Exception as e:
+            # since 3.12 the note "Error calling __set_name__ on '_proto_member' instance ..."
+            # is tacked on to the error instead of raising a RuntimeError, so discard it
+            if hasattr(e, '__notes__'):
+                del e.__notes__
+            raise
         #
         # if Python 3.5 or ealier, implement the __set_name__ and
         # __init_subclass__ protocols
@@ -1718,7 +1789,8 @@ class EnumType(type):
             delattr(enum_class, '_inverted_')
         elif Flag is not None and issubclass(enum_class, Flag):
             # set correct __iter__
-            if [m._value_ for m in enum_class] != sorted([m._value_ for m in enum_class]):
+            member_values = [m._value_ for m in enum_class if m._value_ is not None]
+            if member_values != sorted(member_values):
                 enum_class._iter_member_ = enum_class._iter_member_by_def_
             if _order_:
                 # _order_ step 2: remove any items from _order_ that are not single-bit
@@ -1871,10 +1943,12 @@ class EnumType(type):
     __nonzero__ = __bool__
 
     def __repr__(cls):
-        if Enum is not None and isinstance(cls, Enum):
-            return "<enum %r>" % (cls.__name__, )
-        elif Flag is not None and isinstance(cls, Flag):
-            return "<flag %r>" % (cls.__name__, )
+        if Enum is not None and issubclass(cls, Enum):
+            return "<aenum %r>" % (cls.__name__, )
+        elif Flag is not None and issubclass(cls, Flag):
+            return "<aflag %r>" % (cls.__name__, )
+        else:
+            return "<aenum obj %r>" % (cls.__name__, )
 
     def __setattr__(cls, name, value):
         """Block attempts to reassign Enum members/constants.
@@ -2790,7 +2864,11 @@ def _finalize_extend_enum(enumeration, new_member, name=None, bits=None, mask=No
         # get redirect in place before adding to _member_map_
         redirect = property()
         redirect.__set_name__(enumeration, name)
+        redirect.member = new_member
         setattr(enumeration, name, redirect)
+    elif name not in enumeration.__dict__:
+        descriptor.member = new_member
+        setattr(enumeration, name, descriptor)
     if not is_alias:
         enumeration._member_names_.append(name)
     enumeration._member_map_[name] = new_member
@@ -2830,10 +2908,17 @@ try:
 except ImportError:
     class FlagBoundary(StrEnum):
         """
-        control how out of range values are handled
-        "strict" -> error is raised  [default]
-        "conform" -> extra bits are discarded
+        control how out of range / unnamed / absent flags are handled
+        "strict" -> error is raised  [Flag default]
+        "conform" -> extra bits are discarded [`_flag_mask_` bits retained]
         "eject" -> lose flag status (becomes a normal integer)
+        "keep" -> retain flag status, retain extra bits [IntFlag default]
+
+        when there are missing flags, negative numbers are handled as
+        "strict" -> missing flag bits are discarded
+        "eject" -> original integer is returned
+        "keep" -> missing flag bits are kept
+
         """
         STRICT = auto()
         CONFORM = auto()
@@ -2890,7 +2975,9 @@ def _iter_member_by_value_(cls, value):
     Extract all members from the value in definition (i.e. increasing value) order.
     """
     for val in _iter_bits_lsb(value & cls._singles_mask_):
-        yield cls._value2member_map_.get(val)
+        member = cls._value2member_map_.get(val)
+        if member is not None:
+            yield member
 
 flag_dict['_iter_member_'] = _iter_member_by_value_
 
@@ -2933,93 +3020,100 @@ def _create_pseudo_member_(cls, *values):
     flag_mask = cls._flag_mask_
     singles_mask = cls._singles_mask_
     all_bits = cls._all_bits_
-    unknown_bits = all_bits ^ flag_mask
-    unnamed_bits = all_bits & ~flag_mask
     boundary = cls._boundary_
-    neg_value = (None, value)[value < 0]
-    #
-    if neg_value:
-        if neg_value < ~all_bits:
-            if boundary is EJECT:
-                return error_value
-            elif boundary is KEEP:
-                value = 2**(neg_value.bit_length()) + neg_value
-            elif boundary is CONFORM:
-                value = (2**(neg_value.bit_length()) + neg_value) & flag_mask
+    neg_value = None
+    if boundary is CONFORM:
+        if value < 0:
+            neg_value = value
+        value &= flag_mask
+    elif boundary is EJECT:
+        if not ~all_bits <= value <= all_bits:
+            return value                                                            # outside range
+        elif value < 0:
+            neg_value = value
+            value &= flag_mask
+        if value & (all_bits ^ flag_mask):
+            return value                                                            # unnamed/missing flags
+    elif boundary is KEEP:
+        if value < 0:
+            neg_value = value
+            if ~all_bits <= value:
+                value &= flag_mask
             else:
-                raise ValueError(
-                        "%r is not a valid %s" % (error_value, cls.__name__)
-                        )
-        else:
-            value = all_bits + 1 + neg_value
-    #
-    member_value = value & singles_mask                     # all named single-bit values
-    unnamed_value = value & flag_mask & ~singles_mask       # all unnamed single-bit values
-    unknown_value = value & ~flag_mask
-    #
-    if boundary is EJECT:
-        if unknown_value:
-            return error_value
-    elif boundary is CONFORM:
-        unknown_value = 0
+                value &= 2**value.bit_length() - 1
     elif boundary is STRICT:
-        if unknown_value:
+        max_bits = max(value.bit_length(), all_bits.bit_length())
+        if not ~all_bits <= value <= all_bits:                                      # outside range
             raise ValueError(
-                "%r is not a valid %s" % (error_value, cls.__name__)
-                    )
-    #
-    members = list(cls._iter_member_(member_value))
-    final_value = member_value
-    still_unknown = 0
-    if unnamed_value:
-        found = 0
-        for n, pm in cls._member_map_.items():
-            if (
-                    pm not in members
-                and pm._value_
-                and pm._value_ & final_value == pm._value_
-                and pm._value_ & unnamed_value
-                ):
-                members.append(pm)
-                final_value |= pm._value_
-                found |= pm._value_
-        # anything still unnamed becomes unknown
-        still_unknown = (found & ~unnamed_value) ^ unnamed_value
-        if still_unknown:
-            if boundary is KEEP:
-                pass
-            elif boundary is CONFORM:
-                still_unknown = 0
-            elif boundary is EJECT:
-                return error_value
-            else: # strict
-                raise ValueError(
-                    "%r is not a valid %s" % (error_value, cls.__name__)
-                        )
-    unknown_value |= still_unknown
-    final_value |= unknown_value
-    values = (final_value, ) + values[1:]
-    members.sort(key=lambda m: m._sort_order_)
-    # let class adjust values
-    values = cls._create_pseudo_member_values_(members, *values)
-    __new__ = getattr(cls, '__new_member__', None)
-    if cls._member_type_ is object and not __new__:
-        # construct a singleton enum pseudo-member
-        pseudo_member = object.__new__(cls)
+                    "%r invalid value %r\n    given %s\n  allowed %s" % (
+                        cls, error_value, bin(error_value, max_bits), bin(flag_mask, max_bits),
+                        ))
+        elif value < 0:
+            neg_value = value
+            value &= flag_mask
+        if value & (all_bits ^ flag_mask):
+            raise ValueError(                                                       # unnamed/missing flags
+                    "%r invalid value %r\n    given %s\n  allowed %s" % (
+                        cls, error_value, bin(error_value, max_bits), bin(flag_mask, max_bits),
+                        ))
     else:
-        pseudo_member = (__new__ or cls._member_type_.__new__)(cls, *values)
-    if not hasattr(pseudo_member, '_value_'):
-        pseudo_member._value_ = final_value
-    if members:
-        pseudo_member._name_ = '|'.join([m._name_ for m in members])
-        if unknown_value:
-            pseudo_member._name_ += '|%s' % cls._numeric_repr_(unknown_value)
+        raise ValueError(
+                '%r unknown flag boundary %r' % (cls, boundary, )
+                )
+    values = (value, ) + values[1:]
+    # value may have been altered due to boundary checks -- see if it is known
+    if value in cls._value2member_map_:
+        pseudo_member = cls._value2member_map_[value]
     else:
-        pseudo_member._name_ = None
-    # use setdefault in case another thread already created a composite
-    # with this value, but only if all members are known
-    # note: zero is a special case -- always add it
-    pseudo_member = cls._value2member_map_.setdefault(final_value, pseudo_member)
+        # get members and unknown
+        unknown = value & ~flag_mask
+        aliases = value & ~singles_mask
+        member_value = value & singles_mask
+        members = list(cls._iter_member_by_def_(value))
+        # let class adjust values
+        values = cls._create_pseudo_member_values_(members, *values)
+        __new__ = getattr(cls, '__new_member__', None)
+        if cls._member_type_ is object and not __new__:
+            # construct a singleton enum pseudo-member
+            pseudo_member = object.__new__(cls)
+        else:
+            pseudo_member = (__new__ or cls._member_type_.__new__)(cls, *values)
+        if not hasattr(pseudo_member, '_value_'):
+            pseudo_member._value_ = value
+        if member_value or aliases:
+            combined_value = 0
+            for m in members:
+                combined_value |= m._value_
+            if aliases:
+                for n, pm in cls._member_map_.items():
+                    if pm not in members and pm._value_ and pm._value_ & aliases == pm._value_:
+                        members.append(pm)
+                        combined_value |= pm._value_
+                        aliases = aliases & ~pm._value_
+            unknown = aliases | (value ^ combined_value)
+            pseudo_member._name_ = '|'.join([m._name_ for m in members])
+            if not combined_value:
+                if value:
+                    if boundary is STRICT:
+                        # no members found for value
+                        raise ValueError('%r: no members with value %r' % (cls, value))
+                    elif boundary is EJECT:
+                        return error_value
+                    elif boundary in (CONFORM, KEEP):
+                        pass
+                    else:
+                        raise ValueError(
+                                '%r unknown flag boundary %r' % (cls, boundary, )
+                                )
+                pseudo_member._name_ = None
+            elif unknown and boundary is STRICT and unknown & flag_mask != unknown:
+                raise ValueError('%r: no members with value %r' % (cls, unknown))
+            elif unknown:
+                pseudo_member._name_ += '|%s' % cls._numeric_repr_(unknown)
+        else:
+            pseudo_member._name_ = None
+        # use setdefault in case another thread already created a composite
+        pseudo_member = cls._value2member_map_.setdefault(value, pseudo_member)
     if neg_value is not None:
         cls._value2member_map_[neg_value] = pseudo_member
     return pseudo_member
@@ -3089,42 +3183,52 @@ else:
         return bool(self._value_)
 
 @flag_dict
+def _get_value(self, flag):
+    if isinstance(flag, self.__class__):
+        return flag._value_
+    elif self._member_type_ is not object and isinstance(flag, self._member_type_):
+        return flag
+    return NotImplemented
+
+@flag_dict
 def __or__(self, other):
-    if isinstance(other, self.__class__):
-        other_value = other._value_
-    elif self._member_type_ is not object and isinstance(other, self._member_type_):
-        other_value = other
-    else:
-        return NotImplemented
-    return self.__class__(self._value_ | other_value)
+        other_value = self._get_value(other)
+        if other_value is NotImplemented:
+            return NotImplemented
+        for flag in self, other:
+            if self._get_value(flag) is None:
+                raise TypeError("'%s' cannot be combined with other flags with |" % (flag, ))
+        value = self._value_
+        return self.__class__(value | other_value)
 
 @flag_dict
 def __and__(self, other):
-    if isinstance(other, self.__class__):
-        other_value = other._value_
-    elif self._member_type_ is not object and isinstance(other, self._member_type_):
-        other_value = other
-    else:
+    other_value = self._get_value(other)
+    if other_value is NotImplemented:
         return NotImplemented
-    return self.__class__(self._value_ & other_value)
+    for flag in self, other:
+        if self._get_value(flag) is None:
+            raise TypeError("'%s' cannot be combined with other flags with &" % (flag, ))
+    value = self._value_
+    return self.__class__(value & other_value)
 
 @flag_dict
 def __xor__(self, other):
-    if isinstance(other, self.__class__):
-        other_value = other._value_
-    elif self._member_type_ is not object and isinstance(other, self._member_type_):
-        other_value = other
-    else:
+    other_value = self._get_value(other)
+    if other_value is NotImplemented:
         return NotImplemented
-    return self.__class__(self._value_ ^ other_value)
+    for flag in self, other:
+        if self._get_value(flag) is None:
+            raise TypeError("'%s' cannot be combined with other flags with ^" % (flag, ))
+    value = self._value_
+    return self.__class__(value ^ other_value)
 
 @flag_dict
 def __invert__(self):
+    if self._get_value(self) is None:
+        raise TypeError("'%s' cannot be inverted" % (self, ))
     if self._inverted_ is None:
-        if self._boundary_ in (EJECT, KEEP):
-            self._inverted_ = self.__class__(~self._value_)
-        else:
-            self._inverted_ = self.__class__(self._singles_mask_ & ~self._value_)
+        self._inverted_ = self.__class__(~self._value_)
     return self._inverted_
 
 flag_dict['__ror__'] = __or__
