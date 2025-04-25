@@ -416,6 +416,13 @@ def __new__(cls, *args, **kwds):
     return tuple.__new__(cls, tuple(final_args))
 
 @namedtuple_dict
+def __getitem__(self, index):
+    if isinstance(index, basestring):
+        return getattr(self, index)
+    else:
+        return tuple.__getitem__(self, index)
+
+@namedtuple_dict
 def __reduce_ex__(self, proto):
     return self.__class__, tuple(getattr(self, f) for f in self._fields_)
 

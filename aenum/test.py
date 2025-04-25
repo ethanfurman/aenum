@@ -6974,6 +6974,21 @@ class TestNamedTuple(TestCase):
         mid_gray = purple._replace(g=127)
         self.assertEqual(mid_gray, (127, 127, 127))
 
+    def test_index_by_name(self):
+        class Person(NamedTuple):
+            __order__ = "age first last"
+            age = "person's age"
+            first = "person's first name"
+            last = "person's last name"
+        p1 = Person(17, 'John', 'Doe')
+        p2 = Person(21, 'Jane', 'Doe')
+        self.assertEqual(p1['age'], 17)
+        self.assertEqual(p1['first'], 'John')
+        self.assertEqual(p1['last'], 'Doe')
+        self.assertEqual(p2['age'], 21)
+        self.assertEqual(p2['first'], 'Jane')
+        self.assertEqual(p2['last'], 'Doe')
+        self.assertRaisesRegex(AttributeError, 'object has no attribute .nope.', p1.__getitem__, 'nope')
 
 class TestNamedConstant(TestCase):
 
