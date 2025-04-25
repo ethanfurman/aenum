@@ -82,7 +82,6 @@ data = dict(
                'doc/aenum.pdf',
                ]
            },
-       include_package_data=True,
        license='BSD License',
        description="Advanced Enumerations (compatible with Python's stdlib Enum), NamedTuples, and NamedConstants",
        long_description=long_desc,
