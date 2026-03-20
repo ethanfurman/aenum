@@ -71,7 +71,7 @@ Utility functions include:
 
 data = dict(
        name='aenum',
-       version='3.1.17',
+       version='3.1.18a1',
        url='https://github.com/ethanfurman/aenum',
        packages=['aenum'],
        package_data={
