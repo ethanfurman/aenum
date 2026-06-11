@@ -109,25 +109,10 @@ data = dict(
             ],
     )
 
-py2_only = ('aenum/_py2.py', )
 py3_only = ('aenum/test_v3.py', 'aenum/test_v37.py', 'aenum/_py3.py')
 make = [
         'rst2pdf aenum/doc/aenum.rst --output=aenum/doc/aenum.pdf',
         ]
 
 if __name__ == '__main__':
-    if 'install' in sys.argv:
-        import os
-        if sys.version_info[0] != 2:
-            for file in py2_only:
-                try:
-                    os.unlink(file)
-                except OSError:
-                    pass
-        if sys.version_info[0] != 3:
-            for file in py3_only:
-                try:
-                    os.unlink(file)
-                except OSError:
-                    pass
     setup(**data)

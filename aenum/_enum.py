@@ -17,7 +17,7 @@ __all__ = [
         'add_stdlib_integration', 'remove_stdlib_integration',
         'export', 'cls2module', '_reduce_ex_by_name', 'show_flag_values',
         ]
-        
+
 
 _bltin_bin = bin
 
@@ -575,12 +575,6 @@ class auto(enum):
         new_auto._operations.append((_pos_, (self, )))
         return new_auto
 
-    if PY2:
-        def __div__(self, other):
-            new_auto = self.__class__()
-            new_auto._operations = self._operations[:]
-            new_auto._operations.append((_div_, (self, other)))
-            return new_auto
 
     def __rdiv__(self, other):
         new_auto = self.__class__()
@@ -1694,24 +1688,6 @@ class EnumType(type):
         #
         # method resolution and int's are not playing nice
         # Python's less than 2.6 use __cmp__
-        if pyver < PY2_6:
-            #
-            if issubclass(enum_class, int):
-                setattr(enum_class, '__cmp__', getattr(int, '__cmp__'))
-            #
-        elif PY2:
-            #
-            if issubclass(enum_class, int):
-                for method in (
-                        '__le__',
-                        '__lt__',
-                        '__gt__',
-                        '__ge__',
-                        '__eq__',
-                        '__ne__',
-                        '__hash__',
-                        ):
-                    setattr(enum_class, method, getattr(int, method))
         #
         # replace any other __new__ with our own (as long as Enum is not None,
         # anyway) -- again, this is to support pickle
@@ -1982,13 +1958,6 @@ class EnumType(type):
         * An iterable of (member name, value) pairs.
         * A mapping of member name -> value.
         """
-        if PY2:
-            # if class_name is unicode, attempt a conversion to ASCII
-            if isinstance(class_name, unicode):
-                try:
-                    class_name = class_name.encode('ascii')
-                except UnicodeEncodeError:
-                    raise TypeError('%r is not representable in ASCII' % (class_name, ))
         metacls = cls.__class__
         if type is None:
             bases = (cls, )
@@ -2540,8 +2509,6 @@ class AutoNumberEnum(Enum):
     Automatically assign increasing values to members.
 
     Py3: numbers match creation order
-    Py2: numbers are assigned alphabetically by member name
-         (unless `_order_` is specified)
     """
 
     def __new__(cls, *args, **kwds):
@@ -3135,14 +3102,9 @@ def __str__(self):
     else:
         return '%s.%s' % (cls.__name__, self._name_)
 
-if PY2:
-    @flag_dict
-    def __nonzero__(self):
-        return bool(self._value_)
-else:
-    @flag_dict
-    def __bool__(self):
-        return bool(self._value_)
+@flag_dict
+def __bool__(self):
+    return bool(self._value_)
 
 @flag_dict
 def _get_value(self, flag):

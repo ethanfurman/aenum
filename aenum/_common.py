@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __all__ = [
-        'pyver', 'PY2', 'PY2_6', 'PY3', 'PY3_3', 'PY3_4', 'PY3_5', 'PY3_6', 'PY3_7', 'PY3_11',
+        'pyver', 'PY3', 'PY3_3', 'PY3_4', 'PY3_5', 'PY3_6', 'PY3_7', 'PY3_11',
         '_or_', '_and_', '_xor_', '_inv_', '_abs_', '_add_', '_floordiv_', '_lshift_',
         '_rshift_', '_mod_', '_mul_', '_neg_', '_pos_', '_pow_', '_truediv_', '_sub_',
         'unicode', 'basestring', 'baseinteger', 'long', 'NoneType', '_Addendum',
@@ -15,9 +15,7 @@ __all__ = [
 # imports
 import sys as _sys
 pyver = _sys.version_info[:2]
-PY2 = pyver < (3, )
 PY3 = pyver >= (3, )
-PY2_6 = (2, 6)
 PY3_3 = (3, 3)
 PY3_4 = (3, 4)
 PY3_5 = (3, 5)
@@ -33,14 +31,9 @@ from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
 from operator import mul as _mul_, neg as _neg_, pos as _pos_, pow as _pow_
 from operator import truediv as _truediv_, sub as _sub_
 
-if PY2:
-    from . import _py2
-    from ._py2 import *
-    __all__.extend(_py2.__all__)
-if PY3:
-    from . import _py3
-    from ._py3 import *
-    __all__.extend(_py3.__all__)
+from . import _py3
+from ._py3 import *
+__all__.extend(_py3.__all__)
 
 bltin_property = property
 
@@ -199,9 +192,6 @@ class constant(object):
         return _neg_(self.value)
     def __pos__(self):
         return _pos_(self.value)
-    if PY2:
-        def __div__(self, other):
-            return _div_(self.value, _value(other))
     def __rdiv__(self, other):
         return _div_(_value(other), (self.value))
     def __floordiv__(self, other):

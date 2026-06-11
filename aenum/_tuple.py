@@ -300,13 +300,6 @@ class NamedTupleMeta(type):
                 raise TypeError('too few arguments to NamedTuple: %s, %s' % (original_args, original_kwds))
             if args or kwds:
                 raise TypeError('too many arguments to NamedTuple: %s, %s' % (original_args, original_kwds))
-            if PY2:
-                # if class_name is unicode, attempt a conversion to ASCII
-                if isinstance(class_name, unicode):
-                    try:
-                        class_name = class_name.encode('ascii')
-                    except UnicodeEncodeError:
-                        raise TypeError('%r is not representable in ASCII' % (class_name, ))
             # quick exit if names is a NamedTuple
             if isinstance(names, NamedTupleMeta):
                 names.__name__ = class_name

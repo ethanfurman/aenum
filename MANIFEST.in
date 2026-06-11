@@ -6,7 +6,6 @@ include aenum/_common.py
 include aenum/_constant.py
 include aenum/_enum.py
 include aenum/_tuple.py
-include aenum/_py2.py
 include aenum/_py3.py
 include aenum/test.py
 include aenum/test_v3.py

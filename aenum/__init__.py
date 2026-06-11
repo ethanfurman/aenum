@@ -12,7 +12,7 @@ from ._enum import *
 
 __all__ = [
         'NamedConstant', 'Constant', 'constant', 'skip', 'nonmember', 'member', 'no_arg',
-        'Member', 'NonMember', 'bin', 
+        'Member', 'NonMember', 'bin',
         'Enum', 'IntEnum', 'AutoNumberEnum', 'OrderedEnum', 'UniqueEnum',
         'StrEnum', 'UpperStrEnum', 'LowerStrEnum', 'ReprEnum',
         'Flag', 'IntFlag', 'enum_property',
@@ -28,13 +28,9 @@ if sqlite3 is None:
     __all__.remove('SqliteEnum')
 
 
-if PY2:
-    from . import _py2
-    __all__.extend(_py2.__all__)
-else:
-    from . import _py3
-    __all__.extend(_py3.__all__)
-    __all__.append('AutoEnum')
+from . import _py3
+__all__.extend(_py3.__all__)
+__all__.append('AutoEnum')
 
 
 

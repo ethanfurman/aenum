@@ -17,7 +17,7 @@ from aenum import NamedTuple, TupleSize, NamedConstant, constant, NoAlias, AddVa
 from aenum import STRICT, CONFORM, EJECT, KEEP
 from aenum import _reduce_ex_by_name, unique, skip, extend_enum, auto, enum, MultiValue, member, nonmember, no_arg
 from aenum import basestring, baseinteger, unicode, enum_property
-from aenum import pyver, PY2, PY3, PY2_6, PY3_3, PY3_4, PY3_5, PY3_6, PY3_7, PY3_11
+from aenum import pyver,  PY3,  PY3_3, PY3_4, PY3_5, PY3_6, PY3_7, PY3_11
 from aenum._enum import _high_bit
 from collections import OrderedDict
 from datetime import timedelta
@@ -27,12 +27,6 @@ from operator import abs as _abs_, add as _add_, floordiv as _floordiv_
 from operator import lshift as _lshift_, rshift as _rshift_, mod as _mod_
 from operator import mul as _mul_, neg as _neg_, pos as _pos_, pow as _pow_
 from operator import truediv as _truediv_, sub as _sub_
-if PY2:
-    from operator import div as _div_
-try:
-    import threading
-except ImportError:
-    threading = None
 
 try:
     any
@@ -827,9 +821,6 @@ class TestHelpers(TestCase):
                 ('a', _mul_, 'a' * 3, 3),
                 ):
             tester(*args)
-        # operator.div is gone in 3
-        if PY2:
-            tester(12, _div_, 12 // 5, 5)
         # strings are a pain
         left = auto()
         right = 'eggs'
@@ -884,9 +875,6 @@ class TestHelpers(TestCase):
                 ('a', _mul_, 'a' * 3, 3),
                 ):
             tester(*args)
-        # operator.div is gone in 3
-        if PY2:
-            tester(12, _div_, 12 // 5, 5)
         # strings are a pain
         left = constant('I see 17 %s!')
         right = 'eggs'
@@ -1700,19 +1688,6 @@ class TestEnum(TestCase):
         lst = list(SummerMonth)
         self.assertEqual(len(lst), len(SummerMonth))
         self.assertEqual(len(SummerMonth), 3, SummerMonth)
-        if PY2:
-            self.assertEqual(
-                    [SummerMonth.june, SummerMonth.july, SummerMonth.august],
-                    lst,
-                    )
-        for i, month in enumerate('june july august'.split()):
-            i += 1
-            e = SummerMonth(i)
-            self.assertEqual(int(e.value), i)
-            self.assertNotEqual(e, i)
-            self.assertEqual(e.name, month)
-            self.assertTrue(e in SummerMonth)
-            self.assertTrue(type(e) is SummerMonth)
 
     def test_programatic_function_type(self):
         SummerMonth = Enum('SummerMonth', 'june july august', type=int)
@@ -1845,11 +1820,6 @@ class TestEnum(TestCase):
         lst = list(SummerMonth)
         self.assertEqual(len(lst), len(SummerMonth))
         self.assertEqual(len(SummerMonth), 3, SummerMonth)
-        if PY2:
-            self.assertEqual(
-                    [SummerMonth.june, SummerMonth.july, SummerMonth.august],
-                    lst,
-                    )
         for i, month in enumerate(unicode('june july august').split()):
             i += 1
             e = SummerMonth(i)
@@ -1894,29 +1864,23 @@ class TestEnum(TestCase):
             self.assertTrue(type(e) is SummerMonth)
 
     def test_programmatic_function_unicode_class(self):
-        if PY2:
-            class_names = unicode('SummerMonth'), 'S\xfcmm\xe9rM\xf6nth'.decode('latin1')
-        else:
-            class_names = 'SummerMonth', 'S\xfcmm\xe9rM\xf6nth'
+        class_names = 'SummerMonth', 'S\xfcmm\xe9rM\xf6nth'
         for i, class_name in enumerate(class_names):
-            if PY2 and i == 1:
-                self.assertRaises(TypeError, Enum, class_name, unicode('june july august'))
-            else:
-                SummerMonth = Enum(class_name, unicode('june july august'))
-                lst = list(SummerMonth)
-                self.assertEqual(len(lst), len(SummerMonth))
-                self.assertEqual(len(SummerMonth), 3, SummerMonth)
-                self.assertEqual(
-                        [SummerMonth.june, SummerMonth.july, SummerMonth.august],
-                        lst,
-                        )
-                for i, month in enumerate(unicode('june july august').split()):
-                    i += 1
-                    e = SummerMonth(i)
-                    self.assertEqual(e.value, i)
-                    self.assertEqual(e.name, month)
-                    self.assertTrue(e in SummerMonth)
-                    self.assertTrue(type(e) is SummerMonth)
+            SummerMonth = Enum(class_name, unicode('june july august'))
+            lst = list(SummerMonth)
+            self.assertEqual(len(lst), len(SummerMonth))
+            self.assertEqual(len(SummerMonth), 3, SummerMonth)
+            self.assertEqual(
+                    [SummerMonth.june, SummerMonth.july, SummerMonth.august],
+                    lst,
+                    )
+            for i, month in enumerate(unicode('june july august').split()):
+                i += 1
+                e = SummerMonth(i)
+                self.assertEqual(e.value, i)
+                self.assertEqual(e.name, month)
+                self.assertTrue(e in SummerMonth)
+                self.assertTrue(type(e) is SummerMonth)
 
     def test_subclassing(self):
         if isinstance(Name, Exception):
@@ -3794,49 +3758,6 @@ class TestEnum(TestCase):
             spam = SpamEnumNotInner
         self.assertEqual(SpamEnum.spam.value, SpamEnumNotInner)
 
-    if PY2:
-        def test_nested_classes_in_enum_do_become_members(self):
-            # manually set __qualname__ to remove testing framework noise
-            class Outer(Enum):
-                _order_ = 'a b Inner'
-                __qualname__ = "Outer"
-                a = 1
-                b = 2
-                class Inner(Enum):
-                    __qualname__ = "Outer.Inner"
-                    foo = 10
-                    bar = 11
-            self.assertTrue(isinstance(Outer.Inner, Outer))
-            self.assertEqual(Outer.a.value, 1)
-            self.assertEqual(Outer.Inner.value.foo.value, 10)
-            self.assertEqual(
-                list(Outer.Inner.value),
-                [Outer.Inner.value.foo, Outer.Inner.value.bar],
-                )
-            self.assertEqual(
-                list(Outer),
-                [Outer.a, Outer.b, Outer.Inner],
-                )
-
-        def test_really_nested_classes_in_enum_do_become_members(self):
-            class Outer(Enum):
-                _order_ = 'a b Inner'
-                a = 1
-                b = 2
-                class Inner(Enum):
-                    foo = 10
-                    bar = 11
-            self.assertTrue(isinstance(Outer.Inner, Outer))
-            self.assertEqual(Outer.a.value, 1)
-            self.assertEqual(Outer.Inner.value.foo.value, 10)
-            self.assertEqual(
-                list(Outer.Inner.value),
-                [Outer.Inner.value.foo, Outer.Inner.value.bar],
-                )
-            self.assertEqual(
-                list(Outer),
-                [Outer.a, Outer.b, Outer.Inner],
-                )
 
     def test_nested_classes_in_enum_are_skipped_with_skip(self):
         """Support locally-defined nested classes using @skip"""
@@ -4632,7 +4553,7 @@ class TestFlag(TestCase):
         self.assertEqual(AS.STREET._value_, 32)
         self.assertEqual(AS.SECONDARY_TYPE._value_, 128)
         self.assertEqual((AS.NAME | AS.STREET)._value_, 48, "%r is not 48" % (AS.NAME | AS.STREET))
-                
+
     def test_iteration(self):
         C = self.Color
         self.assertEqual(list(C), [C.RED, C.GREEN, C.BLUE])
@@ -7499,7 +7420,7 @@ class TestExtendEnum(TestCase):
         self.assertEqual(Color.BLACK.name, 'BLACK')
         self.assertEqual(Color.BLACK.value, 'black')
         self.assertEqual(len(Color), 4)
-        
+
 
 class TestIssues(TestCase):
 
@@ -7572,7 +7493,7 @@ class TestIssues(TestCase):
         extend_enum(FlagTest, 'HIGH', 4)
         self.assertEqual(FlagTest.LOW | FlagTest.HIGH, FlagTest(5))
         self.assertEqual((FlagTest.LOW | FlagTest.HIGH).value, 5)
-        
+
     def test_extend_unhashable(self):
         class TestEnum(Enum):
             ABC = {
