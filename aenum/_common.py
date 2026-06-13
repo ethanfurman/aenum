@@ -76,7 +76,7 @@ except NameError:
 baseint = baseinteger
 
 try:
-    NoneType
+    NoneType = NoneType
 except NameError:
     NoneType = type(None)
 
