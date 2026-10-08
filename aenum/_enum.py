@@ -717,7 +717,10 @@ class auto(enum):
                             if base_value is None:
                                 return _auto_null
                             else:
-                                values.append(base_value)
+                                if param._operations:
+                                    values.append(param._resolve(base_value))
+                                else:
+                                    values.append(base_value)
                         else:
                             values.append(param.value)
                     else:

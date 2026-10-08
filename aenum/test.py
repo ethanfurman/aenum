@@ -341,6 +341,67 @@ class TestOrder(TestCase):
 
 class TestAutoValue(TestCase):
 
+    def test_chained_flag_operations(self):
+        for flag_type in (Flag, IntFlag):
+            class Features(flag_type):
+                _order_ = 'UNKNOWN URL PROD DEV S3 COMBINED'
+                UNKNOWN = auto()
+                URL = auto()
+                PROD = auto()
+                DEV = auto()
+                S3 = auto()
+                COMBINED = auto() | PROD | S3
+            self.assertEqual(Features.COMBINED.value, 32 | 4 | 16)
+            self.assertTrue(Features.PROD in Features.COMBINED)
+            self.assertTrue(Features.S3 in Features.COMBINED)
+
+    def test_grouped_flag_operations(self):
+        for flag_type in (Flag, IntFlag):
+            pending = auto()
+            class Features(flag_type):
+                _order_ = 'FIRST SECOND COMBINED'
+                FIRST = auto()
+                SECOND = auto()
+                COMBINED = (pending | FIRST) | (pending | SECOND)
+            self.assertEqual(Features.COMBINED.value, 4 | 1 | 2)
+            self.assertTrue(Features.FIRST in Features.COMBINED)
+            self.assertTrue(Features.SECOND in Features.COMBINED)
+
+    def test_chained_arithmetic_operations(self):
+        for enum_type in (Enum, IntEnum):
+            for operation in (
+                    lambda value: (value + 3) * 2,
+                    lambda value: 10 - (value + 3),
+                    lambda value: (value << 2) | 1,
+                    lambda value: ~(value + 2),
+                    lambda value: (value * 4) // 2,
+                    lambda value: (value + 3) ** 2,
+                    lambda value: (value + 4) % 3,
+                    ):
+                number = enum_type('Number', {'VALUE': operation(auto())})
+                self.assertEqual(number.VALUE.value, operation(1))
+
+    def test_shared_auto_pending_operations(self):
+        left = auto()
+        right = auto()
+        expression = (left + 2) * right
+        self.assertIs(expression.value, left.value)
+        left.value = 3
+        self.assertIs(expression.value, right.value)
+        right.value = 4
+        self.assertEqual(expression.value, (3 + 2) * 4)
+        self.assertEqual(expression.value, (3 + 2) * 4)
+
+    def test_chained_operations_preserve_bare_auto(self):
+        pending = auto()
+        unresolved = pending.value
+        expression = pending | 4 | 16
+        expression.value = 32
+        self.assertEqual(expression.value, 32 | 4 | 16)
+        self.assertIs(pending.value, unresolved)
+        pending.value = 64
+        self.assertEqual(expression.value, 32 | 4 | 16)
+
     def test_bare(self):
         #
         class BareEnum(Enum):
