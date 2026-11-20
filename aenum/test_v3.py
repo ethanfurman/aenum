@@ -10,6 +10,7 @@ from datetime import timedelta
 from pickle import dumps, loads, PicklingError, HIGHEST_PROTOCOL
 from unittest import TestCase, main
 
+import inspect
 import os
 import sys
 import tempfile
@@ -63,6 +64,39 @@ class TestEnumV3(TestCase):
             NEW_YEAR = 2013, 1, 1
             IDES_OF_MARCH = 2013, 3, 15
         self.Holiday = Holiday
+
+    @unittest.skipUnless(hasattr(inspect, 'signature'), 'inspect.signature not available')
+    def test_inspect_signature(self):
+        class Empty(Enum):
+            pass
+
+        Parameter = inspect.Parameter
+        enum_signature = inspect.signature(Enum)
+        self.assertEqual(enum_signature, inspect.Signature([
+                Parameter('new_class_name', Parameter.POSITIONAL_ONLY),
+                Parameter('names', Parameter.POSITIONAL_OR_KEYWORD),
+                Parameter('module', Parameter.KEYWORD_ONLY, default=None),
+                Parameter('qualname', Parameter.KEYWORD_ONLY, default=None),
+                Parameter('type', Parameter.KEYWORD_ONLY, default=None),
+                Parameter('start', Parameter.KEYWORD_ONLY, default=1),
+                Parameter('boundary', Parameter.KEYWORD_ONLY, default=None),
+                ]))
+        self.assertEqual(inspect.signature(Empty), enum_signature)
+        factory = enum_signature.bind('Color', names='RED BLUE', start=10)
+        self.assertEqual(Enum(*factory.args, **factory.kwargs).RED.value, 10)
+
+        season_signature = inspect.signature(self.Season)
+        self.assertEqual(season_signature, inspect.Signature([Parameter('values', Parameter.VAR_POSITIONAL)]))
+        lookup = season_signature.bind(self.Season.SPRING.value)
+        self.assertIs(self.Season(*lookup.args, **lookup.kwargs), self.Season.SPRING)
+
+        if pyver < (3, 12):
+            explicit_signature = inspect.Signature()
+
+            class CustomSignature(Enum):
+                __signature__ = explicit_signature
+
+            self.assertIs(inspect.signature(CustomSignature), explicit_signature)
 
     @unittest.skipUnless(StdlibEnumMeta, 'Stdlib enum not available')
     def test_stdlib_inheritence(self):
