@@ -2205,13 +2205,32 @@ enum_dict = _Addendum(
         ns=globals(),
         )
 
-@enum_dict
-@classmethod
-def __signature__(cls):
-    if cls._member_names_:
-        return '(*values)'
-    else:
-        return '(new_class_name, /, names, *, module=None, qualname=None, type=None, start=1, boundary=None)'
+# Python 3.3 through 3.11 requires a Signature object in __signature__.
+if PY3_3 <= pyver < (3, 12):
+    class _EnumSignature(object):
+        def __get__(self, instance, ownerclass):
+            from inspect import Parameter, Signature
+            if ownerclass._member_names_:
+                return Signature([Parameter('values', Parameter.VAR_POSITIONAL)])
+            return Signature([
+                    Parameter('new_class_name', Parameter.POSITIONAL_ONLY),
+                    Parameter('names', Parameter.POSITIONAL_OR_KEYWORD),
+                    Parameter('module', Parameter.KEYWORD_ONLY, default=None),
+                    Parameter('qualname', Parameter.KEYWORD_ONLY, default=None),
+                    Parameter('type', Parameter.KEYWORD_ONLY, default=None),
+                    Parameter('start', Parameter.KEYWORD_ONLY, default=1),
+                    Parameter('boundary', Parameter.KEYWORD_ONLY, default=None),
+                    ])
+
+    enum_dict['__signature__'] = _EnumSignature()
+else:
+    @enum_dict
+    @classmethod
+    def __signature__(cls):
+        if cls._member_names_:
+            return '(*values)'
+        else:
+            return '(new_class_name, /, names, *, module=None, qualname=None, type=None, start=1, boundary=None)'
 
 @enum_dict
 def __init__(self, *args, **kwds):
