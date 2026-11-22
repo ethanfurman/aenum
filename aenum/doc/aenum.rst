@@ -770,6 +770,37 @@ Flags can be iterated over to retrieve the individual truthy flags in the value:
     with enumerations, or for interoperability with other systems.
 
 
+Iterating declared flag names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Iterating a ``Flag`` or ``IntFlag`` class yields its canonical single-bit
+members. Named zero values, composite values, and aliases are omitted. To
+inspect all declared names, use the public ``__members__`` mapping:
+
+.. code-block:: python
+
+    from aenum import Flag
+
+    class Permission(Flag):
+        NONE = 0
+        READ = 1
+        WRITE = 2
+        READ_WRITE = READ | WRITE
+        BOTH = READ_WRITE
+
+    assert list(Permission) == [Permission.READ, Permission.WRITE]
+    members = Permission.__members__
+    assert members['NONE'] is Permission.NONE
+    assert members['READ_WRITE'] is Permission.READ_WRITE
+    assert members['BOTH'] is Permission.READ_WRITE
+    assert len(members) == 5
+
+``__members__.items()`` keeps the declared names, including aliases that
+refer to the same member. Iterating a flag value, such as
+``list(Permission.READ_WRITE)``, instead decomposes that value into its
+individual set flags. A named composite is still a usable member even though
+class iteration leaves it out.
+
 Others
 ^^^^^^
 
