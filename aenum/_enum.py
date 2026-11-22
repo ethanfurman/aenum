@@ -2721,26 +2721,38 @@ def extend_enum(enumeration, name, *args, **kwds):
         args = (value, )
     else:
         args = value
+    # Keep constructor arguments separate from the auto-init fields.
+    new_args = args
     # tease value out of auto-init if specified
     if 'value' in _auto_init_:
         if 'value' in kwds:
             value = kwds.pop('value')
         else:
             value, args = args[0], args[1:]
+        new_spec = getattr(enumeration, '_new_args_', None)
+        if new_spec:
+            # Match the argument split used when the class creates members.
+            if not enumeration._auto_args_:
+                new_args = new_args[:len(new_spec.args)]
+        else:
+            new_args = (value, )
     elif _multi_value_:
         value, more_values, args = args[0], args[1:], ()
         if new_uses_args:
             args = (value, )
+        new_args = args
     if _member_type_ is tuple:
-        args = (args, )
+        new_args = (new_args, )
+        if 'value' not in _auto_init_:
+            args = new_args
     if not new_uses_args:
         new_member = _new(enumeration)
         if not hasattr(new_member, '_value_'):
             new_member._value_ = value
     else:
-        new_member = _new(enumeration, *args, **kwds)
+        new_member = _new(enumeration, *new_args, **kwds)
         if not hasattr(new_member, '_value_'):
-            new_member._value_ = _member_type_(*args)
+            new_member._value_ = _member_type_(*new_args)
     value = new_member._value_
     if _multi_value_:
         if 'value' in _auto_init_:
