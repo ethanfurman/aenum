@@ -7503,6 +7503,34 @@ class TestExtendEnum(TestCase):
 
 class TestIssues(TestCase):
 
+    def test_auto_args_with_init_history(self):
+        class Color(Enum):
+            _init_ = 'value comment'
+            _order_ = 'red green blue white black'
+            red = 1, 'red comment'
+            green = auto('green comment')
+            blue = auto('blue comment')
+            white = 10, 'white comment'
+            black = auto('black comment')
+        self.assertEqual([member.value for member in Color], [1, 2, 3, 10, 11])
+        self.assertEqual([member.comment for member in Color], [
+                'red comment', 'green comment', 'blue comment', 'white comment', 'black comment'])
+        self.assertIsNot(Color.green, Color.blue)
+
+    def test_auto_args_pass_generated_values_to_next_generator(self):
+        history = []
+        class Color(Enum):
+            _init_ = 'value comment'
+            _order_ = 'red green blue'
+            def _generate_next_value_(name, start, count, last_values, *args, **kwds):
+                history.append(last_values)
+                return (count + 1, ) + args
+            red = auto('red comment')
+            green = auto('green comment')
+            blue = auto('blue comment')
+        self.assertEqual(history, [[], [1], [1, 2]])
+        self.assertEqual([member.value for member in Color], [1, 2, 3])
+
     def test_auto_multi_int(self):
         class Measurement(int, MultiValueEnum, AddValueEnum):
             _order_ = 'one two three'
