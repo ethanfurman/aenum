@@ -1194,6 +1194,22 @@ class TestStackoverflowAnswersV3(TestCase):
         self.assertTrue(RPS.Scissors.beats is RPS.Paper)
         self.assertTrue(RPS.Paper.beats is RPS.Rock)
 
+    def test_init_subclass_keywords(self):
+        calls = []
+        class Base(Enum):
+            def __init_subclass__(cls, label, **kwds):
+                super(Base, cls).__init_subclass__(**kwds)
+                calls.append((cls, label, list(cls)))
+        class Child(Base, label='example', start=5):
+            FIRST = auto()
+        self.assertEqual(calls, [(Child, 'example', [Child.FIRST])])
+        self.assertEqual(Child.FIRST.value, 5)
+
+    def test_unconsumed_class_keywords(self):
+        with self.assertRaises(TypeError):
+            class Child(Enum, unknown=True):
+                FIRST = 1
+
     def test_arduino_headers(self):
         # https://stackoverflow.com/q/65048495/208880
         class CHeader(Enum):

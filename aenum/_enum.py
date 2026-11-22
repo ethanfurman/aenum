@@ -1619,7 +1619,10 @@ class EnumType(type):
         # create our new Enum type
         try:
             exc = None
-            enum_class = type.__new__(metacls, cls, bases, clsdict)
+            if pyver >= PY3_6:
+                enum_class = type.__new__(metacls, cls, bases, clsdict, **kwds)
+            else:
+                enum_class = type.__new__(metacls, cls, bases, clsdict)
         except RuntimeError as e:
             # any exceptions raised by _proto_member (aka member.__new__) will get converted to
             # a RuntimeError, so get that original exception back and raise
@@ -1644,7 +1647,7 @@ class EnumType(type):
                 if hasattr(obj, '__set_name__'):
                     obj.__set_name__(enum_class, name)
             if Enum is not None and hasattr(enum_class, '__init_subclass__'):
-                super(enum_class, enum_class).__init_subclass__()
+                super(enum_class, enum_class).__init_subclass__(**kwds)
         #
         # double check that repr and friends are not the mixin's or various
         # things break (such as pickle)
