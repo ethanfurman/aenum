@@ -1242,7 +1242,10 @@ class EnumDict(dict):
                 # reset for next pass
                 auto_store = True
             elif isinstance(value, auto):
-                self._last_values.append(value.value)
+                last_value = value.value
+                if last_value is _auto_null and value.args:
+                    last_value = value.args[0]
+                self._last_values.append(last_value)
             elif type(value) is tuple:
                 if value:
                     if isinstance(value[0], auto):
