@@ -7400,6 +7400,42 @@ class TestExtendEnum(TestCase):
         self.assertEqual(HTTPStatus.BAD_EGGS.phrase, 'Too green')
         self.assertEqual(HTTPStatus.BAD_EGGS.description, '')
 
+    def test_extend_intenum_auto_init_doc(self):
+        class ColorHelp(IntEnum):
+            _init_ = 'value __doc__'
+            black = 0, 'the absence of color'
+        extend_enum(ColorHelp, 'white', 1, 'the presence of every color')
+        self.assertEqual(int(ColorHelp.white), 1)
+        self.assertEqual(ColorHelp.white.value, 1)
+        self.assertEqual(ColorHelp.white.__doc__, 'the presence of every color')
+        self.assertIs(ColorHelp(1), ColorHelp.white)
+        self.assertEqual(list(ColorHelp), [ColorHelp.black, ColorHelp.white])
+        extend_enum(ColorHelp, 'ivory', 1, 'an alias')
+        self.assertIs(ColorHelp.ivory, ColorHelp.white)
+
+    def test_extend_strenum_auto_init_doc(self):
+        class Label(StrEnum):
+            _init_ = 'value __doc__'
+            first = 'one', 'first label'
+        extend_enum(Label, 'second', 'two', 'second label')
+        self.assertEqual(str(Label.second), 'two')
+        self.assertEqual(Label.second.__doc__, 'second label')
+        self.assertIs(Label('two'), Label.second)
+
+    def test_extend_intenum_auto_init_custom_new(self):
+        class ColorHelp(IntEnum):
+            _init_ = 'value __doc__'
+            def __new__(cls, value, description):
+                member = int.__new__(cls, value)
+                member._value_ = value
+                member.description_length = len(description)
+                return member
+            black = 0, 'black'
+        extend_enum(ColorHelp, 'white', 1, 'white')
+        self.assertEqual(int(ColorHelp.white), 1)
+        self.assertEqual(ColorHelp.white.__doc__, 'white')
+        self.assertEqual(ColorHelp.white.description_length, 5)
+
     def test_extend_flag(self):
         class Color(Flag):
             BLACK = 0
