@@ -3009,6 +3009,35 @@ class TestEnum(TestCase):
         self.assertFalse(Settings.red is Settings.rojo)
         self.assertRaises(TypeError, Settings, 1)
 
+    def test_noalias_member_roundtrip(self):
+        class Settings(aenum.NoAliasEnum):
+            red = 1
+            rojo = 1
+        self.assertIsNot(Settings.red, Settings.rojo)
+        self.assertIs(Settings(Settings.red), Settings.red)
+        self.assertIs(Settings(Settings.rojo), Settings.rojo)
+        self.assertIs(Settings(value=Settings.rojo), Settings.rojo)
+
+    def test_noalias_int_member_roundtrip(self):
+        class Settings(int, Enum):
+            _settings_ = NoAlias
+            red = 1
+            rojo = 1
+        self.assertEqual(Settings.red, Settings.rojo)
+        self.assertIsNot(Settings.red, Settings.rojo)
+        self.assertIs(Settings(Settings.red), Settings.red)
+        self.assertIs(Settings(Settings.rojo), Settings.rojo)
+
+    def test_noalias_still_rejects_values_and_foreign_members(self):
+        class Settings(aenum.NoAliasEnum):
+            red = 1
+            rojo = 1
+        class Other(IntEnum):
+            red = 1
+        for value in (1, 2, 'red', Other.red):
+            self.assertRaisesRegex(TypeError,
+                    'NoAlias enumerations cannot be looked up by value', Settings, value)
+
     def test_auto_and_init(self):
         class Field(int, Enum):
             _order_ = 'TYPE START'

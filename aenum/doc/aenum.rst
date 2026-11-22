@@ -57,7 +57,8 @@ member; the first tuple item is the canonical one.
 ``NoAlias``
 
 Flag specifying that duplicate valued members are distinct and not aliases;
-by-value lookups are disabled.
+by-value lookups are disabled. Passing an existing member to its enum class
+returns that same member, even when another member has an equal value.
 
 ``Unique``
 

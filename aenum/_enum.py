@@ -2244,12 +2244,12 @@ def __new__(cls, value):
     # all enum instances are actually created during class construction
     # without calling this method; this method is called by the metaclass'
     # __call__ (i.e. Color(3) ), and by pickle
-    if NoAlias in cls._settings_:
-        raise TypeError('NoAlias enumerations cannot be looked up by value')
     if type(value) is cls:
         # For lookups like Color(Color.red)
         # value = value.value
         return value
+    if NoAlias in cls._settings_:
+        raise TypeError('NoAlias enumerations cannot be looked up by value')
     # by-value search for a matching enum member
     # see if it's in the reverse mapping (for hashable values)
     try:
